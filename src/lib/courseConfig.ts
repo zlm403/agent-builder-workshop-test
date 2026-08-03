@@ -330,13 +330,8 @@ const TEMPLATE: CourseTemplateData = {
           '用于对比后续“被辅导后”的变化',
           '大屏会实时显示完成进度',
         ],
-        // 任务区四要素：前端 A01Screen/学生 ai_task 取 teacherContent.taskArea（A01 此前缺失导致任务区空白）
-        taskArea: {
-          targetUser: '你自己（适配自身英语水平的学习者）',
-          goal: '设计一次 20 分钟的英语阅读训练',
-          available: '任意 AI 工具（对话助手/写作工具等）；用你日常习惯的方式，不要刻意优化',
-          finalDeliverable: '一份完整的 20 分钟英语阅读训练安排（提交到下方对话框）',
-        },
+        // 任务区：前端 A01Screen/学生 ai_task 取 teacherContent.prompt（不是 taskArea，此前缺失导致任务区空白）
+        prompt: '请用任意 AI 工具，为自己设计一次 20 分钟英语阅读训练。',
         // 中性基线：AI 不引导"怎么做"，但任务和资料都给学生（让其知道做什么，不告诉怎么做）
         materials: MATERIALS,
         revealOrder: ['task', 'observe'],
@@ -403,6 +398,7 @@ const TEMPLATE: CourseTemplateData = {
           '教师可在讲解后“暂停锁定”学生端',
           '揭晓后大屏展示前后变化对比',
         ],
+        prompt: '不更换 AI。请在第一轮基础上，让这次训练更适合真实的学习者。',
         revealOrder: ['brief', 'pause', 'reveal'],
         materials: MATERIALS,
         operationHint:
