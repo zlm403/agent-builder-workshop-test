@@ -9,37 +9,62 @@ export interface ChatMessage {
   content: string;
 }
 
-export async function chatWithLLM(messages: ChatMessage[], system?: string): Promise<string> {
-  const config = getLLMConfig();
+export interface LLMOptions {
+  temperature?: number;
+  maxTokens?: number;
+  json?: boolean;
+  timeoutMs?: number;
+  model?: string; // 允许覆盖模型（用于快速降级模型）
+}
 
+export async function chatWithLLM(
+  messages: ChatMessage[],
+  system?: string,
+  options?: LLMOptions,
+): Promise<string> {
+  const config = getLLMConfig();
+  const timeoutMs = options?.timeoutMs ?? 60000;
+
+  // 离线（无 API Key）：返回内置 mock，保证流程可演示。
   if (!config.apiKey) {
     return mockReply(messages, system);
   }
 
-  const res = await fetch(`${config.baseUrl}/chat/completions`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${config.apiKey}`,
-    },
-    body: JSON.stringify({
-      model: config.model,
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const body: Record<string, unknown> = {
+      model: options?.model ?? config.model,
       messages: system ? [{ role: 'system', content: system }, ...messages] : messages,
-      temperature: 0.7,
-    }),
-  });
+      temperature: options?.temperature ?? 0.7,
+    };
+    if (options?.maxTokens) body.max_tokens = options.maxTokens;
+    if (options?.json) body.response_format = { type: 'json_object' };
 
-  if (!res.ok) {
-    const text = await res.text().catch(() => '');
-    throw new Error(`LLM 请求失败（${res.status}）${text ? `：${text}` : ''}`);
-  }
+    const res = await fetch(`${config.baseUrl}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${config.apiKey}`,
+      },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
 
-  const data = (await res.json()) as { choices?: { message?: { content?: string } }[] };
-  const content = data.choices?.[0]?.message?.content?.trim();
-  if (!content) {
-    throw new Error('LLM 返回内容为空');
+    if (!res.ok) {
+      const text = await res.text().catch(() => '');
+      throw new Error(`LLM 请求失败（${res.status}）${text ? `：${text}` : ''}`);
+    }
+
+    const data = (await res.json()) as { choices?: { message?: { content?: string } }[] };
+    const content = data.choices?.[0]?.message?.content?.trim();
+    if (!content) {
+      throw new Error('LLM 返回内容为空');
+    }
+    return content;
+  } finally {
+    clearTimeout(timer);
   }
-  return content;
 }
 
 // 离线 mock：基于完整对话历史给出结构性回复。

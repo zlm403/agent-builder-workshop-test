@@ -22,6 +22,24 @@ async function emitProgress(sessionId: string) {
   publish(sessionId, { type: 'progress:update', payload: summary });
 }
 
+// A03 子状态（running/compare）通过原生 SQL 读写，避免重新生成 Prisma 客户端
+async function readModuleSubState(sessionId: string): Promise<string | null> {
+  try {
+    const rows = await prisma.$queryRawUnsafe<{ moduleSubState: string | null }[]>(
+      'SELECT "moduleSubState" FROM "ClassSession" WHERE id = $1', sessionId,
+    );
+    return rows[0]?.moduleSubState ?? null;
+  } catch {
+    return null;
+  }
+}
+
+async function writeModuleSubState(sessionId: string, value: string | null) {
+  await prisma.$executeRawUnsafe(
+    'UPDATE "ClassSession" SET "moduleSubState" = $1 WHERE id = $2', value, sessionId,
+  );
+}
+
 // ---------- 课堂生命周期 ----------
 
 export async function createClassroom(teacherId = 'teacher-default', version = 'A', scheduledStartAt?: Date | null) {
@@ -61,6 +79,7 @@ export async function advanceClassroom(sessionId: string) {
     where: { id: sessionId },
     data: { currentModuleId: next, moduleStartedAt: new Date() },
   });
+  await writeModuleSubState(sessionId, null);
   await audit(sessionId, 'teacher', 'module:advance', next);
   publish(sessionId, { type: 'module:advanced', payload: { moduleId: next } });
   await emitProgress(sessionId);
@@ -107,6 +126,7 @@ export async function resetClassroom(_sessionId: string) {
       endedAt: null,
     },
   });
+  await writeModuleSubState(_sessionId, null);
 
   await audit(_sessionId, 'teacher', 'classroom:reset');
   publish(_sessionId, { type: 'classroom:reset', payload: {} });
@@ -154,6 +174,16 @@ export async function setLock(sessionId: string, locked: boolean) {
   await audit(sessionId, 'teacher', 'module:lock', undefined, { locked });
   publish(sessionId, { type: 'module:locked', payload: { locked } });
   return updated;
+}
+
+export async function setModuleSubState(sessionId: string, subState: string | null) {
+  const session = await prisma.classSession.findUnique({ where: { id: sessionId } });
+  if (!session) throw new Error('SESSION_NOT_FOUND');
+  await writeModuleSubState(sessionId, subState);
+  await audit(sessionId, 'teacher', 'module:substate', undefined, { subState });
+  publish(sessionId, { type: 'module:substate', payload: { subState } });
+  await emitProgress(sessionId);
+  return session;
 }
 
 // ---------- 学生入场 ----------
@@ -398,7 +428,7 @@ export async function submitScreeningFollowup(anonymousId: string, followupAnswe
   });
   if (!rec) throw new Error('NO_FIRST_ANSWER');
 
-  const first = (rec.judgmentJson as ScreeningJudgment) ?? judgeAnswer(rec.answer);
+  const first = (rec.judgmentJson as unknown as ScreeningJudgment) ?? judgeAnswer(rec.answer);
   const finalJudgment = refineJudgment(first, trimmed);
 
   await upsertProgress(p.id, p.sessionId, 'A0_SCREENING', 'submitted', {
@@ -435,6 +465,7 @@ export interface ProgressSummary {
   status: string;
   currentModuleId: string | null;
   moduleLocked: boolean;
+  moduleSubState: string | null;
   totalStudents: number;
   onlineStudents: number;
   totalSubmitted: number; // 全部模块累计提交（completed + submitted）
@@ -479,6 +510,7 @@ export async function getProgressSummary(sessionId: string): Promise<ProgressSum
     status: session.status,
     currentModuleId: session.currentModuleId,
     moduleLocked: session.moduleLocked,
+    moduleSubState: await readModuleSubState(sessionId),
     totalStudents,
     onlineStudents,
     totalSubmitted: progress.filter((r) => r.status === 'completed' || r.status === 'submitted').length,

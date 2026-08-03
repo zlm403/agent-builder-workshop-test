@@ -5,6 +5,7 @@ export interface LLMConfig {
   apiKey: string | undefined;
   baseUrl: string;
   model: string;
+  fastModel: string;
 }
 
 let memoryConfig: Partial<LLMConfig> | null = null;
@@ -34,6 +35,7 @@ export function getLLMConfig(): LLMConfig {
       apiKey: memoryConfig.apiKey ?? process.env.LLM_API_KEY,
       baseUrl: memoryConfig.baseUrl ?? process.env.LLM_BASE_URL ?? 'https://api.deepseek.com/v1',
       model: memoryConfig.model ?? process.env.LLM_MODEL ?? 'deepseek-chat',
+      fastModel: memoryConfig.fastModel ?? process.env.LLM_FAST_MODEL ?? 'deepseek-chat',
     };
   }
   const localEnv = readEnvFile(path.resolve(process.cwd(), '.env.local'));
@@ -41,6 +43,7 @@ export function getLLMConfig(): LLMConfig {
     apiKey: process.env.LLM_API_KEY || localEnv.LLM_API_KEY || undefined,
     baseUrl: process.env.LLM_BASE_URL || localEnv.LLM_BASE_URL || 'https://api.deepseek.com/v1',
     model: process.env.LLM_MODEL || localEnv.LLM_MODEL || 'deepseek-chat',
+    fastModel: process.env.LLM_FAST_MODEL || localEnv.LLM_FAST_MODEL || 'deepseek-chat',
   };
 }
 

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { startClassroom, advanceClassroom, jumpClassroom, setLock, resetClassroom, endClassroom } from '@/lib/classroom';
+import { startClassroom, advanceClassroom, jumpClassroom, setLock, resetClassroom, endClassroom, setModuleSubState } from '@/lib/classroom';
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   try {
@@ -21,6 +21,12 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         break;
       case 'lock':
         result = await setLock(params.id, body.locked === true);
+        break;
+      case 'setSubState':
+        if (typeof body.subState !== 'string') {
+          return NextResponse.json({ error: { code: 'BAD_REQUEST', message: 'subState required' } }, { status: 400 });
+        }
+        result = await setModuleSubState(params.id, body.subState);
         break;
       case 'reset':
         result = await resetClassroom(params.id);

@@ -10,15 +10,24 @@ interface ModuleItem {
   id: string;
   title: string;
   type: string;
-  teacherContent?: { headline?: string; bullets?: string[]; note?: string };
+  teacherContent?: {
+    headline?: string;
+    subline?: string;
+    bullets?: string[];
+    note?: string;
+    coreQuestion?: string;
+    flow?: string[];
+  };
 }
 interface Summary {
   sessionId: string;
   status: string;
   currentModuleId: string | null;
   moduleLocked: boolean;
+  moduleSubState?: string | null;
   totalStudents: number;
   onlineStudents: number;
+  totalSubmitted?: number;
   overview: { moduleId: string; title: string; completed: number; inProgress: number; stuck: number; notStarted: number }[];
 }
 interface Analytics {
@@ -494,7 +503,7 @@ export default function TeacherPage() {
         <div className="card-metrics">
           <div><b>{summary?.totalStudents ?? 0}</b><span>已扫码入场</span></div>
           <div><b>{data.total}</b><span>有操作记录</span></div>
-          <div><b>{data.submitted ?? 0}</b><span>已完成提交</span></div>
+          <div><b>{data.metrics.submitted ?? 0}</b><span>已完成提交</span></div>
         </div>
         {/* 教学方向建议 */}
         <h4 style={{ margin: '12px 16px 8px', fontSize: 14 }}>教学方向建议</h4>
@@ -741,6 +750,30 @@ export default function TeacherPage() {
         </div>
       )}
 
+      {tc && (tc.headline || tc.bullets?.length || tc.coreQuestion) && (
+        <div className="teach-content" style={{ marginBottom: 16 }}>
+          {tc.headline && <h3 className="tc-headline" style={{ marginTop: 0 }}>{tc.headline}</h3>}
+          {tc.subline && <p className="tc-note" style={{ marginTop: 0 }}>{tc.subline}</p>}
+          {tc.bullets?.length ? (
+            <ul className="tc-bullets">
+              {tc.bullets.map((b, i) => (
+                <li key={i}>{b}</li>
+              ))}
+            </ul>
+          ) : null}
+          {tc.coreQuestion && (
+            <p className="tc-note" style={{ marginTop: 8 }}>
+              <b>核心问题：</b>{tc.coreQuestion}
+            </p>
+          )}
+          {tc.flow?.length ? (
+            <p className="tc-note" style={{ marginTop: 8 }}>
+              <b>流程：</b>{tc.flow.join(' → ')}
+            </p>
+          ) : null}
+        </div>
+      )}
+
       <div className="container" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
         <div className="card">
           <h3>入场信息</h3>
@@ -848,8 +881,13 @@ export default function TeacherPage() {
             <button className="secondary" disabled={status === 'active' || status === 'closed' || busy} onClick={() => control('start')}>开始课堂</button>
             <button disabled={busy || status === 'closed'} onClick={() => control('advance')}>下一环节 →</button>
             <button className="secondary" disabled={busy || status === 'closed'} onClick={() => control('lock', { locked: !moduleLocked })}>
-              {isA0 ? (moduleLocked ? '恢复面试（解锁）' : '揭晓全班标签') : (moduleLocked ? '解锁' : '锁定')}
+              {isA0 ? (moduleLocked ? '恢复面试（解锁）' : '揭晓全班标签') : currentModuleId === 'A03_REDO' ? (moduleLocked ? '解锁提交' : '暂停 / 锁定提交') : (moduleLocked ? '解锁' : '锁定')}
             </button>
+            {currentModuleId === 'A03_REDO' ? (
+              <button className="primary" disabled={busy || status === 'closed' || summary?.moduleSubState === 'compare'} onClick={() => control('setSubState', { subState: 'compare' })}>
+                {summary?.moduleSubState === 'compare' ? '已揭晓（再次揭晓）' : '揭晓前后变化'}
+              </button>
+            ) : null}
             <button
               className="danger"
               disabled={busy}
@@ -879,6 +917,11 @@ export default function TeacherPage() {
           {isA0 ? (
             <p className="note" style={{ marginTop: 12, color: 'var(--yellow)' }}>
               学生答得差不多时，点上方「揭晓全班标签」，大屏将黑场后显示三类 AI 标签的人数与占比（工具体验者 / 任务解决者 / 应用创造者）。若想让学生继续补充，再点「恢复面试（解锁）」即可。
+            </p>
+          ) : null}
+          {currentModuleId === 'A03_REDO' ? (
+            <p className="note" style={{ marginTop: 12, color: 'var(--yellow)' }}>
+              学生第二轮提交差不多时，先点「暂停 / 锁定提交」收齐，再点「揭晓前后变化」，大屏将显示 A01 基线 → A03 第二轮 在“对象 / 任务 / 过程 / 检验”上的前后变化与路径迁移。
             </p>
           ) : null}
           <div className="row" style={{ marginTop: 12 }}>

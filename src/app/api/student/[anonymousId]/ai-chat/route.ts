@@ -2,23 +2,22 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { chatWithLLM } from '@/lib/llm';
 import { publish } from '@/lib/realtime';
+import { getTemplate } from '@/lib/courseConfig';
 import type { A01OperationData, A01Turn } from '@/lib/analytics';
 
 const MATERIAL_KW = ['资料', '材料', '小林', '阅读', '原文', '根据', '依据'];
 const VERIFY_KW = ['依据', '核对', '检查', '验证', '原文找', '能否在原文', '出处'];
 const MODIFY_KW = ['修改', '调整', '重新', '改一下', '优化', '更正'];
 
-const MODULE_ID = 'A01_BASELINE';
-const SYSTEM = `你是 AI 教学设计助手。学生正在完成 A1 任务：阅读一份关于"小林考研英语阅读"的材料，并指挥 AI 完成四项工作——诊断问题、设计 30 分钟训练、生成测试题、检查依据。
+// 中性 SYSTEM：只按学生要求回应，不主动教方法、不给标准提示词、不报评分标准。
+const SYSTEM = `你是英语教学设计助手。学生正在用 AI 完成一次真实的英语阅读训练设计任务。
 
-默认节奏：每次回复只推进当前这一步，并给出下一步的可复制提示语，方便学生练习"如何向 AI 发指令"。
-触发条件：如果学生明确说"直接给我完整方案""不要分步""一次性说完""直接做""不要我提醒"或类似表达，则把剩余步骤一次性完整输出，不要再一步步追问。
+请严格按照学生提出的要求来回应，做到：
+1. 不主动拆解任务、不主动追问学习对象或薄弱点；
+2. 不主动给出所谓“标准提示词”或“满分指令”；
+3. 不主动讲解评分标准或“正确做法”。
 
-要求：
-1. 每一步结论必须能指回材料原文，避免常识推断；
-2. 训练设计要具体、可执行、时间明确；
-3. 测试题必须有答案和原文依据；
-4. 检查依据时要指出"原文哪里支持、哪里不支持"。`;
+如果学生提出的要求已经足够具体，就直接高质量地完成；如果学生只给了模糊指令，就按字面正常生成一份结果即可，不要替学生把任务“想得更清楚”。`;
 
 function detect(message: string, prev: boolean, kw: string[]): boolean {
   return prev || kw.some((k) => message.includes(k));
@@ -31,6 +30,8 @@ export async function POST(req: NextRequest, { params }: { params: { anonymousId
     const materialReferenced: boolean = !!body.materialReferenced;
     const submit: boolean = !!body.submit;
     const finalText: string = String(body.finalText ?? '');
+    const helpUsed: boolean = !!body.helpUsed;
+    const framework: Record<string, string> | undefined = body.framework;
 
     const p = await prisma.participant.findUnique({ where: { anonymousId: params.anonymousId } });
     if (!p) return NextResponse.json({ error: { code: 'INVALID_TOKEN' } }, { status: 404 });
@@ -40,8 +41,15 @@ export async function POST(req: NextRequest, { params }: { params: { anonymousId
     if (session.moduleLocked && !submit) {
       return NextResponse.json({ error: { code: 'MODULE_LOCKED' } }, { status: 400 });
     }
-    if (session.currentModuleId !== MODULE_ID) {
-      return NextResponse.json({ error: { code: 'MODULE_NOT_ACTIVE', current: session.currentModuleId } }, { status: 400 });
+
+    // 支持任意 ai_task 模块（A01 基线 / A03 第二轮），按当前模块动态存储
+  const MODULE_ID = session.currentModuleId;
+  if (!MODULE_ID) {
+    return NextResponse.json({ error: { code: 'MODULE_NOT_ACTIVE' } }, { status: 400 });
+  }
+  const mod = getTemplate().modules.find((m) => m.id === MODULE_ID);
+  if (!mod || mod.type !== 'ai_task') {
+      return NextResponse.json({ error: { code: 'MODULE_NOT_ACTIVE', current: MODULE_ID } }, { status: 400 });
     }
 
     const where = { participantId_moduleId: { participantId: p.id, moduleId: MODULE_ID } };
@@ -54,6 +62,7 @@ export async function POST(req: NextRequest, { params }: { params: { anonymousId
       usedMaterial: false,
       verified: false,
       modified: false,
+      helpUsed: false,
       firstUserPrompt: '',
     };
 
@@ -76,6 +85,9 @@ export async function POST(req: NextRequest, { params }: { params: { anonymousId
       reply = await chatWithLLM(chatMessages, SYSTEM);
       data.turns.push({ role: 'assistant', content: reply, at: Date.now() });
     }
+
+    if (helpUsed) data.helpUsed = true;
+    if (framework) data.framework = framework;
 
     let status = existing?.status ?? 'entered';
     if (submit) {
@@ -101,7 +113,6 @@ export async function POST(req: NextRequest, { params }: { params: { anonymousId
       update: baseData,
     });
 
-    // 实时通知教师端/大屏重新拉取分析
     publish(p.sessionId, { type: 'analytics:update', payload: { moduleId: MODULE_ID } });
 
     return NextResponse.json({
@@ -111,6 +122,7 @@ export async function POST(req: NextRequest, { params }: { params: { anonymousId
         usedMaterial: data.usedMaterial,
         verified: data.verified,
         modified: data.modified,
+        helpUsed: data.helpUsed,
         rounds: data.turns.filter((t) => t.role === 'user').length,
       },
     });

@@ -3,7 +3,7 @@
 // 这是“收集信息、分析学员、与销售顾问配合”的核心模块，教师端「复制销售简报」即调用本模块。
 
 import { prisma } from './db';
-import type { AiLabel, LABEL_TEXT } from './screening';
+import { type AiLabel, LABEL_TEXT } from './screening';
 
 export type SalesPriority = 'high' | 'mid' | 'low';
 

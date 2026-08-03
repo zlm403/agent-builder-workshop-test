@@ -5,11 +5,13 @@ import { getStyleProfile } from '@/lib/styleProfiles';
 import { A1_REVIEW } from '@/lib/a1Review';
 import StudentFinale from '@/components/StudentFinale';
 import StudentWaitingRoom from '@/components/StudentWaitingRoom';
+import L2StudentFlow from './L2StudentFlow';
 
 interface ModuleDef {
   id: string;
   title: string;
   type: string;
+  screenContent?: Record<string, any>;
   studentTask?: {
     prompt?: string;
     options?: { id: string; label: string }[];
@@ -50,6 +52,7 @@ export default function StudentPage() {
   const [form, setForm] = useState<Record<string, unknown>>({});
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const esRef = useRef<EventSource | null>(null);
   const refreshRef = useRef<(anonId?: string) => void>(() => {});
 
@@ -133,7 +136,7 @@ export default function StudentPage() {
             setScreeningResult(null);
             setScreeningAnswer('');
             setScreeningFollowupAnswer('');
-            setSubmitting(false);
+            setBusy(false);
           } else if (evt.type === 'classroom:closed') {
             // 课堂被关闭：释放学生，回到"加入课堂"
             localStorage.removeItem('studentResumeToken');
@@ -144,7 +147,7 @@ export default function StudentPage() {
             setScreeningResult(null);
             setScreeningAnswer('');
             setScreeningFollowupAnswer('');
-            setSubmitting(false);
+            setBusy(false);
             setMessage('本课堂已关闭，学生已释放。如需重新上课，请使用新的课堂码进入。');
           } else if (evt.type === 'finale:enter') {
             setPhase('finale');
@@ -644,14 +647,12 @@ export default function StudentPage() {
               <div className="ai-workspace">
                 <div className="zone task-zone">
                   <h3>任务区</h3>
-                  <p className="task-line"><b>目标用户：</b>{cfg.taskArea?.targetUser}</p>
-                  <p className="task-line"><b>目标：</b>{cfg.taskArea?.goal}</p>
-                  <p className="task-line"><b>可用资料：</b>{cfg.taskArea?.available}</p>
-                  <p className="task-line"><b>最终成果：</b>{cfg.taskArea?.finalDeliverable}</p>
                   <p className="task-prompt">{cfg.prompt}</p>
-                  <ol className="req-list">
-                    {(cfg.requirements ?? []).map((r, i) => <li key={i}>{r}</li>)}
-                  </ol>
+                  {current.screenContent?.phase === 'redo' && (
+                    <p className="task-hint" style={{ marginTop: 10, color: '#bae6fd', fontSize: 14, lineHeight: 1.6 }}>
+                      先想清楚：对象 / 任务 / 过程 / 检验，再组织你的输入与 AI 交流。同一个 AI，不换工具，用同一个任务再做一次。
+                    </p>
+                  )}
                 </div>
 
                 <div className="zone material-zone">
@@ -677,8 +678,9 @@ export default function StudentPage() {
                   <div className="chat-log">
                     {turns.length === 0 ? (
                       <p className="hint">
-                        建议按四步推进：①诊断小林的问题 ②设计 30 分钟训练 ③让 AI 出一道测试题 ④检查答案依据。<br />
-                        如果不知道说什么，可以复制发送："请根据资料分析小林最主要的学习问题。"
+                        {current.screenContent?.phase === 'redo'
+                          ? '同一个 AI，不换工具，用同一个任务再做一次。先想清楚对象、任务、过程、检验，再组织你的输入。'
+                          : '按你平时真实使用 AI 的方式开始，把你对任务的要求告诉 AI 即可。'}
                       </p>
                     ) : null}
                     {turns.map((t, i) => (
@@ -702,11 +704,40 @@ export default function StudentPage() {
                   </div>
 
                   {moduleStatus !== 'submitted' && (
-                    <div className="submit-area" style={{ textAlign: 'center', padding: '12px 0' }}>
-                      <button disabled={busy || locked} onClick={() => submitTask()} className="primary" style={{ fontSize: 15, padding: '10px 32px', borderRadius: 8 }}>
-                        提交最终成果
+                    <div className="submit-area" style={{ textAlign: 'center', padding: '20px 0 4px', borderTop: '1px solid rgba(255,255,255,0.08)', marginTop: 16 }}>
+                      <button disabled={busy || locked} onClick={() => setShowConfirm(true)} className="primary" style={{ fontSize: 15, padding: '10px 32px', borderRadius: 8 }}>
+                        {current.screenContent?.phase === 'redo' ? '提交第二轮成果' : '提交第一轮成果'}
                       </button>
-                      <p style={{ margin: '6px 0 0', fontSize: 12, color: 'var(--muted)' }}>AI 将根据你的对话过程自动判断并给出结论</p>
+                      <p style={{ margin: '6px 0 0', fontSize: 12, color: 'var(--muted)' }}>完成后将记录你的使用方式，稍后与大屏一起查看前后变化</p>
+                    </div>
+                  )}
+
+                  {/* 提交确认弹窗 */}
+                  {showConfirm && (
+                    <div style={{
+                      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999,
+                    }} onClick={() => setShowConfirm(false)}>
+                      <div style={{
+                        background: '#1e293b', borderRadius: 14, padding: '28px 30px',
+                        maxWidth: 400, width: '90%', border: '1px solid rgba(255,255,255,0.1)',
+                      }} onClick={(e) => e.stopPropagation()}>
+                        <h3 style={{ margin: '0 0 10px', fontSize: 18 }}>确认提交？</h3>
+                        <p style={{ margin: '0 0 20px', color: '#94a3b8', fontSize: 14, lineHeight: 1.6 }}>
+                          提交后将记录你本轮与 AI 的完整操作过程，并锁定无法修改。
+                          {current.screenContent?.phase === 'redo'
+                            ? ' 确认你的第二轮任务已经完成了吗？'
+                            : ' 确认你已经和 AI 完成了足够的对话吗？'}
+                        </p>
+                        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+                          <button className="secondary" onClick={() => setShowConfirm(false)} style={{ padding: '8px 20px', borderRadius: 8 }}>
+                            再想想
+                          </button>
+                          <button className="primary" disabled={busy} onClick={() => { setShowConfirm(false); submitTask(); }} style={{ padding: '8px 24px', borderRadius: 8 }}>
+                            确认提交
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -802,19 +833,11 @@ export default function StudentPage() {
             {current.type === 'class_mirror' && (
               <div className="module-card">
                 <div className="section-head">
-                  <span className="badge purple">A02 · 审视现状</span>
+                  <span className="badge purple">A02 · 查看全班真实使用方式</span>
                   <h2>刚才，全班是怎样使用 AI 的？</h2>
                 </div>
-                {sp ? (
-                  <>
-                    <div className="style-badge">你的分类：<b>{sp.label}</b> · {sp.pathName}</div>
-                    <h3 className="sub">你的不足</h3>
-                    <p className="note">{sp.a02Shortfall}</p>
-                    <p className="hint">老师正结合全班的操作方式讲解，先对照看看自己中了几条。</p>
-                  </>
-                ) : (
-                  <p className="note">你的个性化分析将在完成 A01 实操作后生成；先跟着老师的讲解走即可。</p>
-                )}
+                <p className="note">你的第一轮结果已经记录。请观看大屏，看看不同使用方式带来了什么差异。</p>
+                <p className="hint">正在观看全班结果 · 等待教师讲解</p>
               </div>
             )}
 
@@ -1026,11 +1049,21 @@ export default function StudentPage() {
               );
             })()}
 
-            {!['waiting', 'single_choice', 'multi_choice', 'short_text', 'source_select', 'ai_task', 'hr_screening', 'class_mirror', 'lecture', 'agent_config', 'rule_config', 'workflow_order', 'ai_run', 'stress_test', 'compare_runs', 'persona_config'].includes(current.type) && (
+            {['knowledge_select', 'skill_build', 'assistant_try'].includes(current.type) && (
+              <L2StudentFlow
+                current={current}
+                anonymousId={anonymousId}
+                locked={locked}
+                moduleStatus={moduleStatus}
+                onSubmitted={() => refreshRef.current()}
+              />
+            )}
+
+            {!['waiting', 'single_choice', 'multi_choice', 'short_text', 'source_select', 'ai_task', 'hr_screening', 'class_mirror', 'lecture', 'agent_config', 'rule_config', 'workflow_order', 'ai_run', 'stress_test', 'compare_runs', 'persona_config', 'knowledge_select', 'skill_build', 'assistant_try'].includes(current.type) && (
               <p className="note">此模块类型（{current.type}）将在后续 Sprint 实现；当前演示版仅打通投票/文本/资料/AI 任务模块。</p>
             )}
 
-            {moduleStatus !== 'submitted' && current.type !== 'waiting' && current.type !== 'ai_task' && current.type !== 'hr_screening' && current.type !== 'class_mirror' && current.type !== 'lecture' && (
+            {moduleStatus !== 'submitted' && current.type !== 'waiting' && current.type !== 'ai_task' && current.type !== 'hr_screening' && current.type !== 'class_mirror' && current.type !== 'lecture' && current.type !== 'knowledge_select' && current.type !== 'skill_build' && current.type !== 'assistant_try' && (
               <div style={{ marginTop: 16 }}>
                 <button disabled={busy || locked} onClick={submit}>
                   {busy ? '提交中…' : '提交'}

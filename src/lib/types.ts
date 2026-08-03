@@ -2,6 +2,7 @@
 
 export type ModuleType =
   | 'waiting'
+  | 'screening'
   | 'single_choice'
   | 'multi_choice'
   | 'true_false'
@@ -24,7 +25,11 @@ export type ModuleType =
   | 'ai_task' // A01：真实任务 AI 工作区（基线测试）
   | 'class_mirror' // A02：全班行为镜像与复盘
   | 'hr_screening' // A0：AI 审判官 · 应聘自检（离线 mock HR，后续可接 LLM）
-  | 'persona_config'; // A11：一人一配置（桥接终章·多 Agent）
+  | 'persona_config' // A11：一人一配置（桥接终章·多 Agent）
+  | 'l2_intro' // 第二关开场
+  | 'knowledge_select' // A04：选择知识库
+  | 'skill_build' // A05：编写 Skill
+  | 'assistant_try'; // A06：运行·检查·修改·提交
 
 export interface ChoiceOption {
   id: string;
@@ -111,4 +116,115 @@ export interface LectureConfig {
   headline: string;
   bullets: string[];
   comparison?: { bad: string; good: string };
+}
+
+// ============ 第二关：把 AI 助手交给不同的人 ============
+export type GenerationMode = 'primary' | 'fast-fallback' | 'offline-example';
+
+export type L2ModuleId = 'L2_INTRO' | 'A04_KNOWLEDGE' | 'A05_SKILL' | 'A06_TRY';
+
+export type KnowledgeSubState = 'select' | 'ready';
+export type SkillSubState = 'edit' | 'preview';
+export type TrySubState =
+  | 'profiles'
+  | 'running-first'
+  | 'first-result'
+  | 'checking'
+  | 'check-result'
+  | 'revise-knowledge'
+  | 'revise-skill'
+  | 'revise-both'
+  | 'running-second'
+  | 'second-result'
+  | 'submit'
+  | 'completed';
+
+// 双跑引用：模型必须结构化返回实际使用的 docId
+export interface RunReference {
+  docId: string;
+  usage?: string;
+  evidence?: string;
+}
+
+export interface LearnerRunResult {
+  learnerId: string;
+  trainingFocus: string;
+  materialDifficulty: string;
+  trainingTask: string;
+  trainingDuration: string;
+  feedbackMethod: string;
+  references: RunReference[];
+}
+
+export interface DualRunResponse {
+  runId: string;
+  generationMode: GenerationMode;
+  learnerA: LearnerRunResult;
+  learnerB: LearnerRunResult;
+  warnings: string[];
+}
+
+export type AiCheckDiagnosisType = 'knowledgeBase' | 'skill' | 'both' | 'acceptable';
+
+export interface AiCheckResult {
+  overallStatus: string;
+  positiveFindings: string[];
+  issues: string[];
+  evidence: string[];
+  recommendations: string[];
+  diagnosisType: AiCheckDiagnosisType;
+}
+
+export interface SkillVersion {
+  understand: string;
+  judge: string;
+  execute: string;
+  sourcePriorityRule: string;
+  feedback: string;
+}
+
+export interface L2ProcessData {
+  schemaVersion: 1;
+  courseId: string;
+  sessionId: string;
+  studentId: string;
+  currentModule: L2ModuleId;
+  moduleSubState: string;
+  knowledgeBase: {
+    initialSelection: string[];
+    selectionLogs: { docId: string; action: 'add' | 'remove'; at: string }[];
+    initialSnapshot: Record<string, unknown>;
+    firstRunReferences: string[];
+    aiDiagnosis?: Record<string, unknown>;
+    finalSelection: string[];
+    finalSnapshot: Record<string, unknown>;
+    secondRunReferences: string[];
+  };
+  skill: {
+    initialVersion: SkillVersion;
+    phraseTokensUsed: string[];
+    aiDiagnosis?: Record<string, unknown>;
+    revisionLogs: { block: string; from: string; to: string; at: string }[];
+    finalVersion: SkillVersion;
+  };
+  firstRun?: {
+    learnerA: LearnerRunResult;
+    learnerB: LearnerRunResult;
+    generationMode: GenerationMode;
+  };
+  aiCheck?: AiCheckResult;
+  revisions: { kind: 'knowledge' | 'skill' | 'both'; at: string }[];
+  secondRun?: {
+    learnerA: LearnerRunResult;
+    learnerB: LearnerRunResult;
+    generationMode: GenerationMode;
+    comparisonWithFirstRun?: string;
+  };
+  interactionLogs: {
+    module: string;
+    subState: string;
+    action: string;
+    at: string;
+  }[];
+  submittedAt?: string;
 }

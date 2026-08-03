@@ -36,6 +36,7 @@ model ClassSession {
   status          String   @default("pending") // pending|active|paused|ended
   currentModuleId String?
   moduleLocked    Boolean  @default(false)
+  moduleSubState  String?  // A03 子状态：running（第二轮进行中）| compare（已揭晓前后变化）；其它环节为 null
   moduleStartedAt DateTime? // 进入当前计时节点的真实时刻（用于倒计时对齐，迟到/二次进入自动跟随）
   scheduledStartAt DateTime? // 设定的开课时间（教师可设定，入场倒计时对准此时间，到时归零）
   startedAt       DateTime?

@@ -1,13 +1,15 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { STYLE_ORDER } from '@/lib/styleProfiles';
 import ScreenFinale from '@/components/ScreenFinale';
+import { compareRounds } from '@/lib/analytics';
+import { KNOWLEDGE_DOCS, SKILL_BLOCKS } from '@/lib/courseConfig';
 
 interface Summary {
   status: string;
   currentModuleId: string | null;
   moduleLocked: boolean;
+  moduleSubState?: string | null;
   totalStudents: number;
   onlineStudents: number;
   overview: { moduleId: string; title: string; completed: number; inProgress: number; stuck: number; notStarted: number }[];
@@ -21,11 +23,15 @@ interface ModuleDef {
 }
 interface Analytics {
   total: number;
-  metrics: { entered: number; firstCall: number; usedMaterial: number; iterated: number; verified: number; submitted: number };
+  metrics: { entered: number; firstCall: number; usedMaterial: number; iterated: number; verified: number; submitted: number; modified: number };
   aiStyle: { label: string; pct: number }[];
   taskClarity: { label: string; pct: number }[];
   materialUsage: { label: string; pct: number }[];
   styleCounts?: { one_shot: number; multi_round: number; stepwise: number };
+  dimensions?: { key: string; label: string; pct: number }[];
+  pathDistribution?: { key: string; label: string; count: number; pct: number }[];
+  artifactDistribution?: { key: string; label: string; count: number; pct: number }[];
+  classInsight?: string;
 }
 interface ScreeningSample {
   anonymousId: string;
@@ -135,12 +141,17 @@ export default function ScreenPage() {
     setStartedAt(s.moduleStartedAt ?? null);
     setMeta({ inviteCode: s.inviteCode, courseName: s.courseName, createdAt: s.createdAt, scheduledStartAt: s.scheduledStartAt ?? null });
     fetchQr(id);
-    if (s.currentModule?.type === 'ai_task' || s.currentModule?.type === 'class_mirror') fetchAnalytics(id);
-    else if (s.currentModule?.type === 'hr_screening') fetchScreening(id);
+    const cur = s.currentModule;
+    if (cur?.type === 'ai_task') {
+      if (cur.screenContent?.phase === 'redo') fetchAnalytics(id, cur.id);
+      else fetchAnalytics(id, 'A01_BASELINE');
+    } else if (cur?.type === 'class_mirror') {
+      fetchAnalytics(id, 'A01_BASELINE');
+    } else if (cur?.type === 'hr_screening') fetchScreening(id);
   }
-  async function fetchAnalytics(id: string) {
+  async function fetchAnalytics(id: string, moduleId = 'A01_BASELINE') {
     try {
-      const a = await (await fetch(`/api/analytics?sessionId=${id}`)).json();
+      const a = await (await fetch(`/api/analytics?sessionId=${id}&moduleId=${moduleId}`)).json();
       setAnalytics(a);
     } catch {
       /* noop */
@@ -198,11 +209,21 @@ export default function ScreenPage() {
       ) : module.type === 'hr_screening' ? (
         <A0Screen module={module} screening={screening} summary={summary} locked={summary?.moduleLocked ?? false} />
       ) : module.type === 'ai_task' ? (
-        <A01Screen module={module} analytics={analytics} total={total} summary={summary} startedAt={startedAt} />
+        module.screenContent?.phase === 'redo' ? (
+          <A03Screen module={module} analytics={analytics} total={total} summary={summary} startedAt={startedAt} subState={summary?.moduleSubState ?? null} sessionId={sessionId} />
+        ) : (
+          <A01Screen module={module} analytics={analytics} total={total} summary={summary} startedAt={startedAt} />
+        )
       ) : module.type === 'class_mirror' ? (
         <A02Screen module={module} analytics={analytics} total={total} />
       ) : module.type === 'lecture' ? (
-        <A03Screen module={module} />
+        <A03Screen module={module} sessionId={sessionId} subState={summary?.moduleSubState ?? null} />
+      ) : module.type === 'knowledge_select' ? (
+        <A04Screen summary={summary} total={total} module={module} />
+      ) : module.type === 'skill_build' ? (
+        <A05Screen summary={summary} total={total} module={module} />
+      ) : module.type === 'assistant_try' ? (
+        <A06Screen summary={summary} total={total} module={module} />
       ) : (
         <GenericScreen summary={summary} total={total} module={module} />
       )}
@@ -233,7 +254,7 @@ function A01Screen({
   summary: Summary | null;
   startedAt: string | null;
 }) {
-  const ph = (module.teacherContent?.screenPhase1 ?? {}) as { headline?: string; subline?: string; brief?: string };
+  const ph = (module.teacherContent?.screenPhase1 ?? {}) as { headline?: string; subline?: string; brief?: string; operationHint?: string };
   const cfg = (module.teacherContent ?? {}) as {
     timeLimitSec?: number;
     taskArea?: { targetUser?: string; goal?: string; available?: string; finalDeliverable?: string };
@@ -333,14 +354,10 @@ function A01Screen({
         <div className="ai-workspace">
           <div className="zone task-zone">
             <h3>任务区</h3>
-            <p className="task-line"><b>目标用户：</b>{cfg.taskArea?.targetUser}</p>
-            <p className="task-line"><b>目标：</b>{cfg.taskArea?.goal}</p>
-            <p className="task-line"><b>可用资料：</b>{cfg.taskArea?.available}</p>
-            <p className="task-line"><b>最终成果：</b>{cfg.taskArea?.finalDeliverable}</p>
             <p className="task-prompt">{cfg.prompt}</p>
-            <ol className="req-list">
-              {(cfg.requirements ?? []).map((r, i) => <li key={i}>{r}</li>)}
-            </ol>
+            {ph.operationHint && (
+              <div className="task-hint" style={{ marginTop: 10, color: '#bae6fd', fontSize: 14, lineHeight: 1.6 }}>{ph.operationHint}</div>
+            )}
           </div>
 
           <div className="zone material-zone">
@@ -444,72 +461,361 @@ function A02Screen({ module, analytics, total }: { module: ModuleDef; analytics:
   const cfg = (module.teacherContent ?? {}) as {
     headline?: string;
     question?: string;
-    paths?: { name: string; steps: string[] }[];
+    behaviors?: { key: string; label: string }[];
+    paths?: { key: string; name: string; flow: string; note: string }[];
+    artifactsTitle?: string;
+    fourElements?: { name: string; meaning: string; action: string }[];
   };
   const m = analytics?.metrics;
-  const counts = analytics?.styleCounts;
-  const big = [
-    { label: '使用给定资料', value: pct(m?.usedMaterial ?? 0, total) },
-    { label: '二次追问/修改', value: pct(m?.iterated ?? 0, total) },
-    { label: '主动验证依据', value: pct(m?.verified ?? 0, total) },
-    { label: '已提交成果', value: pct(m?.submitted ?? 0, total) },
-  ];
+  const behaviors = cfg.behaviors ?? [];
+  const rateOf = (key: string): number => {
+    if (key === 'context') return analytics?.dimensions?.find((d) => d.key === 'context')?.pct ?? 0;
+    if (key === 'verified') return analytics?.dimensions?.find((d) => d.key === 'verify')?.pct ?? 0;
+    if (key === 'process') return analytics?.dimensions?.find((d) => d.key === 'process')?.pct ?? 0;
+    if (key === 'modified') return pct(m?.modified ?? 0, total);
+    return 0;
+  };
+  const pathList = (cfg.paths ?? []).map((p) => ({
+    ...p,
+    pct: analytics?.pathDistribution?.find((x) => x.key === p.key)?.pct ?? 0,
+    count: analytics?.pathDistribution?.find((x) => x.key === p.key)?.count ?? 0,
+  }));
   return (
     <>
-      <div style={{ fontSize: 40, fontWeight: 800, marginBottom: 20 }}>{cfg.headline ?? '刚才，全班是怎样使用 AI 的？'}</div>
-      <div style={{ display: 'flex', gap: 36, flexWrap: 'wrap', marginBottom: 28 }}>
-        {big.map((b) => (
-          <div key={b.label} style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: 52, fontWeight: 800, color: 'var(--blue)' }}>{b.value}%</div>
-            <div style={{ color: '#94a3b8', fontSize: 15 }}>{b.label}</div>
+      <div style={{ fontSize: 40, fontWeight: 800, marginBottom: 6 }}>{cfg.headline ?? '刚才，全班是怎样使用 AI 的？'}</div>
+      <p style={{ color: '#94a3b8', fontSize: 16, marginBottom: 18 }}>同一个任务、同一个 AI，大家采取的方式却不同。</p>
+
+      <h3 style={{ color: '#94a3b8', marginBottom: 12 }}>全班真实行为</h3>
+      <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', marginBottom: 26 }}>
+        {behaviors.map((b) => (
+          <div key={b.key} style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 12, padding: 16, minWidth: 180, textAlign: 'center' }}>
+            <div style={{ fontSize: 34, fontWeight: 800, color: 'var(--blue)' }}>{rateOf(b.key)}%</div>
+            <div style={{ color: '#cbd5e1', fontSize: 15, marginTop: 6 }}>{b.label}</div>
           </div>
         ))}
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 20 }}>
-        {(cfg.paths ?? []).map((p, i) => {
-          const k = STYLE_ORDER[i];
-          const cnt = (counts as any)?.[k] ?? 0;
-          return (
-            <div key={p.name} style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 12, padding: 16 }}>
-              <div style={{ fontWeight: 700, marginBottom: 10, color: 'var(--yellow)' }}>{p.name}</div>
-              <div style={{ fontSize: 13, color: '#94a3b8', marginBottom: 12 }}>{cnt} 名学员属于此路径</div>
-              <ol style={{ margin: 0, paddingLeft: 20, fontSize: 15, lineHeight: 1.8 }}>
-                {p.steps.map((s, i) => <li key={i}>{s}</li>)}
-              </ol>
-            </div>
-          );
-        })}
+
+      <h3 style={{ color: '#94a3b8', marginBottom: 12 }}>三种使用路径</h3>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 18 }}>
+        {pathList.map((p) => (
+          <div key={p.key} style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 12, padding: 16 }}>
+            <div style={{ fontWeight: 700, marginBottom: 8, color: 'var(--yellow)' }}>{p.name}</div>
+            <div style={{ fontSize: 14, color: '#cbd5e1', marginBottom: 10 }}>{p.flow}</div>
+            <div style={{ fontSize: 13, color: '#94a3b8', marginBottom: 10 }}>{p.note}</div>
+            <div style={{ fontSize: 24, fontWeight: 800 }}>{p.pct}%</div>
+            <div style={{ fontSize: 12, color: '#94a3b8' }}>{p.count} 名学员</div>
+          </div>
+        ))}
       </div>
-      <p style={{ fontSize: 22, marginTop: 32, color: 'var(--green)', fontWeight: 700 }}>{cfg.question}</p>
+
+      <h3 style={{ color: '#94a3b8', marginTop: 26, marginBottom: 12 }}>{cfg.artifactsTitle ?? '全班做出了什么'}</h3>
+      <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap' }}>
+        {(analytics?.artifactDistribution ?? []).map((a) => (
+          <div key={a.key} style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 12, padding: 14, minWidth: 150, textAlign: 'center' }}>
+            <div style={{ fontSize: 22, fontWeight: 700 }}>{a.pct}%</div>
+            <div style={{ fontSize: 13, color: '#cbd5e1', marginTop: 4 }}>{a.label}</div>
+          </div>
+        ))}
+      </div>
+
+      <div style={{ marginTop: 26, padding: 16, background: 'rgba(56,189,248,0.08)', border: '1px solid rgba(56,189,248,0.3)', borderRadius: 12 }}>
+        <div style={{ color: 'var(--blue)', fontWeight: 700, marginBottom: 6 }}>本班发现</div>
+        <p style={{ margin: 0, fontSize: 18 }}>{analytics?.classInsight ?? '提交仍在统计中，稍后生成本班发现。'}</p>
+      </div>
+
+      <h3 style={{ color: '#94a3b8', marginTop: 26, marginBottom: 12 }}>为什么结果不同？看清四个要素</h3>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 14 }}>
+        {(cfg.fourElements ?? []).map((e) => (
+          <div key={e.name} style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 12, padding: 14 }}>
+            <div style={{ fontWeight: 700, color: 'var(--green)', marginBottom: 6 }}>{e.name}</div>
+            <div style={{ fontSize: 13, color: '#cbd5e1', marginBottom: 6, lineHeight: 1.5 }}>{e.meaning}</div>
+            <div style={{ fontSize: 12, color: '#94a3b8', lineHeight: 1.5 }}>学生：{e.action}</div>
+          </div>
+        ))}
+      </div>
+
+      <p style={{ fontSize: 22, marginTop: 30, color: 'var(--green)', fontWeight: 700 }}>{cfg.question}</p>
     </>
   );
 }
 
-function A03Screen({ module }: { module: ModuleDef }) {
-  const cfg = (module.teacherContent ?? {}) as {
-    headline?: string;
-    bullets?: string[];
-    comparison?: { bad: string; good: string };
-  };
+function A03Screen({ module, analytics, total, summary, startedAt, subState, sessionId }: any) {
+  const cfg = (module.teacherContent ?? {}) as { headline?: string; subline?: string; brief?: string };
+  const [baseline, setBaseline] = useState<any>(null);
+  const timeLimit = (module as any).durationSeconds ?? 180;
+  const target = startedAt ? new Date(startedAt).getTime() + timeLimit * 1000 : null;
+  const remain = useCountdown(target);
+
+  useEffect(() => {
+    if (subState === 'compare' && sessionId) {
+      fetch(`/api/analytics?sessionId=${sessionId}&moduleId=A01_BASELINE`).then((r) => r.json()).then(setBaseline).catch(() => {});
+    }
+  }, [subState, sessionId]);
+
+  const submitted = summary?.overview?.find((o: any) => o.moduleId === module.id)?.completed ?? 0;
+
+  // compare 视图（所有 hooks 已在上面调用完毕）
+  if (subState === 'compare') {
+    if (!analytics || !baseline) {
+      return (
+        <>
+          <div style={{ fontSize: 36, fontWeight: 800, marginBottom: 20 }}>正在加载对比数据…</div>
+          <p style={{ color: '#94a3b8' }}>如果尚无学生提交第二轮成果，请等待提交后再揭晓。</p>
+        </>
+      );
+    }
+    try {
+      const cmp = compareRounds(baseline, analytics);
+    return (
+      <>
+        <div style={{ fontSize: 36, fontWeight: 800, marginBottom: 20 }}>没有更换 AI，改变任务设计和使用过程后，发生了什么？</div>
+        <h3 style={{ color: '#94a3b8' }}>四个要素的前后变化</h3>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 26 }}>
+          {cmp.dimensions.map((d) => (
+            <div key={d.key} style={{ display: 'flex', alignItems: 'center', gap: 16, background: '#1e293b', border: '1px solid #334155', borderRadius: 10, padding: '12px 16px' }}>
+              <div style={{ width: 200, color: '#cbd5e1' }}>{d.label}</div>
+              <div style={{ fontSize: 22, fontWeight: 700 }}>{d.before}%</div>
+              <div style={{ color: 'var(--green)', fontSize: 22 }}>→</div>
+              <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--green)' }}>{d.after}%</div>
+              {d.delta > 0 && <span style={{ color: 'var(--green)', fontSize: 13 }}>(+{d.delta})</span>}
+            </div>
+          ))}
+        </div>
+        <h3 style={{ color: '#94a3b8' }}>使用路径的变化</h3>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 16, marginBottom: 26 }}>
+          {(['direct', 'iterate', 'workflow'] as const).map((k) => (
+            <div key={k} style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 10, padding: 14, textAlign: 'center' }}>
+              <div style={{ fontSize: 20, fontWeight: 700 }}>{cmp.pathBefore[k]}% → {cmp.pathAfter[k]}%</div>
+              <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>{analytics.pathDistribution?.find((p: any) => p.key === k)?.label}</div>
+            </div>
+          ))}
+        </div>
+        <p style={{ fontSize: 20, color: 'var(--green)', fontWeight: 700 }}>真正拉开结果差异的，不是使用了哪个 AI，而是能否定义问题、设计过程并检查结果。</p>
+      </>
+    );
+  } catch (e) {
+    return (
+      <>
+        <div style={{ fontSize: 36, fontWeight: 800, marginBottom: 20 }}>对比数据加载失败</div>
+        <p style={{ color: '#94a3b8' }}>可能尚无足够的提交数据。请确认学生已提交第一轮和第二轮成果后再试。</p>
+      </>
+    );
+  }
+  }
+
+  // 正常视图（第二轮进行中）
   return (
     <>
-      <div style={{ fontSize: 40, fontWeight: 800, marginBottom: 20 }}>{cfg.headline ?? '从聊天式使用到 Agent 式工作'}</div>
-      <ul style={{ fontSize: 18, lineHeight: 2, maxWidth: 1000 }}>
-        {(cfg.bullets ?? []).map((b, i) => <li key={i}>{b}</li>)}
-      </ul>
-      {cfg.comparison ? (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginTop: 24 }}>
-          <div style={{ background: '#3f1d1d', border: '1px solid #7f1d1d', borderRadius: 12, padding: 16 }}>
-            <div style={{ color: 'var(--red)', fontWeight: 700, marginBottom: 8 }}>做法 A（一次性）</div>
-            <p style={{ margin: 0 }}>{cfg.comparison.bad}</p>
-          </div>
-          <div style={{ background: '#14331f', border: '1px solid #166534', borderRadius: 12, padding: 16 }}>
-            <div style={{ color: 'var(--green)', fontWeight: 700, marginBottom: 8 }}>做法 B（Agent 式）</div>
-            <p style={{ margin: 0 }}>{cfg.comparison.good}</p>
+      <div style={{ fontSize: 44, fontWeight: 800, marginBottom: 8 }}>{cfg.headline ?? '第二轮：重新设计同一个任务'}</div>
+      <div style={{ fontSize: 20, color: '#cbd5e1', marginBottom: 8 }}>{cfg.subline}</div>
+      <p style={{ color: '#94a3b8', maxWidth: 900, fontSize: 16 }}>{cfg.brief}</p>
+      <div style={{ display: 'flex', gap: 28, marginTop: 24, flexWrap: 'wrap', alignItems: 'center' }}>
+        <div style={{ fontSize: 56, fontWeight: 800, color: 'var(--yellow)' }}>{fmtCountdown(remain)}</div>
+        <div>
+          <div style={{ fontSize: 22 }}>已完成 {submitted} / {total}</div>
+          <div style={{ height: 14, width: 360, background: 'rgba(255,255,255,0.1)', borderRadius: 7, marginTop: 10, overflow: 'hidden' }}>
+            <div style={{ width: `${total ? Math.round((submitted / total) * 100) : 0}%`, height: '100%', background: 'var(--blue)' }} />
           </div>
         </div>
-      ) : null}
+      </div>
+      <p style={{ color: '#64748b', marginTop: 24, fontSize: 14 }}>学生端正在按“对象—任务—过程—检验”重新设计同一个任务，原始内容不公开姓名。</p>
     </>
+  );
+}
+
+const RATING_COLOR: Record<string, string> = {
+  高: '#22c55e',
+  中: '#eab308',
+  低: '#ef4444',
+  未知: '#64748b',
+};
+const SCREEN_BTN = {
+  padding: '8px 18px',
+  borderRadius: 8,
+  border: '1px solid #334155',
+  background: '#1e293b',
+  color: '#e2e8f0',
+  cursor: 'pointer',
+  fontSize: 15,
+};
+
+function moduleProgress(summary: Summary | null, module: ModuleDef) {
+  const stat = summary?.overview?.find((o: any) => o.moduleId === module.id);
+  return { done: stat?.completed ?? 0, inProgress: stat?.inProgress ?? 0, stuck: stat?.stuck ?? 0 };
+}
+
+function L2Progress({ summary, total, module }: { summary: Summary | null; total: number; module: ModuleDef }) {
+  const { done } = moduleProgress(summary, module);
+  if (!total) return null;
+  return (
+    <div style={{ marginTop: 22, maxWidth: 520 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+        <span>{module.title} · 完成</span>
+        <span style={{ color: '#94a3b8' }}>
+          {done} / {total}
+        </span>
+      </div>
+      <div style={{ height: 16, borderRadius: 8, overflow: 'hidden', background: '#1e293b' }}>
+        <div style={{ width: `${Math.round((done / total) * 100)}%`, background: 'var(--green)', height: '100%' }} />
+      </div>
+    </div>
+  );
+}
+
+function A04Screen({ summary, total, module }: { summary: Summary | null; total: number; module: ModuleDef }) {
+  return (
+    <div>
+      <div style={{ fontSize: 40, fontWeight: 800, marginBottom: 8 }}>{module.screenContent?.headline ?? module.title}</div>
+      {module.screenContent?.subline ? (
+        <div style={{ color: '#94a3b8', marginBottom: 24, fontSize: 18 }}>{module.screenContent.subline}</div>
+      ) : null}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
+          gap: 14,
+        }}
+      >
+        {KNOWLEDGE_DOCS.map((d) => (
+          <div key={d.id} style={{ border: '1px solid #334155', borderRadius: 10, padding: 14, background: '#0f172a' }}>
+            <div style={{ fontWeight: 700, fontSize: 17 }}>{d.title}</div>
+            <div style={{ color: '#94a3b8', fontSize: 12, marginTop: 4 }}>
+              来源：{d.source} · 更新：{d.updatedAt}
+            </div>
+            <div style={{ fontSize: 13, marginTop: 8, color: '#cbd5e1' }}>{d.summary}</div>
+            <div style={{ fontSize: 13, marginTop: 8 }}>
+              相关性 <span style={{ color: RATING_COLOR[d.relevance] }}>{d.relevance}</span> · 可靠性{' '}
+              <span style={{ color: RATING_COLOR[d.reliability] }}>{d.reliability}</span> · 时效性{' '}
+              <span style={{ color: RATING_COLOR[d.timeliness] }}>{d.timeliness}</span>
+            </div>
+            <div style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>推荐类别：{d.recommendedClass}</div>
+          </div>
+        ))}
+      </div>
+      <div style={{ marginTop: 24, color: '#cbd5e1' }}>
+        每名学生从 8 份资料中选择 4 份，建立自己的核心知识库（标准：相关性 / 可靠性 / 时效性）。
+      </div>
+      <L2Progress summary={summary} total={total} module={module} />
+    </div>
+  );
+}
+
+function A05Screen({ summary, total, module }: { summary: Summary | null; total: number; module: ModuleDef }) {
+  return (
+    <div>
+      <div style={{ fontSize: 40, fontWeight: 800, marginBottom: 8 }}>{module.screenContent?.headline ?? module.title}</div>
+      {module.screenContent?.subline ? (
+        <div style={{ color: '#94a3b8', marginBottom: 24, fontSize: 18 }}>{module.screenContent.subline}</div>
+      ) : null}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
+          gap: 14,
+        }}
+      >
+        {SKILL_BLOCKS.map((b) => (
+          <div key={b.key} style={{ border: '1px solid #334155', borderRadius: 10, padding: 16, background: '#0f172a' }}>
+            <div style={{ fontWeight: 700, fontSize: 18 }}>{b.title}</div>
+            <div style={{ color: '#94a3b8', fontSize: 13, marginTop: 8 }}>参考句：{b.fixedSentence}</div>
+            <div style={{ color: '#cbd5e1', fontSize: 13, marginTop: 6 }}>关键词：{b.keywords?.join('、')}</div>
+            <div style={{ color: '#64748b', fontSize: 12, marginTop: 6 }}>至少 {b.minLength} 字</div>
+          </div>
+        ))}
+      </div>
+      <div style={{ marginTop: 24, color: '#cbd5e1' }}>
+        知识使用规则：当不同资料说法冲突时，优先相信来源更可靠、时效更新的那一类。
+      </div>
+      <L2Progress summary={summary} total={total} module={module} />
+    </div>
+  );
+}
+
+function renderBigScreen(s: any) {
+  return (
+    <div style={{ fontSize: 18, lineHeight: 1.9 }}>
+      {s.coreQuestion ? (
+        <div style={{ color: '#22c55e', fontWeight: 700, marginBottom: 12 }}>核心问题：{s.coreQuestion}</div>
+      ) : null}
+      {(s.blocks ?? []).map((b: string, i: number) => (
+        <div key={`b${i}`} style={{ marginBottom: 6 }}>· {b}</div>
+      ))}
+      {(s.framework ?? []).map((f: string, i: number) => (
+        <div key={`f${i}`} style={{ marginBottom: 6 }}>· {f}</div>
+      ))}
+      {(s.observe ?? []).map((o: string, i: number) => (
+        <div key={`o${i}`} style={{ marginBottom: 6 }}>· {o}</div>
+      ))}
+      {(s.problems ?? []).map((p: string, i: number) => (
+        <div key={`p${i}`} style={{ marginBottom: 6 }}>· {p}</div>
+      ))}
+      {s.flow?.length ? (
+        <div style={{ color: '#38bdf8', margin: '12px 0' }}>{s.flow.join('  →  ')}</div>
+      ) : null}
+      {s.task ? <div style={{ margin: '10px 0', color: '#cbd5e1' }}>{s.task}</div> : null}
+      {s.diagram ? <div style={{ margin: '10px 0', color: '#cbd5e1' }}>{s.diagram}</div> : null}
+      {s.note ? <div style={{ color: '#94a3b8', fontSize: 15, marginTop: 8 }}>{s.note}</div> : null}
+      {s.emphasis ? <div style={{ color: '#fbbf24', marginTop: 8 }}>{s.emphasis}</div> : null}
+      {(s.personas ?? []).map((p: any, i: number) => (
+        <div key={`pe${i}`} style={{ border: '1px solid #334155', borderRadius: 8, padding: 10, margin: '8px 0' }}>
+          <b>{p.name}</b>：{p.base}；主要问题：{p.mainProblem}；薄弱题型：{p.weakType}；可用时间：{p.availableTime}；目标：{p.goal}
+        </div>
+      ))}
+      {(s.cards ?? []).map((c: any, i: number) => (
+        <div key={`c${i}`} style={{ border: '1px solid #334155', borderRadius: 8, padding: 10, margin: '8px 0' }}>
+          <div style={{ fontWeight: 700 }}>{c.title}</div>
+          {(c.lines ?? []).map((l: string, j: number) => (
+            <div key={j} style={{ fontSize: 15, color: '#cbd5e1' }}>· {l}</div>
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function A06Screen({ summary, total, module }: { summary: Summary | null; total: number; module: ModuleDef }) {
+  const screens: any[] = module.screenContent?.bigScreens ?? [];
+  const [idx, setIdx] = useState(0);
+  useEffect(() => {
+    if (!screens.length) return;
+    const t = setInterval(() => setIdx((i) => (i + 1) % screens.length), 9000);
+    return () => clearInterval(t);
+  }, [screens.length]);
+
+  if (!screens.length) {
+    return <div style={{ fontSize: 40, fontWeight: 800 }}>{module.title}</div>;
+  }
+  const s = screens[idx];
+  return (
+    <div>
+      <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginBottom: 16 }}>
+        {screens.map((_, i) => (
+          <span
+            key={i}
+            style={{
+              width: 10,
+              height: 10,
+              borderRadius: '50%',
+              background: i === idx ? 'var(--green)' : '#334155',
+            }}
+          />
+        ))}
+      </div>
+      <div style={{ fontSize: 38, fontWeight: 800, textAlign: 'center', marginBottom: 20 }}>{s.title}</div>
+      <div style={{ maxWidth: 900, margin: '0 auto' }}>{renderBigScreen(s)}</div>
+      <div style={{ display: 'flex', justifyContent: 'center', gap: 24, marginTop: 28 }}>
+        <button style={SCREEN_BTN} onClick={() => setIdx((i) => (i - 1 + screens.length) % screens.length)}>
+          上一屏
+        </button>
+        <span style={{ color: '#94a3b8', alignSelf: 'center' }}>
+          {idx + 1} / {screens.length}
+        </span>
+        <button style={SCREEN_BTN} onClick={() => setIdx((i) => (i + 1) % screens.length)}>
+          下一屏
+        </button>
+      </div>
+      <L2Progress summary={summary} total={total} module={module} />
+    </div>
   );
 }
 
