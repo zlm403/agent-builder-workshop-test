@@ -289,7 +289,7 @@ const TEMPLATE: CourseTemplateData = {
   modules: [
     {
       id: 'A0_SCREENING',
-      type: 'screening',
+      type: 'hr_screening',
       title: '课堂准备：身份确认',
       durationSeconds: 300,
       teacherContent: {
