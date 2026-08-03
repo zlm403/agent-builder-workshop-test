@@ -925,14 +925,18 @@ export default function TeacherPage() {
             </p>
           ) : null}
           <div className="row" style={{ marginTop: 12 }}>
+            <label style={{ color: 'var(--muted)', fontSize: 13, whiteSpace: 'nowrap' }}>跳转至：</label>
             <select value={jumpTarget} onChange={(e) => setJumpTarget(e.target.value)}>
-              <option value="">跳转至…</option>
+              <option value="">选择要切换到的环节…</option>
               {modules.map((mm) => (
                 <option key={mm.id} value={mm.id}>{mm.id} · {mm.title}</option>
               ))}
             </select>
-            <button className="secondary" disabled={!jumpTarget || busy} onClick={() => control('jump', { targetModuleId: jumpTarget })}>跳转</button>
+            <button className="secondary" disabled={!jumpTarget || busy} onClick={() => control('jump', { targetModuleId: jumpTarget })}>切换到此环节</button>
           </div>
+          <p className="note" style={{ marginTop: 6, fontSize: 12, color: 'var(--muted)' }}>
+            「跳转」仅用于把课堂切换到指定环节，不代表当前进度；当前环节以顶部状态栏与右侧「模块目录」高亮为准。
+          </p>
           <p className="note" style={{ marginTop: 12 }}>
             教师备注：开场强调"资料边界≠绝对保证"；挑选一名设置严格边界的学生现场测试。
           </p>

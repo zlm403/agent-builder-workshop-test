@@ -218,6 +218,8 @@ export default function ScreenPage() {
         <A02Screen module={module} analytics={analytics} total={total} />
       ) : module.type === 'lecture' ? (
         <A03Screen module={module} sessionId={sessionId} subState={summary?.moduleSubState ?? null} />
+      ) : module.type === 'l2_intro' ? (
+        <L2IntroScreen module={module} />
       ) : module.type === 'knowledge_select' ? (
         <A04Screen summary={summary} total={total} module={module} />
       ) : module.type === 'skill_build' ? (
@@ -657,6 +659,57 @@ function L2Progress({ summary, total, module }: { summary: Summary | null; total
       </div>
       <div style={{ height: 16, borderRadius: 8, overflow: 'hidden', background: '#1e293b' }}>
         <div style={{ width: `${Math.round((done / total) * 100)}%`, background: 'var(--green)', height: '100%' }} />
+      </div>
+    </div>
+  );
+}
+
+// 第二关开场（L2_INTRO）：大屏展示第一关→第二关的关系、两位使用者与流程
+function L2IntroScreen({ module }: { module: ModuleDef }) {
+  const sc: any = module.screenContent ?? {};
+  const personas: any[] = sc.personas ?? [];
+  const flow: string[] = sc.flow ?? [];
+  return (
+    <div>
+      <div style={{ fontSize: 44, fontWeight: 800, marginBottom: 8 }}>{sc.headline ?? module.title}</div>
+      <div style={{ fontSize: 20, color: '#cbd5e1', marginBottom: 20 }}>{sc.subline}</div>
+      {sc.firstLevel && (
+        <div
+          style={{
+            border: '1px solid #334155',
+            borderRadius: 10,
+            padding: 14,
+            marginBottom: 18,
+            background: '#0f172a',
+            maxWidth: 620,
+          }}
+        >
+          <div style={{ fontWeight: 700, color: '#94a3b8' }}>{sc.firstLevel.title}</div>
+          <div style={{ color: '#cbd5e1', marginTop: 6, fontSize: 16 }}>{sc.firstLevel.desc}</div>
+        </div>
+      )}
+      {sc.coreQuestion && (
+        <div style={{ fontSize: 26, color: 'var(--green)', fontWeight: 700, margin: '18px 0' }}>
+          核心问题：{sc.coreQuestion}
+        </div>
+      )}
+      {flow.length > 0 && (
+        <div style={{ fontSize: 20, color: '#38bdf8', margin: '12px 0 20px' }}>{flow.join('  →  ')}</div>
+      )}
+      <h3 style={{ color: '#94a3b8', marginBottom: 12 }}>两位使用者</h3>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16, maxWidth: 860 }}>
+        {personas.map((p) => (
+          <div key={p.id} style={{ border: '1px solid #334155', borderRadius: 12, padding: 16, background: '#1e293b' }}>
+            <div style={{ fontWeight: 700, fontSize: 20, marginBottom: 8 }}>{p.name}（基础{p.base}）</div>
+            <div style={{ color: '#cbd5e1', fontSize: 15, lineHeight: 1.8 }}>
+              <div><b style={{ color: '#94a3b8' }}>主要问题：</b>{p.mainProblem}</div>
+              <div><b style={{ color: '#94a3b8' }}>薄弱题型：</b>{p.weakType}</div>
+              <div><b style={{ color: '#94a3b8' }}>可用时间：</b>{p.availableTime}</div>
+              <div><b style={{ color: '#94a3b8' }}>目标：</b>{p.goal}</div>
+              <div><b style={{ color: '#94a3b8' }}>偏好：</b>{p.preference}</div>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );

@@ -1049,7 +1049,7 @@ export default function StudentPage() {
               );
             })()}
 
-            {['knowledge_select', 'skill_build', 'assistant_try'].includes(current.type) && (
+            {['l2_intro', 'knowledge_select', 'skill_build', 'assistant_try'].includes(current.type) && (
               <L2StudentFlow
                 current={current}
                 anonymousId={anonymousId}

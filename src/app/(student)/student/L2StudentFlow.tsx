@@ -129,10 +129,22 @@ export default function L2StudentFlow({
           body: JSON.stringify({ anonymousId, data: next }),
         });
       }
+      // 提交前拉取后端最新完整过程数据，避免本地 process 缺少 run/check 等字段
+      // 导致 submit 覆盖 A06_TRY 中由 /api/l2/run、/api/l2/check 写入的结果
+      let toSubmit: any = payload ?? process ?? {};
+      try {
+        const r = await fetch(`/api/l2/process?anonymousId=${encodeURIComponent(anonymousId)}`);
+        if (r.ok) {
+          const d = await r.json();
+          if (d.process) toSubmit = { ...d.process, ...(payload ?? {}) };
+        }
+      } catch {
+        /* ignore */
+      }
       const res = await fetch('/api/module/submit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ anonymousId, moduleId: current.id, data: payload ?? process ?? {} }),
+        body: JSON.stringify({ anonymousId, moduleId: current.id, data: toSubmit }),
       });
       if (!res.ok) {
         const d = await res.json();
@@ -178,6 +190,63 @@ export default function L2StudentFlow({
           message={message}
         />
       );
+    case 'l2_intro': {
+      const st: any = current.studentTask ?? {};
+      const sc: any = current.screenContent ?? {};
+      const personas: any[] = sc.personas ?? [];
+      return (
+        <div>
+          <div className="card">
+            <p className="note">{st.prompt}</p>
+            {(st.details ?? []).map((d: string, i: number) => (
+              <div key={i} style={{ marginBottom: 6 }}>· {d}</div>
+            ))}
+            {sc.coreQuestion && (
+              <p style={{ marginTop: 10, color: 'var(--green)', fontWeight: 700 }}>
+                核心问题：{sc.coreQuestion}
+              </p>
+            )}
+            {(sc.flow ?? []).length > 0 && (
+              <p className="note" style={{ marginTop: 8 }}>
+                第二关流程：<b>{sc.flow.join('  →  ')}</b>
+              </p>
+            )}
+            {personas.length > 0 && (
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
+                  gap: 12,
+                  marginTop: 14,
+                }}
+              >
+                {personas.map((p) => (
+                  <div key={p.id} style={{ border: '1px solid #ddd', borderRadius: 8, padding: 12, background: '#fff' }}>
+                    <div style={{ fontWeight: 700, fontSize: 16 }}>{p.name}（基础{p.base}）</div>
+                    <div className="note" style={{ fontSize: 12, marginTop: 4 }}>
+                      可用时间：{p.availableTime} · 目标：{p.goal}
+                    </div>
+                    <div style={{ fontSize: 13, marginTop: 6 }}>
+                      <div><b>主要问题：</b>{p.mainProblem}</div>
+                      <div><b>薄弱题型：</b>{p.weakType}</div>
+                      <div><b>偏好：</b>{p.preference}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          {!submitted && (
+            <div style={{ marginTop: 16 }}>
+<button disabled={busy || locked} onClick={finish}>
+                  {busy ? '提交中…' : st.submitLabel ?? '我明白了，开始第二关'}
+                </button>
+            </div>
+          )}
+          {message && <p style={{ color: 'var(--green)' }}>{message}</p>}
+        </div>
+      );
+    }
     case 'assistant_try':
       return (
         <A06Try
@@ -220,7 +289,7 @@ function A04Knowledge({
   message: string;
 }) {
   const selected: string[] = process?.knowledgeBase?.initialSelection ?? [];
-  const max = st?.criteria?.maxSelect ?? 4;
+  const max = st?.maxSelect ?? st?.criteria?.maxSelect ?? 4;
 
   function toggle(id: string) {
     if (submitted || locked) return;
@@ -623,7 +692,7 @@ function A06Try({
                 disabled={loadingRun || locked}
                 onClick={() => handleRun('second', { ...editSkill })}
               >
-                {loadingRun ? '重新运行中…' : '保存并重新运行'}
+                {loadingRun ? '重新运行中…' : st?.resubmitLabel ?? '保存并重新运行'}
               </button>
               {check && (
                 <button
@@ -643,7 +712,7 @@ function A06Try({
       {!submitted && (
         <div style={{ marginTop: 16 }}>
           <button disabled={busy || locked} onClick={onFinish}>
-            {busy ? '提交中…' : st?.submitLabel ?? '提交：我的设计通过了验证'}
+            {busy ? '提交中…' : st?.finalSubmitLabel ?? '提交最终版本'}
           </button>
         </div>
       )}

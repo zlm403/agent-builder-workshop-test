@@ -41,3 +41,23 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: { code: 'L2_PROCESS_FAILED', message: String(err) } }, { status: 500 });
   }
 }
+
+// 前端 L2StudentFlow.save() / finish() 用 PUT 整体覆盖保存过程数据
+export async function PUT(req: NextRequest) {
+  try {
+    const body = await req.json();
+    const anonymousId: string = String(body.anonymousId ?? '');
+    const incoming = body.data as L2ProcessData | undefined;
+    if (!anonymousId || !incoming) {
+      return NextResponse.json({ error: { code: 'MISSING_TOKEN' } }, { status: 400 });
+    }
+    const p = await prisma.participant.findUnique({ where: { anonymousId } });
+    if (!p) return NextResponse.json({ error: { code: 'INVALID_TOKEN' } }, { status: 404 });
+    incoming.sessionId = p.sessionId;
+    incoming.studentId = p.id;
+    await saveL2Process(p.id, p.sessionId, incoming);
+    return NextResponse.json({ process: incoming });
+  } catch (err) {
+    return NextResponse.json({ error: { code: 'L2_PROCESS_FAILED', message: String(err) } }, { status: 500 });
+  }
+}
