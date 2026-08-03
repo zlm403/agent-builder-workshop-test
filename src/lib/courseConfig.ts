@@ -330,10 +330,49 @@ const TEMPLATE: CourseTemplateData = {
           '用于对比后续“被辅导后”的变化',
           '大屏会实时显示完成进度',
         ],
-        // 任务区：前端 A01Screen/学生 ai_task 取 teacherContent.prompt（不是 taskArea，此前缺失导致任务区空白）
-        prompt: '请用任意 AI 工具，为自己设计一次 20 分钟英语阅读训练。',
-        // 中性基线：AI 不引导"怎么做"，但任务和资料都给学生（让其知道做什么，不告诉怎么做）
-        materials: MATERIALS,
+        // 原始 BASELINE_TASK 内容（initial 91d97ea；e698b9f 重写时丢失→任务区/资料区空白）
+        prompt:
+          '请使用 AI，为准备考研的小林制定一轮英语阅读训练方案。你可以自由决定怎样向 AI 说明任务、是否使用给定资料、分几步完成、是否检查 AI 的结果。按你平时真实使用 AI 的方式完成即可。',
+        requirements: [
+          '找出小林最主要的学习问题',
+          '基于提供的材料设计一次约 30 分钟的训练',
+          '让 AI 生成一道测试题',
+          '检查 AI 给出的内容是否符合材料',
+          '提交你最终认可的结果',
+        ],
+        materials: [
+          {
+            id: 'profile',
+            title: '学生情况：小林',
+            kind: 'student_profile',
+            body: '大学三年级，准备参加考研。\n英语阅读平均每篇错 3 题。\n每天可训练时间约 30 分钟。',
+          },
+          {
+            id: 'issues',
+            title: '小林近期三个主要问题',
+            kind: 'recent_issues',
+            body: '1. 长难句理解困难；\n2. 容易用自己的常识代替原文；\n3. 做完题只看答案，不分析错误原因。',
+          },
+          {
+            id: 'reading',
+            title: '阅读材料（来源：模拟考研英语真题节选）',
+            kind: 'reading_material',
+            body:
+              'The shift toward remote work has changed how teams measure productivity. ' +
+              'A 2021 study found that output rose in the first months, but long-term ' +
+              'collaboration suffered as informal knowledge sharing declined. Researchers ' +
+              'warn that companies may be optimizing for visible tasks while ignoring the ' +
+              'slow loss of shared context.\n\n' +
+              '词汇提示：productivity 生产力；informal knowledge sharing 非正式知识共享；' +
+              'shared context 共同语境；optimizing 优化。',
+          },
+        ],
+        taskArea: {
+          targetUser: '准备考研的小林',
+          goal: '改善英语阅读训练',
+          available: '阅读文章、错题情况、学习时间',
+          finalDeliverable: '一份可执行训练 + 一道测试题',
+        },
         revealOrder: ['task', 'observe'],
       },
       studentTask: {
