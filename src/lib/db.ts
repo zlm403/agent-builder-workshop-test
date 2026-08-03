@@ -12,7 +12,13 @@ const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
  */
 function buildDatabaseUrl(): string {
   const raw = process.env.DATABASE_URL;
-  if (!raw) throw new Error('DATABASE_URL 未配置');
+  if (!raw) {
+    // 浏览器端没有 DATABASE_URL（环境变量只在服务端）。
+    // db.ts 因 courseConfig.ts（纯函数与 DB 操作混在一起）被打包进客户端 bundle，
+    // 但浏览器端不会真正查询 DB，返回空串避免阻断 hydration。
+    if (typeof window !== 'undefined') return '';
+    throw new Error('DATABASE_URL 未配置（服务端）');
+  }
   try {
     const u = new URL(raw);
     u.searchParams.set('connection_limit', '10');
