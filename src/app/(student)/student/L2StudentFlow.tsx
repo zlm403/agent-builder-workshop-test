@@ -349,7 +349,7 @@ function A04Knowledge({
         <div style={{ marginTop: 16 }}>
           <button
             disabled={busy || locked || selected.length !== max}
-            onClick={onFinish}
+            onClick={() => onFinish()}
           >
             {busy ? '提交中…' : st?.submitLabel ?? '建立知识库，开始编写 Skill'}
           </button>
@@ -707,7 +707,7 @@ function A06Try({
 
       {!submitted && (
         <div style={{ marginTop: 16 }}>
-          <button disabled={busy || locked} onClick={onFinish}>
+          <button disabled={busy || locked} onClick={() => onFinish()}>
             {busy ? '提交中…' : st?.finalSubmitLabel ?? '提交最终版本'}
           </button>
         </div>
