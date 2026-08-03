@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { startClassroom, advanceClassroom, jumpClassroom, setLock, resetClassroom, endClassroom, setModuleSubState } from '@/lib/classroom';
+import { startClassroom, advanceClassroom, jumpClassroom, setLock, resetClassroom, endClassroom, setModuleSubState, invalidateSessionCache } from '@/lib/classroom';
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   try {
@@ -37,6 +37,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       default:
         return NextResponse.json({ error: { code: 'UNKNOWN_ACTION', message: action } }, { status: 400 });
     }
+    // 控制操作后清除缓存，确保下次拉取最新状态
+    invalidateSessionCache(params.id);
     return NextResponse.json({ currentModuleId: result.currentModuleId, moduleLocked: result.moduleLocked, status: result.status });
   } catch (err) {
     return NextResponse.json({ error: { code: 'CONTROL_FAILED', message: String(err) } }, { status: 400 });

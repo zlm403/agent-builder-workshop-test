@@ -384,16 +384,22 @@ export default function TeacherPage() {
   async function control(action: string, extra: Record<string, unknown> = {}) {
     if (!sessionId) return;
     setBusy(true);
-    const res = await fetch(`/api/classroom/${sessionId}/control`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action, ...extra }),
-    });
-    setBusy(false);
-    if (!res.ok) { console.warn('control failed', action, res.status); return; }
-    // reset 时清空模块历史数据，避免旧诊断残留
-    if (action === 'reset') setModuleHistory({});
-    loadState(sessionId);
+    try {
+      const res = await fetch(`/api/classroom/${sessionId}/control`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, ...extra }),
+      });
+      if (!res.ok) { console.warn('control failed', action, res.status); return; }
+      // reset 时清空模块历史数据，避免旧诊断残留
+      if (action === 'reset') setModuleHistory({});
+      loadState(sessionId);
+    } catch (err) {
+      console.error('control error', action, err);
+      alert(`操作失败：${err instanceof Error ? err.message : String(err)}\n请检查网络后重试`);
+    } finally {
+      setBusy(false);
+    }
   }
 
   // ===== 模块卡片渲染函数 =====

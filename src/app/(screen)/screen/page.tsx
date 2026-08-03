@@ -119,8 +119,8 @@ export default function ScreenPage() {
         };
       }
       connect();
-      // SSE 断连或漏事件时的兜底：每 5 秒主动拉一次最新状态
-      const poll = setInterval(() => load(id), 5000);
+      // SSE 断连或漏事件时的兜底：每 15 秒主动拉一次最新状态（降低频率以缓解连接池压力）
+      const poll = setInterval(() => load(id), 15000);
       cleanup = () => {
         if (retryTimer) clearTimeout(retryTimer);
         clearInterval(poll);

@@ -11,6 +11,11 @@ import type { ModuleStatus, CourseTemplateData } from './types';
 import { judgeAnswer, refineJudgment } from './screening';
 import type { ScreeningJudgment } from './screening';
 
+// ===== getSessionState 内存缓存 =====
+// 防止高频轮询（教师端/大屏）把 pgbouncer 单连接打满
+const _stateCache = new Map<string, { data: any; ts: number }>();
+const STATE_CACHE_TTL = 30000; // 30 秒缓存（单次查询本身就要 ~28s，TTL 必须大于查询耗时才有效）
+
 async function audit(sessionId: string, actor: string, action: string, target?: string, detail?: unknown) {
   await prisma.auditLog
     .create({ data: { sessionId, actor, action, target: target ?? null, detail: detail as object } })
@@ -481,17 +486,19 @@ export interface ProgressSummary {
 }
 
 export async function getProgressSummary(sessionId: string): Promise<ProgressSummary> {
-  const session = await prisma.classSession.findUnique({ where: { id: sessionId } });
+  // 并行化所有独立 DB 查询
+  const [session, tpl, participants, progress, moduleSubState] = await Promise.all([
+    prisma.classSession.findUnique({ where: { id: sessionId } }),
+    ensureTemplate(),
+    prisma.participant.findMany({ where: { sessionId } }),
+    prisma.moduleProgress.findMany({ where: { sessionId } }),
+    readModuleSubState(sessionId),
+  ]);
   if (!session) throw new Error('SESSION_NOT_FOUND');
 
-  const tpl = await ensureTemplate();
   const modules = getModules(tpl);
-
-  const participants = await prisma.participant.findMany({ where: { sessionId } });
   const totalStudents = participants.length;
   const onlineStudents = participants.filter((p) => p.connected).length;
-
-  const progress = await prisma.moduleProgress.findMany({ where: { sessionId } });
 
   const overview = modules.map((m) => {
     const rows = progress.filter((r) => r.moduleId === m.id);
@@ -510,7 +517,7 @@ export async function getProgressSummary(sessionId: string): Promise<ProgressSum
     status: session.status,
     currentModuleId: session.currentModuleId,
     moduleLocked: session.moduleLocked,
-    moduleSubState: await readModuleSubState(sessionId),
+    moduleSubState, // 已在并行查询中获取
     totalStudents,
     onlineStudents,
     totalSubmitted: progress.filter((r) => r.status === 'completed' || r.status === 'submitted').length,
@@ -519,15 +526,25 @@ export async function getProgressSummary(sessionId: string): Promise<ProgressSum
   };
 }
 
-/** 当前课堂全量状态（供教师/大屏初始化渲染）。 */
+/** 当前课堂全量状态（供教师/大屏初始化渲染）。带 30 秒内存缓存 + 并行查询，防止高频轮询打满 pgbouncer。 */
 export async function getSessionState(sessionId: string) {
-  const session = await prisma.classSession.findUnique({ where: { id: sessionId } });
+  // 检查缓存
+  const cached = _stateCache.get(sessionId);
+  if (cached && Date.now() - cached.ts < STATE_CACHE_TTL) {
+    return cached.data;
+  }
+
+  // 并行执行所有独立 DB 查询，将串行 ~28s 降低到单次查询耗时 (~8-10s)
+  const [session, tpl, summary] = await Promise.all([
+    prisma.classSession.findUnique({ where: { id: sessionId } }),
+    ensureTemplate(),
+    getProgressSummary(sessionId),
+  ]);
   if (!session) throw new Error('SESSION_NOT_FOUND');
-  const tpl = await ensureTemplate();
   const modules = getModules(tpl);
   const current = findModule(tpl, session.currentModuleId);
-  const summary = await getProgressSummary(sessionId);
-  return {
+
+  const result = {
     id: session.id,
     inviteCode: session.inviteCode,
     courseName: tpl.name,
@@ -541,6 +558,15 @@ export async function getSessionState(sessionId: string) {
     currentModule: current,
     summary,
   };
+
+  // 写入缓存
+  _stateCache.set(sessionId, { data: result, ts: Date.now() });
+  return result;
+}
+
+/** 清除指定课堂的状态缓存（控制操作后调用，确保下次拉取最新数据） */
+export function invalidateSessionCache(sessionId: string) {
+  _stateCache.delete(sessionId);
 }
 
 // ================= 终章：一人公司 · 多 Agent 协同 =================
