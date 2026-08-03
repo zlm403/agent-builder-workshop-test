@@ -131,8 +131,13 @@ button:hover {
   opacity: 0.9;
 }
 button:disabled {
-  opacity: 0.5;
+  opacity: 1;
   cursor: not-allowed;
+  background: var(--border);
+  color: var(--muted);
+}
+button:disabled:hover {
+  opacity: 1;
 }
 button.secondary {
   background: var(--panel);
