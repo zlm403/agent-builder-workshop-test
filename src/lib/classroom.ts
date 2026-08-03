@@ -23,6 +23,9 @@ async function audit(sessionId: string, actor: string, action: string, target?: 
 }
 
 async function emitProgress(sessionId: string) {
+  // 所有写操作末尾都会调 emitProgress 推送进度，这里统一清状态缓存，
+  // 确保教师/大屏下次轮询 getSessionState 能拿到最新数据（P0-4: 缓存写后失效）。
+  invalidateSessionCache(sessionId);
   const summary = await getProgressSummary(sessionId);
   publish(sessionId, { type: 'progress:update', payload: summary });
 }
@@ -177,6 +180,8 @@ export async function setLock(sessionId: string, locked: boolean) {
     data: { moduleLocked: locked },
   });
   await audit(sessionId, 'teacher', 'module:lock', undefined, { locked });
+  // setLock 不走 emitProgress，单独清缓存（P0-4）
+  invalidateSessionCache(sessionId);
   publish(sessionId, { type: 'module:locked', payload: { locked } });
   return updated;
 }
