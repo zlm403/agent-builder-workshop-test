@@ -337,7 +337,8 @@ const TEMPLATE: CourseTemplateData = {
           available: '任意 AI 工具（对话助手/写作工具等）；用你日常习惯的方式，不要刻意优化',
           finalDeliverable: '一份完整的 20 分钟英语阅读训练安排（提交到下方对话框）',
         },
-        // materials 故意为空：A01 是“中性基线”不辅导，不提供参考资料
+        // 中性基线：AI 不引导"怎么做"，但任务和资料都给学生（让其知道做什么，不告诉怎么做）
+        materials: MATERIALS,
         revealOrder: ['task', 'observe'],
       },
       studentTask: {
@@ -403,6 +404,7 @@ const TEMPLATE: CourseTemplateData = {
           '揭晓后大屏展示前后变化对比',
         ],
         revealOrder: ['brief', 'pause', 'reveal'],
+        materials: MATERIALS,
         operationHint:
           '讲解完四要素后，点击「暂停锁定」停止学生端输入；准备好后再「揭晓」对比。',
       },
