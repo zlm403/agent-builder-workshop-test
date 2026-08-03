@@ -41,10 +41,10 @@ type AiCheckResult = {
 
 const LEARNER_NAMES: Record<string, string> = { lin: '小林', zhou: '小周' };
 const RATING_COLOR: Record<string, string> = {
-  高: '#16a34a',
-  中: '#ca8a04',
-  低: '#dc2626',
-  未知: '#64748b',
+  高: 'var(--green)',
+  中: 'var(--yellow)',
+  低: 'var(--red)',
+  未知: 'var(--muted)',
 };
 
 function blankSkill(): SkillVersion {
@@ -221,7 +221,7 @@ export default function L2StudentFlow({
                 }}
               >
                 {personas.map((p) => (
-                  <div key={p.id} style={{ border: '1px solid #ddd', borderRadius: 8, padding: 12, background: '#fff' }}>
+                  <div key={p.id} style={{ border: '1px solid var(--border)', borderRadius: 8, padding: 12, background: 'var(--card)' }}>
                     <div style={{ fontWeight: 700, fontSize: 16 }}>{p.name}（基础{p.base}）</div>
                     <div className="note" style={{ fontSize: 12, marginTop: 4 }}>
                       可用时间：{p.availableTime} · 目标：{p.goal}
@@ -319,17 +319,17 @@ function A04Knowledge({
           {KNOWLEDGE_DOCS.map((d) => {
             const on = selected.includes(d.id);
             return (
-              <div
-                key={d.id}
-                onClick={() => toggle(d.id)}
-                style={{
-                  border: on ? '2px solid #16a34a' : '1px solid #ddd',
-                  borderRadius: 8,
-                  padding: 12,
-                  cursor: submitted || locked ? 'default' : 'pointer',
-                  background: on ? '#f0fdf4' : '#fff',
-                }}
-              >
+<div
+              key={d.id}
+              onClick={() => toggle(d.id)}
+              style={{
+                border: on ? '2px solid var(--green)' : '1px solid var(--border)',
+                borderRadius: 8,
+                padding: 12,
+                cursor: submitted || locked ? 'default' : 'pointer',
+                background: on ? 'rgba(34,197,94,0.12)' : 'var(--card)',
+              }}
+            >
                 <div style={{ fontWeight: 700 }}>{d.title}</div>
                 <div className="note" style={{ fontSize: 12 }}>
                   来源：{d.source} · 更新：{d.updatedAt}
@@ -340,9 +340,9 @@ function A04Knowledge({
                   可靠性：<span style={{ color: RATING_COLOR[d.reliability] }}>{d.reliability}</span> ·
                   时效性：<span style={{ color: RATING_COLOR[d.timeliness] }}>{d.timeliness}</span>
                 </div>
-                <div style={{ fontSize: 12, color: '#666' }}>推荐类别：{d.recommendedClass}</div>
+                <div style={{ fontSize: 12, color: 'var(--muted)' }}>推荐类别：{d.recommendedClass}</div>
                 {on && (
-                  <div style={{ color: '#16a34a', fontWeight: 700, marginTop: 6 }}>已选 ✓</div>
+                  <div style={{ color: 'var(--green)', fontWeight: 700, marginTop: 6 }}>已选 ✓</div>
                 )}
               </div>
             );
@@ -552,7 +552,7 @@ function A06Try({
 
   function renderLearner(l: LearnerRunResult) {
     return (
-      <div style={{ border: '1px solid #ddd', borderRadius: 8, padding: 12, background: '#fff' }}>
+      <div style={{ border: '1px solid var(--border)', borderRadius: 8, padding: 12, background: 'var(--card)' }}>
         <div style={{ fontWeight: 700, fontSize: 16 }}>{LEARNER_NAMES[l.learnerId] ?? l.learnerId}</div>
         <div style={{ marginTop: 6, fontSize: 13 }}>
           <div><b>训练重点：</b>{l.trainingFocus}</div>
@@ -571,7 +571,7 @@ function A06Try({
             ))}
           </div>
         ) : (
-          <div style={{ marginTop: 8, fontSize: 12, color: '#666' }}>（未引用具体资料）</div>
+          <div style={{ marginTop: 8, fontSize: 12, color: 'var(--muted)' }}>（未引用具体资料）</div>
         )}
       </div>
     );
@@ -619,7 +619,7 @@ function A06Try({
         )}
 
         {check && (
-          <div style={{ marginTop: 12, border: '1px solid #ddd', borderRadius: 8, padding: 12 }}>
+          <div style={{ marginTop: 12, border: '1px solid var(--border)', borderRadius: 8, padding: 12, background: 'var(--card)' }}>
             <div style={{ fontWeight: 700 }}>AI 检查报告</div>
             <div className="note">{check.overallStatus}（类型：{check.diagnosisType}）</div>
             {check.positiveFindings?.length ? (
