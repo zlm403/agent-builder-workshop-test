@@ -330,6 +330,14 @@ const TEMPLATE: CourseTemplateData = {
           '用于对比后续“被辅导后”的变化',
           '大屏会实时显示完成进度',
         ],
+        // 任务区四要素：前端 A01Screen/学生 ai_task 取 teacherContent.taskArea（A01 此前缺失导致任务区空白）
+        taskArea: {
+          targetUser: '你自己（适配自身英语水平的学习者）',
+          goal: '设计一次 20 分钟的英语阅读训练',
+          available: '任意 AI 工具（对话助手/写作工具等）；用你日常习惯的方式，不要刻意优化',
+          finalDeliverable: '一份完整的 20 分钟英语阅读训练安排（提交到下方对话框）',
+        },
+        // materials 故意为空：A01 是“中性基线”不辅导，不提供参考资料
         revealOrder: ['task', 'observe'],
       },
       studentTask: {
