@@ -236,13 +236,9 @@ export default function L2StudentFlow({
               </div>
             )}
           </div>
-          {!submitted && (
-            <div style={{ marginTop: 16 }}>
-<button disabled={busy || locked} onClick={finish}>
-                  {busy ? '提交中…' : st.submitLabel ?? '我明白了，开始第二关'}
-                </button>
-            </div>
-          )}
+<p className="note" style={{ marginTop: 14, color: 'var(--muted)' }}>
+            请仔细阅读两位使用者的情况差异。理解后，等待教师推进到下一环节开始选择知识库。
+          </p>
           {message && <p style={{ color: 'var(--green)' }}>{message}</p>}
         </div>
       );

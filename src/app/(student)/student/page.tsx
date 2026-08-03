@@ -1063,7 +1063,7 @@ export default function StudentPage() {
               <p className="note">此模块类型（{current.type}）将在后续 Sprint 实现；当前演示版仅打通投票/文本/资料/AI 任务模块。</p>
             )}
 
-            {moduleStatus !== 'submitted' && current.type !== 'waiting' && current.type !== 'ai_task' && current.type !== 'hr_screening' && current.type !== 'class_mirror' && current.type !== 'lecture' && current.type !== 'knowledge_select' && current.type !== 'skill_build' && current.type !== 'assistant_try' && (
+            {moduleStatus !== 'submitted' && current.type !== 'waiting' && current.type !== 'ai_task' && current.type !== 'hr_screening' && current.type !== 'class_mirror' && current.type !== 'lecture' && current.type !== 'l2_intro' && current.type !== 'knowledge_select' && current.type !== 'skill_build' && current.type !== 'assistant_try' && (
               <div style={{ marginTop: 16 }}>
                 <button disabled={busy || locked} onClick={submit}>
                   {busy ? '提交中…' : '提交'}
