@@ -1,0 +1,15 @@
+node_modules/
+.next/
+out/
+.env
+.env.local
+*.log
+.DS_Store
+prisma/*.db
+
+# 项目本地数据与调试产物（不入库）
+.codebuddy/
+*.err
+get_session.cjs
+probe_db.cjs
+build_check.txt

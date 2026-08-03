@@ -1,0 +1,210 @@
+// Prisma schema — Sprint 1 共用课堂底座核心实体
+// 后续 Sprint 2/3 的 AgentProject / AgentConfigVersion / SourceDocument /
+// WorkflowDefinition / AIRun / Evaluation / PeerFeedback / PublishedWork /
+// EnrollmentEvent 将在后续迁移中加入，保持版本不可覆盖与前后对比约束。
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// 课程模板：版本 + 模块顺序（JSON 驱动，不硬编码页面）
+model CourseTemplate {
+  id        String   @id @default(uuid())
+  version   String
+  name      String
+  subtitle  String?
+  modules   Json // CourseTemplateData 对象（含 modules: ModuleConfig[]）
+  status    String   @default("active") // draft | active | archived
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  sessions  ClassSession[]
+
+  @@unique([version])
+}
+
+/// 某一场具体课堂
+model ClassSession {
+  id              String   @id @default(uuid())
+  templateId      String
+  teacherId       String   @default("teacher-default")
+  inviteCode      String   @unique // 6 位入场码
+  status          String   @default("pending") // pending|active|paused|ended
+  currentModuleId String?
+  moduleLocked    Boolean  @default(false)
+  moduleStartedAt DateTime? // 进入当前计时节点的真实时刻（用于倒计时对齐，迟到/二次进入自动跟随）
+  scheduledStartAt DateTime? // 设定的开课时间（教师可设定，入场倒计时对准此时间，到时归零）
+  startedAt       DateTime?
+  endedAt         DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  template        CourseTemplate @relation(fields: [templateId], references: [id])
+  participants    Participant[]
+  invitations     ClassInvitation[]
+  moduleProgress  ModuleProgress[]
+  a0Screenings    A0Screening[]
+  auditLogs       AuditLog[]
+
+  @@index([inviteCode])
+  @@index([teacherId])
+}
+
+/// 匿名学生身份
+model Participant {
+  id          String   @id @default(uuid())
+  sessionId   String
+  anonymousId String   @unique // 如 "A023"
+  nickname    String?  // 备用昵称（旧逻辑），新流程使用微信昵称
+  wechatName  String?  // 微信网页授权获取的微信昵称（与 anonymousId 一一对应，仅用于销售跟进）
+  wechatOpenid String? @unique // 微信 openid（网页授权唯一标识，用于去重/重复扫码识别）
+  resumeToken String   @unique // 断线恢复令牌
+  deviceInfo  Json?
+  connected   Boolean  @default(true)
+  joinedAt    DateTime @default(now())
+  lastSeenAt  DateTime @default(now())
+
+  session         ClassSession    @relation(fields: [sessionId], references: [id])
+  moduleProgress  ModuleProgress[]
+  a0Screenings    A0Screening[]
+  consentRecords  ConsentRecord[]
+
+  @@index([sessionId])
+}
+
+/// 模块进度（每名学生每模块一条）
+model ModuleProgress {
+  id           String   @id @default(uuid())
+  participantId String
+  sessionId    String
+  moduleId     String
+  status       String   @default("pending") // pending|entered|submitted|completed|stuck|skipped
+  submittedAt  DateTime?
+  completedAt  DateTime?
+  data         Json?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  participant Participant   @relation(fields: [participantId], references: [id])
+  session     ClassSession  @relation(fields: [sessionId], references: [id])
+
+  @@unique([participantId, moduleId])
+  @@index([sessionId, moduleId, status])
+}
+
+/// 授权记录
+model ConsentRecord {
+  id            String   @id @default(uuid())
+  participantId String
+  consentType   String // privacy | screen_display | work_publish
+  granted       Boolean
+  ipAddress     String?
+  createdAt     DateTime @default(now())
+
+  participant Participant @relation(fields: [participantId], references: [id])
+
+  @@unique([participantId, consentType])
+}
+
+/// 课堂个人邀请码（一人一码，扫码/输入后签到，不可复用）
+model ClassInvitation {
+  id                  String        @id @default(uuid())
+  sessionId           String        @map("session_id")
+  code                String
+  used                Boolean       @default(false)
+  usedByParticipantId String?       @map("used_by_participant_id")
+  createdAt           DateTime      @default(now()) @map("created_at")
+  updatedAt           DateTime      @updatedAt @map("updated_at")
+
+  session ClassSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, code])
+  @@index([sessionId])
+  @@map("class_invitations")
+}
+
+/// 审计日志
+model AuditLog {
+  id        String   @id @default(uuid())
+  sessionId String
+  actor     String // teacher | system | student:{anonymousId}
+  action    String
+  target    String?
+  detail    Json?
+  createdAt DateTime @default(now())
+
+  session ClassSession @relation(fields: [sessionId], references: [id])
+
+  @@index([sessionId, createdAt])
+}
+
+/// 终章（一人公司 · 多 Agent 协同）：每个学生搭建的 4-Agent 产品，发布后供他人访问体验
+model AgentCompany {
+  id              String   @id @default(uuid())
+  sessionId       String
+  ownerAnonymousId String // 发布者匿名号（与 Participant.anonymousId 对应）
+  ownerName       String? // 发布者昵称（微信名），仅用于展示
+  scene           String // study | shopping | fun
+  name            String // 公司名（学生自拟）
+  agents          Json // 4 个 Agent 的属性卡：[{ role, nickname, personality, duty, boundary, rules, handoff }]
+  round           Int      @default(0) // 所属体验轮次
+  publishedAt     DateTime?
+  createdAt       DateTime @default(now())
+  feedbacks       CompanyFeedback[]
+
+  @@index([sessionId])
+  @@index([sessionId, round])
+}
+
+/// 终章课堂状态：是否进入终章、当前轮次、是否开放（接受发布/访问）
+model FinaleState {
+  sessionId String @id
+  active    Boolean @default(false)
+  round     Int     @default(0)
+  open      Boolean @default(false) // 是否开放发布与访问
+  updatedAt DateTime @updatedAt
+}
+
+/// 终章访问反馈（他人体验某产品后提交）
+model CompanyFeedback {
+  id                String   @id @default(uuid())
+  sessionId         String
+  companyId         String
+  visitorAnonymousId String
+  rating            Int? // 1-5
+  comment           String?
+  createdAt         DateTime @default(now())
+
+  company AgentCompany @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+}
+
+/// A0 环节（AI 面试 · 应聘自检）：匿名收集每位学员的真实回答、兴趣信号与当前 AI 标签
+model A0Screening {
+  id               String   @id @default(uuid())
+  sessionId        String
+  anonymousId      String
+  participantId    String
+  answer           String // 学员真实写下的第一问回答
+  wordCount        Int      @default(0)
+  aiLabel          String   // tool_user | task_solver | app_creator（基于本次回答的“当前标签”）
+  followupQuestion String?  // 第二问：AI 针对性追问
+  followupAnswer   String?  // 学员对追问的回答
+  judgmentJson     Json?    // 第一问判定（含 hasTools/hasTask/hasResult/hasAction/feedback/followup）
+  followupJson     Json?    // 第二问后的最终判定
+  interestSignal   Int      @default(0) // 兴趣信号 0-5（由回答长度与关键词推断，供销售跟进）
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  participant Participant   @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  session     ClassSession  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, anonymousId])
+  @@index([sessionId])
+}
