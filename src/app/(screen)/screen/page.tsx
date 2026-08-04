@@ -759,30 +759,36 @@ function L2IntroScreen({ module }: { module: ModuleDef }) {
               </div>
             ))}
           </div>
+          {/* 引导问句：把两张人物卡串成悬念，过渡到屏2 */}
+          <div style={{ fontSize: 26, color: 'var(--green)', fontWeight: 700, margin: '24px 0 0', maxWidth: 860, lineHeight: 1.5 }}>
+            他们的情况不同，同一个助手怎样分别帮助他们？
+          </div>
         </>
       )}
 
-      {/* 阶段2：困难1 → 引出知识库 */}
+      {/* 阶段2：困难1 → 引出对训练依据的需求 */}
       {slide === 2 && d1 && (
         <>
           <div style={{ fontSize: 40, fontWeight: 800, marginBottom: 6 }}>{d1.headline}</div>
           <div style={{ fontSize: 18, color: '#94a3b8', marginBottom: 22 }}>{d1.subline}</div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18, maxWidth: 900 }}>
             <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 12, padding: 18 }}>
-              <div style={{ fontWeight: 700, color: 'var(--orange)', marginBottom: 8, fontSize: 17 }}>📖 小林</div>
-              <div style={{ fontSize: 15, color: '#cbd5e1', marginBottom: 10, lineHeight: 1.6 }}>{d1.lin.problem}</div>
-              <div style={{ fontSize: 13, padding: '8px 10px', borderRadius: 8, background: 'rgba(234,179,8,0.1)', border: '1px solid rgba(234,179,8,0.3)', color: '#fde68a', lineHeight: 1.4 }}>→ {d1.lin.need}</div>
+              <div style={{ fontWeight: 700, color: 'var(--orange)', marginBottom: 10, fontSize: 17 }}>📖 小林</div>
+              <div style={{ fontSize: 15, color: '#cbd5e1', marginBottom: 12, lineHeight: 1.6 }}>{d1.lin.problem}</div>
+              <div style={{ fontSize: 13, padding: '8px 10px', borderRadius: 8, background: 'rgba(56,189,248,0.1)', border: '1px solid rgba(56,189,248,0.3)', color: '#bae6fd', lineHeight: 1.5, marginBottom: 6 }}>📚 语料：{d1.lin.corpus}</div>
+              <div style={{ fontSize: 13, padding: '8px 10px', borderRadius: 8, background: 'rgba(234,179,8,0.1)', border: '1px solid rgba(234,179,8,0.3)', color: '#fde68a', lineHeight: 1.5 }}>📋 方法：{d1.lin.method}</div>
             </div>
             <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 12, padding: 18 }}>
-              <div style={{ fontWeight: 700, color: 'var(--blue)', marginBottom: 8, fontSize: 17 }}>📚 小周</div>
-              <div style={{ fontSize: 15, color: '#cbd5e1', marginBottom: 10, lineHeight: 1.6 }}>{d1.zhou.problem}</div>
-              <div style={{ fontSize: 13, padding: '8px 10px', borderRadius: 8, background: 'rgba(234,179,8,0.1)', border: '1px solid rgba(234,179,8,0.3)', color: '#fde68a', lineHeight: 1.4 }}>→ {d1.zhou.need}</div>
+              <div style={{ fontWeight: 700, color: 'var(--blue)', marginBottom: 10, fontSize: 17 }}>📚 小周</div>
+              <div style={{ fontSize: 15, color: '#cbd5e1', marginBottom: 12, lineHeight: 1.6 }}>{d1.zhou.problem}</div>
+              <div style={{ fontSize: 13, padding: '8px 10px', borderRadius: 8, background: 'rgba(56,189,248,0.1)', border: '1px solid rgba(56,189,248,0.3)', color: '#bae6fd', lineHeight: 1.5, marginBottom: 6 }}>📚 语料：{d1.zhou.corpus}</div>
+              <div style={{ fontSize: 13, padding: '8px 10px', borderRadius: 8, background: 'rgba(234,179,8,0.1)', border: '1px solid rgba(234,179,8,0.3)', color: '#fde68a', lineHeight: 1.5 }}>📋 方法：{d1.zhou.method}</div>
             </div>
           </div>
-          <div style={{ marginTop: 26, padding: 20, background: 'rgba(168,85,247,0.1)', border: '1px solid rgba(168,85,247,0.4)', borderRadius: 14, textAlign: 'center', maxWidth: 900 }}>
+          <div style={{ marginTop: 26, padding: 20, background: 'rgba(34,197,94,0.12)', border: '1px solid rgba(34,197,94,0.5)', borderRadius: 14, textAlign: 'center', maxWidth: 900 }}>
             <div style={{ fontSize: 16, color: '#cbd5e1', marginBottom: 10, lineHeight: 1.6 }}>{d1.conclusion}</div>
-            <div style={{ fontSize: 24, color: 'var(--purple)' }}>↓</div>
-            <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--purple)' }}>{d1.solution}</div>
+            <div style={{ fontSize: 26, color: 'var(--green)', fontWeight: 800 }}>↓</div>
+            <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--green)', marginTop: 6 }}>{d1.solution}</div>
             <div style={{ marginTop: 10, color: '#cbd5e1', fontSize: 14 }}>{d1.solutionSub}</div>
           </div>
         </>
