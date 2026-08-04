@@ -555,7 +555,7 @@ export default function StudentPage() {
     );
   }
 
-  if (phase === 'finale') {
+  if (phase === 'finale' || current?.type === 'finale') {
     return (
       <div className="container" style={{ maxWidth: 880 }}>
         <StudentFinale sessionId={sessionId} anonymousId={anonymousId} nickname={wechatName} />
@@ -1089,11 +1089,11 @@ export default function StudentPage() {
               />
             )}
 
-            {!['waiting', 'single_choice', 'multi_choice', 'short_text', 'source_select', 'ai_task', 'hr_screening', 'class_mirror', 'lecture', 'agent_config', 'rule_config', 'workflow_order', 'ai_run', 'stress_test', 'compare_runs', 'persona_config', 'knowledge_select', 'skill_build', 'assistant_try'].includes(current.type) && (
+            {!['waiting', 'single_choice', 'multi_choice', 'short_text', 'source_select', 'ai_task', 'hr_screening', 'class_mirror', 'lecture', 'agent_config', 'rule_config', 'workflow_order', 'ai_run', 'stress_test', 'compare_runs', 'persona_config', 'finale', 'knowledge_select', 'skill_build', 'assistant_try'].includes(current.type) && (
               <p className="note">此模块类型（{current.type}）将在后续 Sprint 实现；当前演示版仅打通投票/文本/资料/AI 任务模块。</p>
             )}
 
-            {moduleStatus !== 'submitted' && current.type !== 'waiting' && current.type !== 'ai_task' && current.type !== 'hr_screening' && current.type !== 'class_mirror' && current.type !== 'lecture' && current.type !== 'l2_intro' && current.type !== 'knowledge_select' && current.type !== 'skill_build' && current.type !== 'assistant_try' && (
+            {moduleStatus !== 'submitted' && current.type !== 'waiting' && current.type !== 'ai_task' && current.type !== 'hr_screening' && current.type !== 'class_mirror' && current.type !== 'lecture' && current.type !== 'l2_intro' && current.type !== 'knowledge_select' && current.type !== 'skill_build' && current.type !== 'assistant_try' && current.type !== 'finale' && (
               <div style={{ marginTop: 16 }}>
                 <button disabled={busy || locked} onClick={submit}>
                   {busy ? '提交中…' : '提交'}

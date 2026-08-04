@@ -26,6 +26,7 @@ export type ModuleType =
   | 'class_mirror' // A02：全班行为镜像与复盘
   | 'hr_screening' // A0：AI 审判官 · 应聘自检（离线 mock HR，后续可接 LLM）
   | 'persona_config' // A11：一人一配置（桥接终章·多 Agent）
+  | 'finale' // A07：终章（一人公司·多 Agent 协同）
   | 'l2_intro' // 第二关开场
   | 'knowledge_select' // A04：选择知识库
   | 'skill_build' // A05：编写 Skill

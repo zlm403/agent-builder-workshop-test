@@ -819,6 +819,23 @@ const TEMPLATE: CourseTemplateData = {
         ],
       },
     },
+    {
+      id: 'A07_FINALE',
+      type: 'finale',
+      title: 'A07 终章 · 一人公司（多 Agent 协同）',
+      durationSeconds: 1800,
+      teacherContent: {
+        headline: '用你设计的 AI 助手解决真实问题',
+        subline: '全班同学各自发布一个「一人公司」，互相体验、互相反馈',
+        bullets: [
+          '学生端：搭建 4 个 Agent，组成自己的「一人公司」',
+          '教师开放本轮后，可发布产品，全班同学互访、互评',
+          '大屏实时展示全班作品作战图',
+        ],
+      },
+      studentTask: {},
+      screenContent: {},
+    },
   ],
 };
 

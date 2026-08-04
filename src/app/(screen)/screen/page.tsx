@@ -196,7 +196,7 @@ export default function ScreenPage() {
         </div>
       </div>
 
-      {finaleActive ? (
+      {(finaleActive || module?.type === 'finale') ? (
         <ScreenFinale sessionId={sessionId} />
       ) : !sessionId ? (
         <p style={{ color: '#94a3b8' }}>请在教师端点击“打开大屏”后访问此页（需带 ?sessionId=）。</p>

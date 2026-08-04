@@ -83,6 +83,13 @@ export async function advanceClassroom(sessionId: string) {
   const modules = getModules(tpl);
   const idx = getModuleIndex(tpl, session.currentModuleId ?? '');
   const next = modules[idx + 1]?.id ?? session.currentModuleId;
+  const nextMod = findModule(tpl, next);
+  const curMod = findModule(tpl, session.currentModuleId ?? '');
+  if (nextMod?.type === 'finale') {
+    await enterFinale(sessionId);
+  } else if (curMod?.type === 'finale') {
+    await exitFinale(sessionId);
+  }
   const updated = await prisma.classSession.update({
     where: { id: sessionId },
     data: { currentModuleId: next, moduleStartedAt: new Date() },
