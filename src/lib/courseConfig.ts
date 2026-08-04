@@ -121,6 +121,43 @@ export const KNOWLEDGE_DOCS: KnowledgeDoc[] = [
     timeliness: '未知',
     recommendedClass: 'risk',
   },
+  {
+    id: 'doc9',
+    title: '基础阅读短文：大学社团活动（含细节定位题）',
+    source: '模拟 CET-4 真题节选',
+    updatedAt: '2026年',
+    summary: '一篇校园生活类短文，附细节定位练习题，适合基础训练。',
+    body:
+      'Many students join clubs when they enter college. These clubs help them make friends and learn skills outside class. A recent survey shows that over 60% of freshmen join at least one club in their first year. The most popular clubs are sports clubs and volunteer groups. Students who join clubs often report higher satisfaction with their college life.\n\n' +
+      '词汇提示：freshman 大一新生；volunteer group 志愿者社团；satisfaction 满意度。\n\n' +
+      '细节定位练习题：\n' +
+      '1. What percentage of freshmen join at least one club in their first year?\n' +
+      '2. What are the two most popular types of clubs mentioned in the passage?\n' +
+      '3. According to the passage, what do students who join clubs often report?',
+    relevance: '高',
+    reliability: '高',
+    timeliness: '高',
+    recommendedClass: 'core',
+  },
+  {
+    id: 'doc10',
+    title: '进阶阅读材料：主动学习研究（含推理与作者态度题）',
+    source: '模拟考研英语真题节选',
+    updatedAt: '2026年',
+    summary: '一篇学术类阅读材料，附推理题和作者态度题，适合进阶训练。',
+    body:
+      'Recent studies in educational psychology suggest that active learning—where students engage through problem-solving and discussion—leads to better long-term retention than passive listening. However, critics argue that active learning methods may slow down the coverage of course material, making it harder to complete a full syllabus within a semester. The debate continues, but most researchers agree that some form of active engagement benefits learners regardless of their starting level. The challenge lies not in choosing one approach over the other, but in finding the right balance for each group of students.\n\n' +
+      '词汇提示：educational psychology 教育心理学；retention 记忆保持；passive listening 被动听讲；syllabus 教学大纲。\n\n' +
+      '推理题：\n' +
+      '1. What can be inferred about the relationship between active learning and course coverage?\n' +
+      '2. Why might critics be concerned about active learning methods?\n\n' +
+      '作者态度题：\n' +
+      '3. What is the author\'s attitude toward active learning? (支持 / 反对 / 中立客观)',
+    relevance: '高',
+    reliability: '高',
+    timeliness: '高',
+    recommendedClass: 'core',
+  },
 ];
 
 // ---------------------------------------------------------------------------
