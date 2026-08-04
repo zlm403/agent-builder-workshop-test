@@ -18,9 +18,8 @@ export async function POST(req: NextRequest) {
     const skill: SkillVersion = { ...blankSkill(), ...(body.skill ?? {}) };
 
     if (!anonymousId) return NextResponse.json({ error: { code: 'MISSING_TOKEN' } }, { status: 400 });
-    if (selection.length !== 4) {
-      return NextResponse.json({ error: { code: 'INVALID_SELECTION', message: '必须选择 4 份核心资料' } }, { status: 400 });
-    }
+    // A06 是最终工作台：允许学生未完成 A04/A05 就直接运行
+    // 知识库不足 4 份时，后端用已有资料（可能为空）交给引擎，引擎会走离线示例兜底
 
     const p = await prisma.participant.findUnique({ where: { anonymousId } });
     if (!p) return NextResponse.json({ error: { code: 'INVALID_TOKEN' } }, { status: 404 });

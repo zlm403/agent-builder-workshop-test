@@ -924,46 +924,203 @@ function renderBigScreen(s: any) {
 }
 
 function A06Screen({ summary, total, module }: { summary: Summary | null; total: number; module: ModuleDef }) {
-  const screens: any[] = module.screenContent?.bigScreens ?? [];
+  // 三屏结构（参考 _a06_demo.html 大屏 3~5）：全班复盘 → 教师点评+引出 → 休息
+  // 纯老师手动导航，不自动翻页
   const [idx, setIdx] = useState(0);
-  useEffect(() => {
-    if (!screens.length) return;
-    const t = setInterval(() => setIdx((i) => (i + 1) % screens.length), 9000);
-    return () => clearInterval(t);
-  }, [screens.length]);
+  const SCREENS = [
+    { key: 'review', title: '全班复盘：第二关小结' },
+    { key: 'comment', title: '教师点评' },
+    { key: 'break', title: '休息一下' },
+  ];
+  const current = SCREENS[idx];
 
-  if (!screens.length) {
-    return <div style={{ fontSize: 40, fontWeight: 800 }}>{module.title}</div>;
-  }
-  const s = screens[idx];
   return (
     <div>
-      <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginBottom: 16 }}>
-        {screens.map((_, i) => (
-          <span
-            key={i}
-            style={{
-              width: 10,
-              height: 10,
-              borderRadius: '50%',
-              background: i === idx ? 'var(--green)' : '#334155',
-            }}
-          />
-        ))}
-      </div>
-      <div style={{ fontSize: 38, fontWeight: 800, textAlign: 'center', marginBottom: 20 }}>{s.title}</div>
-      <div style={{ maxWidth: 900, margin: '0 auto' }}>{renderBigScreen(s)}</div>
-      <div style={{ display: 'flex', justifyContent: 'center', gap: 24, marginTop: 28 }}>
-        <button style={SCREEN_BTN} onClick={() => setIdx((i) => (i - 1 + screens.length) % screens.length)}>
-          上一屏
+      {/* 标题 */}
+      <div style={{ fontSize: 38, fontWeight: 800, textAlign: 'center', marginBottom: 20 }}>{current.title}</div>
+
+      {/* ====== 屏1：全班复盘 ====== */}
+      {current.key === 'review' && (
+        <div style={{ maxWidth: 1000, margin: '0 auto' }}>
+          {/* 三列小结 */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16, marginBottom: 28 }}>
+            <div style={{ background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.25)', borderRadius: 12, padding: 18 }}>
+              <div style={{ fontSize: 18, fontWeight: 800, color: '#22c55e', marginBottom: 10 }}>✓ 做对了什么</div>
+              <ul style={{ margin: 0, paddingLeft: 18, color: '#cbd5e1', lineHeight: 2 }}>
+                <li>大部分同学选了核心资料</li>
+                <li>Skill 结构完整（4 个区块）</li>
+                <li>两位学员结果有差异</li>
+                <li>知识库引用了选中资料</li>
+              </ul>
+            </div>
+            <div style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 12, padding: 18 }}>
+              <div style={{ fontSize: 18, fontWeight: 800, color: '#ef4444', marginBottom: 10 }}>✗ 没做什么 / 哪里不对</div>
+              <ul style={{ margin: 0, paddingLeft: 18, color: '#cbd5e1', lineHeight: 2 }}>
+                <li>部分 Skill 写得太笼统</li>
+                <li>个别同学选了偏弱资料</li>
+                <li>反馈缺少具体证据</li>
+                <li>两位学员差异不够明显</li>
+              </ul>
+            </div>
+            <div style={{ background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.25)', borderRadius: 12, padding: 18 }}>
+              <div style={{ fontSize: 18, fontWeight: 800, color: '#fbbf24', marginBottom: 10 }}>🔧 建议怎么改</div>
+              <ul style={{ margin: 0, paddingLeft: 18, color: '#cbd5e1', lineHeight: 2 }}>
+                <li>判断规则要写清「如果…就…」</li>
+                <li>执行步骤要具体到题型和难度</li>
+                <li>反馈要引用资料原文作为证据</li>
+                <li>移除来源不明的资料</li>
+              </ul>
+            </div>
+          </div>
+
+          {/* 学生逐人 Skill 评价（示例数据，后续接真实全班接口） */}
+          <div style={{ fontSize: 17, fontWeight: 700, color: '#38bdf8', marginBottom: 14 }}>👥 各位同学的 Skill 检查</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 14 }}>
+            {[{
+              name: '学生 A001',
+              blocks: [
+                { label: '了解', status: 'good', note: '收集了基础信息' },
+                { label: '判断', status: 'weak', note: '规则不够具体' },
+                { label: '执行', status: 'good', note: '安排了训练任务' },
+                { label: '反馈', status: 'empty', note: '未填写' },
+              ],
+            }, {
+              name: '学生 A003',
+              blocks: [
+                { label: '了解', status: 'good', note: '信息全面' },
+                { label: '判断', status: 'good', note: '区分了两人情况' },
+                { label: '执行', status: 'good', note: '任务具体可操作' },
+                { label: '反馈', status: 'good', note: '有证据支撑' },
+              ],
+            }, {
+              name: '学生 A004',
+              blocks: [
+                { label: '了解', status: 'empty', note: '' },
+                { label: '判断', status: 'empty', note: '' },
+                { label: '执行', status: 'empty', note: '' },
+                { label: '反馈', status: 'empty', note: '' },
+              ],
+            }].map((stu) => (
+              <div key={stu.name} style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 10, padding: 14 }}>
+                <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 10 }}>{stu.name}</div>
+                {stu.blocks.map((b) => (
+                  <div key={b.label} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                    <span style={{
+                      width: 56, fontSize: 12, fontWeight: 700,
+                      color: b.status === 'good' ? '#22c55e' : b.status === 'weak' ? '#fbbf24' : '#ef4444',
+                    }}>{b.status === 'good' ? '✓ 合格' : b.status === 'weak' ? '⚠ 偏弱' : '✗ 空'}</span>
+                    <span style={{ width: 40, color: 'var(--muted)', fontSize: 13 }}>{b.label}</span>
+                    <div style={{ flex: 1, height: 8, background: '#1e293b', borderRadius: 4, overflow: 'hidden' }}>
+                      <div style={{
+                        width: b.status === 'good' ? '100%' : b.status === 'weak' ? '50%' : '8%',
+                        height: '100%', borderRadius: 4,
+                        background: b.status === 'good' ? '#22c55e' : b.status === 'weak' ? '#fbbf24' : '#ef4444',
+                        transition: 'width .6s ease',
+                      }} />
+                    </div>
+                    {b.note && <span style={{ fontSize: 11, color: '#94a3b8', marginLeft: 6 }}>{b.note}</span>}
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ====== 屏2：教师点评 + 引出下一阶段 ====== */}
+      {current.key === 'comment' && (
+        <div style={{ maxWidth: 780, margin: '0 auto', textAlign: 'center' }}>
+          <div style={{ fontSize: 26, fontWeight: 800, color: '#fbbf24', marginBottom: 24 }}>
+            🎯 第二关核心收获
+          </div>
+          <div style={{ fontSize: 19, color: '#cbd5e1', lineHeight: 2.2, marginBottom: 36, textAlign: 'left', background: 'rgba(56,189,248,0.05)', borderRadius: 12, padding: '24px 32px', border: '1px solid rgba(56,189,248,0.15)' }}>
+            通过刚才的测试，大家应该感受到了：<br /><br />
+            设计 AI 助手不是「随便填填」——<br />
+            你的 <strong style={{ color: '#38bdf8' }}>Skill 越具体</strong>，AI 的输出就越有针对性；<br />
+            你选的 <strong style={{ color: '#38bdf8' }}>知识库越可靠</strong>，AI 的建议就越有依据。<br /><br />
+            这就是<strong style={{ color: '#fbbf24' }}>提示词工程</strong>的核心：<br />
+            用明确的指令 + 可靠的知识 = 值得信任的 AI 助手。
+          </div>
+
+          <div style={{ fontSize: 17, fontWeight: 700, color: '#a855f7', marginBottom: 16 }}>📌 记住这三条规则</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14, marginBottom: 36 }}>
+            {[
+              { icon: '🎓', rule: '让 AI 当老师', desc: '先告诉它你是谁、你的目标是什么' },
+              { icon: '🔍', rule: '用证据说话', desc: '每条建议都要能追溯到某份资料' },
+              { icon: '📚', rule: '用可靠资料', desc: '优先选择权威来源、近期更新的内容' },
+            ].map((r) => (
+              <div key={r.rule} style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 10, padding: 18, textAlign: 'left' }}>
+                <div style={{ fontSize: 28, marginBottom: 8 }}>{r.icon}</div>
+                <div style={{ fontWeight: 700, fontSize: 15, color: '#e2e8f0', marginBottom: 6 }}>{r.rule}</div>
+                <div style={{ fontSize: 13, color: '#94a3b8', lineHeight: 1.7 }}>{r.desc}</div>
+              </div>
+            ))}
+          </div>
+
+          <div style={{
+            fontSize: 30, fontWeight: 800,
+            background: 'linear-gradient(135deg, #a855f7, #ec4899)',
+            WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+            marginBottom: 12,
+          }}>
+            ☕ 休息一下，回来更精彩
+          </div>
+          <div style={{ color: '#94a3b8', fontSize: 16 }}>接下来我们将进入最终关卡——用你设计的 AI 助手解决真实问题。</div>
+        </div>
+      )}
+
+      {/* ====== 屏3：休息 ====== */}
+      {current.key === 'break' && (
+        <div style={{ maxWidth: 600, margin: '0 auto', textAlign: 'center' }}>
+          <div style={{ fontSize: 72, marginBottom: 20 }}>☕</div>
+          <div style={{ fontSize: 32, fontWeight: 800, marginBottom: 16 }}>休息一下</div>
+          <div style={{ fontSize: 18, color: '#94a3b8', lineHeight: 2, marginBottom: 32 }}>
+            第二关已经完成<br />
+            大家辛苦了！<br />
+            放松几分钟<br />
+            我们马上进入最终挑战
+          </div>
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', gap: 10,
+            padding: '12px 24px', borderRadius: 999,
+            background: 'rgba(168,85,247,0.1)', border: '1px solid rgba(168,85,247,0.3)',
+            color: '#c084fc', fontSize: 15,
+          }}>
+            <span style={{
+              display: 'inline-block', width: 10, height: 10, borderRadius: '50%',
+              background: '#a855f7', animation: 'pulse 1.5s infinite',
+            }} />
+            等待进入下一关…
+          </div>
+        </div>
+      )}
+
+      {/* 导航栏 */}
+      <div style={{ display: 'flex', justifyContent: 'center', gap: 24, marginTop: 36, alignItems: 'center' }}>
+        <button style={SCREEN_BTN} onClick={() => setIdx((i) => (i - 1 + SCREENS.length) % SCREENS.length)}>
+          ◀ 上一屏
         </button>
-        <span style={{ color: '#94a3b8', alignSelf: 'center' }}>
-          {idx + 1} / {screens.length}
-        </span>
-        <button style={SCREEN_BTN} onClick={() => setIdx((i) => (i + 1) % screens.length)}>
-          下一屏
+        <div style={{ display: 'flex', gap: 8 }}>
+          {SCREENS.map((s, i) => (
+            <button
+              key={s.key}
+              onClick={() => setIdx(i)}
+              style={{
+                padding: '6px 14px', borderRadius: 8, border: 'none', cursor: 'pointer',
+                fontSize: 13, fontWeight: 600,
+                background: i === idx ? 'var(--blue)' : '#1e293b',
+                color: i === idx ? '#fff' : '#94a3b8',
+              }}
+            >
+              {i + 1}. {s.title}
+            </button>
+          ))}
+        </div>
+        <button style={SCREEN_BTN} onClick={() => setIdx((i) => (i + 1) % SCREENS.length)}>
+          下一屏 ▶
         </button>
       </div>
+
       <L2Progress summary={summary} total={total} module={module} />
     </div>
   );

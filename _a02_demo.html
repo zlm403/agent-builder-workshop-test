@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>A02 大屏 Demo v2 · PPT 翻页式</title>
+<style>
+  :root {
+    --dark: #0f172a;
+    --card: #1e293b;
+    --border: #334155;
+    --muted: #94a3b8;
+    --text: #e2e8f0;
+    --blue: #38bdf8;
+    --green: #22c55e;
+    --yellow: #eab308;
+    --red: #ef4444;
+    --purple: #a855f7;
+    --orange: #f97316;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--dark);
+    color: var(--text);
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    min-height: 100vh;
+    overflow: hidden;
+  }
+  /* PPT 容器 */
+  .slide {
+    display: none;
+    padding: 40px 60px;
+    min-height: 100vh;
+    animation: fadeIn 0.4s;
+  }
+  .slide.active { display: block; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+
+  h1 { font-size: 38px; font-weight: 800; margin-bottom: 6px; }
+  h2 { font-size: 20px; color: var(--muted); margin-bottom: 24px; font-weight: 500; }
+  h3 { color: var(--muted); margin: 22px 0 12px; font-size: 17px; font-weight: 600; }
+
+  .cards { display: flex; gap: 18px; flex-wrap: wrap; }
+  .card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 12px; padding: 16px; min-width: 170px; text-align: center;
+  }
+  .big-num { font-size: 32px; font-weight: 800; color: var(--blue); }
+  .label { color: #cbd5e1; font-size: 14px; margin-top: 6px; }
+  .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .path-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+  .path-name { font-weight: 700; margin-bottom: 8px; color: var(--yellow); font-size: 15px; }
+  .path-flow { font-size: 13px; color: #cbd5e1; margin-bottom: 8px; line-height: 1.5; }
+  .path-pct { font-size: 22px; font-weight: 800; }
+  .insight {
+    margin-top: 20px; padding: 14px;
+    background: rgba(56,189,248,0.08); border: 1px solid rgba(56,189,248,0.3);
+    border-radius: 12px;
+  }
+  .insight-title { color: var(--blue); font-weight: 700; margin-bottom: 6px; font-size: 15px; }
+  .question { font-size: 22px; margin-top: 24px; color: var(--green); font-weight: 700; }
+
+  /* 第2屏：四要素图形化 */
+  .elem-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; margin-top: 20px; }
+  .elem {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 16px; padding: 24px 18px; text-align: center;
+    position: relative; overflow: hidden;
+  }
+  .elem::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px;
+  }
+  .elem.e1::before { background: var(--blue); }
+  .elem.e2::before { background: var(--green); }
+  .elem.e3::before { background: var(--yellow); }
+  .elem.e4::before { background: var(--purple); }
+  .elem-icon { font-size: 48px; margin-bottom: 10px; }
+  .elem-name { font-size: 26px; font-weight: 800; margin-bottom: 8px; }
+  .elem.e1 .elem-name { color: var(--blue); }
+  .elem.e2 .elem-name { color: var(--green); }
+  .elem.e3 .elem-name { color: var(--yellow); }
+  .elem.e4 .elem-name { color: var(--purple); }
+  .elem-q { font-size: 15px; color: #cbd5e1; margin-bottom: 14px; line-height: 1.5; }
+  .elem-compare { display: flex; flex-direction: column; gap: 8px; }
+  .elem-bad, .elem-good {
+    font-size: 12px; padding: 8px 10px; border-radius: 8px; line-height: 1.4;
+  }
+  .elem-bad { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); color: #fca5a5; }
+  .elem-good { background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.3); color: #86efac; }
+
+  .flow-arrow {
+    text-align: center; font-size: 40px; color: var(--muted); margin: 24px 0 8px;
+  }
+  .flow-hint { text-align: center; color: var(--muted); font-size: 15px; }
+
+  /* 第3屏：话术范本 */
+  .script-grid { display: flex; flex-direction: column; gap: 18px; margin-top: 16px; }
+  .script-row {
+    display: grid; grid-template-columns: 220px 1fr; gap: 20px;
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 14px; padding: 20px;
+  }
+  .script-left { display: flex; flex-direction: column; gap: 6px; }
+  .script-icon { font-size: 36px; }
+  .script-elem { font-size: 22px; font-weight: 800; }
+  .script-elem.e1 { color: var(--blue); }
+  .script-elem.e2 { color: var(--green); }
+  .script-elem.e3 { color: var(--yellow); }
+  .script-elem.e4 { color: var(--purple); }
+  .script-what { font-size: 13px; color: var(--muted); line-height: 1.5; }
+  .script-right {
+    background: rgba(34,197,94,0.06); border: 1px solid rgba(34,197,94,0.3);
+    border-left: 4px solid var(--green);
+    border-radius: 10px; padding: 14px 16px;
+  }
+  .script-tag { font-size: 12px; color: var(--green); font-weight: 700; margin-bottom: 6px; }
+  .script-text { font-size: 15px; line-height: 1.7; color: #e2e8f0; }
+
+  .next-cue {
+    margin-top: 28px; text-align: center;
+    padding: 18px; background: rgba(168,85,247,0.1); border: 1px solid rgba(168,85,247,0.3);
+    border-radius: 12px;
+  }
+  .next-cue-title { color: var(--purple); font-weight: 700; font-size: 18px; margin-bottom: 6px; }
+  .next-cue-text { font-size: 15px; color: #cbd5e1; }
+
+  /* 翻页控制 */
+  .nav {
+    position: fixed; bottom: 24px; right: 24px;
+    display: flex; gap: 10px; align-items: center;
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 30px; padding: 8px 14px;
+    z-index: 100;
+  }
+  .nav button {
+    background: var(--border); color: var(--text); border: none;
+    width: 36px; height: 36px; border-radius: 50%; cursor: pointer;
+    font-size: 18px; font-weight: 700;
+  }
+  .nav button:hover { background: var(--blue); color: #000; }
+  .nav .page { font-size: 14px; color: var(--muted); min-width: 50px; text-align: center; }
+  .nav-hint { position: fixed; bottom: 28px; left: 24px; color: var(--muted); font-size: 12px; }
+  .demo-tag {
+    display: inline-block; background: var(--purple); color: #fff;
+    font-size: 12px; padding: 3px 10px; border-radius: 20px; margin-bottom: 12px;
+  }
+</style>
+</head>
+<body>
+
+<!-- ========== 第 1 屏：全班行为镜像 ========== -->
+<div class="slide active" id="s1">
+  <span class="demo-tag">第 1 屏 · 全班行为镜像</span>
+  <h1>刚才，全班是怎样使用 AI 的？</h1>
+  <h2>同一个任务、同一个 AI，大家采取的方式却不同。</h2>
+
+  <h3>全班真实行为</h3>
+  <div class="cards">
+    <div class="card"><div class="big-num">100%</div><div class="label">已开始任务</div></div>
+    <div class="card"><div class="big-num">62%</div><div class="label">使用了给定资料</div></div>
+    <div class="card"><div class="big-num">48%</div><div class="label">进行了二次追问/修改</div></div>
+    <div class="card"><div class="big-num">23%</div><div class="label">主动检查内容依据</div></div>
+  </div>
+
+  <h3>三种使用路径</h3>
+  <div class="grid3">
+    <div class="path-card">
+      <div class="path-name">路径一 · 一次性问答</div>
+      <div class="path-flow">提出一个大问题 → AI 生成完整答案 → 直接提交</div>
+      <div class="path-pct">42%</div>
+      <div class="label">5 名学员</div>
+    </div>
+    <div class="path-card">
+      <div class="path-name">路径二 · 多轮修改</div>
+      <div class="path-flow">提出任务 → 查看结果 → 要求修改 → 提交</div>
+      <div class="path-pct">38%</div>
+      <div class="label">4 名学员</div>
+    </div>
+    <div class="path-card">
+      <div class="path-name">路径三 · 任务流程</div>
+      <div class="path-flow">分析对象 → 提供资料 → 明确规则 → 分步执行 → 检查依据 → 修改 → 提交</div>
+      <div class="path-pct">20%</div>
+      <div class="label">2 名学员</div>
+    </div>
+  </div>
+
+  <div class="insight">
+    <div class="insight-title">本班发现</div>
+    <p style="font-size:17px">大多数同学会迭代修改，但只有不到四分之一主动检查 AI 给出的内容是否符合材料——这是结果质量差异的关键。</p>
+  </div>
+
+  <p class="question">大家使用的是同一个 AI，为什么结果和过程差别这么大？→</p>
+</div>
+
+<!-- ========== 第 2 屏：四个要素（图形化） ========== -->
+<div class="slide" id="s2">
+  <span class="demo-tag" style="background:var(--blue)">第 2 屏 · 为什么结果不同？四个要素</span>
+  <h1>结果不同的关键，在这四个要素</h1>
+  <h2>同样是和 AI 对话，做对这四步的人，结果质量明显更高。</h2>
+
+  <div class="elem-grid">
+    <div class="elem e1">
+      <div class="elem-icon">👤</div>
+      <div class="elem-name">对象</div>
+      <div class="elem-q">你让 AI 为谁服务？</div>
+      <div class="elem-compare">
+        <div class="elem-bad">✗ "帮我做个学习计划"——对象模糊</div>
+        <div class="elem-good">✓ "为准备考研的小林"——对象具体</div>
+      </div>
+    </div>
+    <div class="elem e2">
+      <div class="elem-icon">🎯</div>
+      <div class="elem-name">任务</div>
+      <div class="elem-q">你希望 AI 完成什么？</div>
+      <div class="elem-compare">
+        <div class="elem-bad">✗ "做个英语计划"——无法检验</div>
+        <div class="elem-good">✓ "设计30分钟训练+一道测试题"——可检验</div>
+      </div>
+    </div>
+    <div class="elem e3">
+      <div class="elem-icon">🔁</div>
+      <div class="elem-name">过程</div>
+      <div class="elem-q">你和 AI 怎样对话？</div>
+      <div class="elem-compare">
+        <div class="elem-bad">✗ 一次要全部答案</div>
+        <div class="elem-good">✓ 分步推进：先诊断→再设计→再出题</div>
+      </div>
+    </div>
+    <div class="elem e4">
+      <div class="elem-icon">✓</div>
+      <div class="elem-name">检验</div>
+      <div class="elem-q">你怎么知道结果合格？</div>
+      <div class="elem-compare">
+        <div class="elem-bad">✗ 直接采纳 AI 的输出</div>
+        <div class="elem-good">✓ 逐项核对依据，能在原文找到出处</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="flow-arrow">↓</div>
+  <div class="flow-hint">四要素缺一不可：对象模糊则方向错，任务不清则无法验收，过程不分步则失控，检验缺失则盲信。</div>
+
+  <p class="question" style="text-align:center">那这四步，具体要怎么和 AI 说？→</p>
+</div>
+
+<!-- ========== 第 3 屏：话术范本 ========== -->
+<div class="slide" id="s3">
+  <span class="demo-tag" style="background:var(--green)">第 3 屏 · 怎么和 AI 说？话术范本</span>
+  <h1>针对四个要素，你可以这么说</h1>
+  <h2>把每个要素变成一句明确的话，AI 才知道你要什么。</h2>
+
+  <div class="script-grid">
+    <div class="script-row">
+      <div class="script-left">
+        <div class="script-icon">👤</div>
+        <div class="script-elem e1">对象</div>
+        <div class="script-what">说清这个对象是谁、什么情况、什么约束——让 AI 知道为谁做。</div>
+      </div>
+      <div class="script-right">
+        <div class="script-tag">✓ 你可以这么说</div>
+        <div class="script-text">"我需要为<strong>准备考研的小林</strong>设计训练——他大三，英语阅读平均每篇错 3 题，每天可训练 30 分钟。"</div>
+      </div>
+    </div>
+
+    <div class="script-row">
+      <div class="script-left">
+        <div class="script-icon">🎯</div>
+        <div class="script-elem e2">任务</div>
+        <div class="script-what">说清要完成什么、交付什么——让结果可检验，不是模糊的"计划"。</div>
+      </div>
+      <div class="script-right">
+        <div class="script-tag">✓ 你可以这么说</div>
+        <div class="script-text">"请基于我给的材料，设计一次<strong>约 30 分钟的阅读训练</strong>，并生成<strong>一道测试题</strong>。"</div>
+      </div>
+    </div>
+
+    <div class="script-row">
+      <div class="script-left">
+        <div class="script-icon">🔁</div>
+        <div class="script-elem e3">过程</div>
+        <div class="script-what">说清分几步、先做什么后做什么——不要一次要全部答案。</div>
+      </div>
+      <div class="script-right">
+        <div class="script-tag">✓ 你可以这么说</div>
+        <div class="script-text">"请分三步：先判断小林最主要的问题；再基于材料设计训练；最后出测试题。<strong>每步等我确认后再继续</strong>。"</div>
+      </div>
+    </div>
+
+    <div class="script-row">
+      <div class="script-left">
+        <div class="script-icon">✓</div>
+        <div class="script-elem e4">检验</div>
+        <div class="script-what">说清怎么验收、依据在哪——让 AI 给出处，你能核对。</div>
+      </div>
+      <div class="script-right">
+        <div class="script-tag">✓ 你可以这么说</div>
+        <div class="script-text">"每一步请说明<strong>针对小林的哪个问题</strong>；测试题要能在<strong>原文找到依据</strong>，并指出在哪一段。"</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="next-cue">
+    <div class="next-cue-title">接下来 · 第二轮（A03）</div>
+    <div class="next-cue-text">用同一个 AI、同一个任务，按这四步重新做一次，看看结果有什么不同。</div>
+  </div>
+</div>
+
+<!-- 翻页控制 -->
+<div class="nav">
+  <button onclick="go(-1)">‹</button>
+  <span class="page" id="page">1 / 3</span>
+  <button onclick="go(1)">›</button>
+</div>
+<div class="nav-hint">← → 键翻页</div>
+
+<script>
+  let cur = 1;
+  const total = 3;
+  function show(n) {
+    document.querySelectorAll('.slide').forEach(s => s.classList.remove('active'));
+    document.getElementById('s' + n).classList.add('active');
+    document.getElementById('page').textContent = n + ' / ' + total;
+    cur = n;
+  }
+  function go(d) {
+    let n = cur + d;
+    if (n < 1) n = 1;
+    if (n > total) n = total;
+    show(n);
+  }
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') go(1);
+    if (e.key === 'ArrowLeft') go(-1);
+  });
+</script>
+</body>
+</html>

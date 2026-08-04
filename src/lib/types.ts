@@ -166,6 +166,14 @@ export interface DualRunResponse {
 
 export type AiCheckDiagnosisType = 'knowledgeBase' | 'skill' | 'both' | 'acceptable';
 
+export type SkillBlockStatus = 'good' | 'weak' | 'empty';
+
+export interface SkillBlockEval {
+  block: '了解' | '判断' | '执行' | '反馈';
+  status: SkillBlockStatus;
+  comment: string;
+}
+
 export interface AiCheckResult {
   overallStatus: string;
   positiveFindings: string[];
@@ -173,6 +181,7 @@ export interface AiCheckResult {
   evidence: string[];
   recommendations: string[];
   diagnosisType: AiCheckDiagnosisType;
+  skillEvaluation?: SkillBlockEval[];
 }
 
 export interface SkillVersion {

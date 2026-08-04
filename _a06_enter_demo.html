@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A06 进入即卡片 · 交互 Demo</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --blue:#38bdf8; --green:#22c55e; --orange:#f97316; --red:#ef4444;
+    --card:#1e293b; --border:#334155; --muted:#94a3b8; --dark:#0f172a;
+  }
+  body { background:#0f172a; color:#e2e8f0; font-family:-apple-system,"Microsoft YaHei",sans-serif; min-height:100vh; padding:24px; }
+  .wrap { max-width:900px; margin:0 auto; }
+  h1 { font-size:24px; font-weight:800; margin-bottom:6px; }
+  .sub { color:var(--muted); font-size:14px; margin-bottom:18px; }
+
+  /* 设备框 */
+  .device { background:var(--dark); border:2px solid var(--border); border-radius:18px; overflow:hidden; }
+  .device-bar { background:#1e293b; padding:10px 16px; font-size:13px; color:var(--muted); border-bottom:1px solid var(--border); display:flex; justify-content:space-between; }
+  .device-body { padding:18px; min-height:460px; }
+
+  /* 加载态 */
+  .loading { text-align:center; padding:80px 20px; color:var(--muted); }
+  .spinner { width:40px; height:40px; border:3px solid var(--border); border-top-color:var(--blue); border-radius:50%; margin:0 auto 16px; animation:spin 0.9s linear infinite; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+
+  /* 卡片 UI */
+  .task-prompt { font-size:14px; color:#cbd5e1; margin-bottom:14px; line-height:1.6; }
+  .head { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
+  .head .title { font-weight:700; font-size:15px; }
+  .toggle { display:flex; gap:4px; background:var(--card); border:1px solid var(--border); border-radius:8px; padding:3px; }
+  .toggle button { padding:6px 12px; border:none; border-radius:6px; cursor:pointer; font-size:13px; font-weight:600; background:transparent; color:var(--muted); }
+  .toggle button.active { background:var(--blue); color:#fff; }
+
+  .persona-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px; }
+  .persona-card { text-align:left; padding:14px 16px; border-radius:12px; border:1px solid var(--border); background:var(--card); cursor:pointer; transition:all .15s; }
+  .persona-card.sel-A { border:2px solid var(--orange); background:rgba(249,115,22,0.08); }
+  .persona-card.sel-B { border:2px solid var(--blue); background:rgba(56,189,248,0.08); }
+  .persona-card .pc-top { display:flex; align-items:center; gap:8px; margin-bottom:6px; }
+  .persona-card .pc-name { font-weight:700; font-size:16px; }
+  .persona-card.sel-A .pc-name { color:var(--orange); }
+  .persona-card.sel-B .pc-name { color:var(--blue); }
+  .persona-card .badge { margin-left:auto; font-size:11px; padding:2px 8px; border-radius:10px; background:var(--blue); color:#fff; }
+  .persona-card .pc-info { font-size:13px; color:var(--muted); line-height:1.6; }
+
+  .window { border:1px solid var(--blue); border-radius:10px; padding:14px; background:rgba(56,189,248,0.05); }
+  .window .w-name { font-weight:700; font-size:16px; margin-bottom:8px; }
+  .window .w-row { font-size:13px; color:#cbd5e1; margin-bottom:4px; }
+  .window .w-row b { color:var(--muted); }
+  .window .w-doc { font-size:12px; color:var(--muted); margin-top:8px; }
+
+  .side-by-side { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .sb-box { border:1px solid var(--border); border-radius:8px; padding:12px; background:var(--card); }
+  .sb-box .sb-name { font-weight:700; font-size:14px; margin-bottom:6px; }
+  .sb-box.lin .sb-name { color:var(--orange); }
+  .sb-box.zhou .sb-name { color:var(--blue); }
+  .sb-box .sb-row { font-size:12px; color:#cbd5e1; margin-bottom:3px; }
+
+  .gen-mode { font-size:12px; color:var(--muted); margin-top:10px; }
+
+  .after { margin-top:16px; display:flex; gap:10px; }
+  .after button { padding:9px 16px; border-radius:8px; border:none; cursor:pointer; font-size:14px; font-weight:700; }
+  .after .check { background:var(--purple,#a855f7); background:#a855f7; color:#fff; }
+  .after .submit { background:var(--green); color:#fff; }
+
+  .controls { margin-top:18px; display:flex; gap:10px; align-items:center; }
+  .controls button { padding:10px 18px; border-radius:8px; border:1px solid var(--border); background:var(--card); color:#e2e8f0; cursor:pointer; font-weight:700; }
+  .controls .enter { background:var(--blue); color:#04293f; border:none; }
+  .note { background:rgba(56,189,248,0.07); border:1px solid rgba(56,189,248,0.3); border-radius:10px; padding:12px 14px; font-size:13px; color:#cbd5e1; line-height:1.7; margin-top:18px; }
+  .note b { color:var(--blue); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>A06 学生端 · 进入即卡片（改动后）</h1>
+  <p class="sub">对比改动前：进入 A06 要先看到「开始运行」按钮，点了才出结果。改动后：<b style="color:var(--green)">进入自动运行，直接就是两张卡片</b>，没有「开始运行」按钮。</p>
+
+  <div class="device">
+    <div class="device-bar"><span>学生端 · 浏览器</span><span id="barState">A06 模块</span></div>
+    <div class="device-body" id="screen">
+      <!-- JS 渲染 -->
+    </div>
+  </div>
+
+  <div class="controls">
+    <button class="enter" onclick="enterA06()">▶ 模拟「进入 A06」</button>
+    <span style="color:var(--muted); font-size:13px;">点一下，看自动加载 → 卡片的过渡</span>
+  </div>
+
+  <div class="note">
+    <b>改动点：</b><br>
+    1. 删除了「开始运行」按钮。<br>
+    2. 组件挂载时自动调用运行接口（无需手动点），加载时显示「正在为两位学员生成运行结果…」。<br>
+    3. 有数据后直接渲染卡片 UI：上方两张卡片（📖 小林 / 📚 小周）可点击切换，下方窗口显示选中者；右上角「👤 单人 / ⬌ 并排」可切换。<br>
+    4. 如之前已运行过（刷新恢复），会直接显示卡片，不会重复运行。
+  </div>
+</div>
+
+<script>
+  const learnerA = {
+    name: '📖 小林', color:'orange',
+    focus:'生词处理 + 细节定位', diff:'基础阅读短文（大学社团活动）',
+    task:'1 篇短文 + 3 道细节题（约 12 分钟）', dur:'15 分钟', fb:'指出长难句理解困难，建议先标注生词再读',
+    ref:'《基础阅读短文：大学社团活动》— 作为训练语料'
+  };
+  const learnerB = {
+    name: '📚 小周', color:'blue',
+    focus:'推理分析 + 作者态度', diff:'进阶阅读材料（主动学习研究）',
+    task:'1 篇长文 + 2 道推理题 + 1 道态度题（约 25 分钟）', dur:'30 分钟', fb:'指出推理过度引申，建议回到原文找依据',
+    ref:'《进阶阅读材料：主动学习研究》— 作为训练语料'
+  };
+  let viewMode = 'single';
+  let selected = 'A';
+
+  function personCard(key, l) {
+    const sel = (key==='A') ? 'sel-A' : 'sel-B';
+    return `<div class="persona-card ${sel}" onclick="select('${key}')">
+      <div class="pc-top">
+        <span style="font-size:22px;">${key==='A'?'📖':'📚'}</span>
+        <span class="pc-name">${l.name}</span>
+        ${selected===key?'<span class="badge">查看中</span>':''}
+      </div>
+      <div class="pc-info">
+        <div>⏱ 训练时长：${l.dur}</div>
+        <div>🎯 训练重点：${l.focus}</div>
+      </div>
+    </div>`;
+  }
+  function windowHtml(l) {
+    return `<div class="window">
+      <div class="w-name" style="color:var(--${l.color})">${l.name}</div>
+      <div class="w-row"><b>训练重点：</b>${l.focus}</div>
+      <div class="w-row"><b>材料难度：</b>${l.diff}</div>
+      <div class="w-row"><b>训练任务：</b>${l.task}</div>
+      <div class="w-row"><b>训练时长：</b>${l.dur}</div>
+      <div class="w-row"><b>反馈方式：</b>${l.fb}</div>
+      <div class="w-doc">引用资料：${l.ref}</div>
+    </div>`;
+  }
+  function sbHtml(l, cls) {
+    return `<div class="sb-box ${cls}">
+      <div class="sb-name">${l.name}</div>
+      <div class="sb-row"><b>重点：</b>${l.focus}</div>
+      <div class="sb-row"><b>材料：</b>${l.diff}</div>
+      <div class="sb-row"><b>任务：</b>${l.task}</div>
+      <div class="sb-row"><b>时长：</b>${l.dur}</div>
+      <div class="sb-row"><b>反馈：</b>${l.fb}</div>
+    </div>`;
+  }
+  function renderCards() {
+    const a = learnerA, b = learnerB;
+    const head = `<div class="head">
+        <div class="title">两人运行结果</div>
+        <div class="toggle">
+          <button class="${viewMode==='single'?'active':''}" onclick="setMode('single')">👤 单人</button>
+          <button class="${viewMode==='sideBySide'?'active':''}" onclick="setMode('sideBySide')">⬌ 并排</button>
+        </div>
+      </div>`;
+    let body;
+    if (viewMode === 'single') {
+      const sel = selected==='A' ? a : b;
+      body = `<div class="persona-grid">
+          ${personCard('A', a)}
+          ${personCard('B', b)}
+        </div>${windowHtml(sel)}`;
+    } else {
+      body = `<div class="side-by-side">${sbHtml(a,'lin')}${sbHtml(b,'zhou')}</div>`;
+    }
+    document.getElementById('screen').innerHTML =
+      `<div class="task-prompt">用两个不同的人测试你的助手：<b>小林</b>（基础弱）和 <b>小周</b>（基础好）。点上方卡片可分别查看他们各自得到的训练方案。</div>`
+      + head + body
+      + `<div class="gen-mode">生成方式：根据你的 Skill 自动生成（课堂真实运行）</div>`
+      + `<div class="after">
+           <button class="check">🔍 请 AI 检查</button>
+           <button class="submit">✅ 提交最终版本</button>
+         </div>`;
+  }
+  function select(k){ selected = k; renderCards(); }
+  function setMode(m){ viewMode = m; renderCards(); }
+
+  function enterA06() {
+    document.getElementById('barState').textContent = 'A06 加载中…';
+    document.getElementById('screen').innerHTML =
+      `<div class="loading">
+        <div class="spinner"></div>
+        正在为两位学员生成运行结果…
+      </div>`;
+    // 模拟自动运行（真实代码挂载即触发 /api/l2/run，无需点击）
+    setTimeout(() => {
+      document.getElementById('barState').textContent = 'A06 卡片';
+      selected = 'A';
+      viewMode = 'single';
+      renderCards();
+    }, 1400);
+  }
+
+  // 默认进入一次
+  enterA06();
+</script>
+</body>
+</html>

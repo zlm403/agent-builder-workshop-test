@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>A06 测试工作台 + 全班复盘 Demo</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0f172a; color: #e2e8f0; font-family: -apple-system, "Microsoft YaHei", sans-serif; min-height: 100vh; overflow-x: hidden; }
+  :root {
+    --blue:#38bdf8; --green:#22c55e; --yellow:#eab308; --purple:#a855f7; --orange:#f97316; --red:#ef4444;
+    --card:#1e293b; --border:#334155; --muted:#94a3b8; --dark:#0f172a;
+  }
+  .slide { display:none; min-height:100vh; padding:32px 40px; }
+  .slide.active { display:block; }
+  h1 { font-size:36px; font-weight:800; margin-bottom:6px; }
+  h2 { font-size:22px; font-weight:700; color:var(--blue); margin-bottom:14px; }
+  h3 { font-size:17px; color:var(--muted); margin-bottom:10px; }
+  .sub { color:var(--muted); font-size:16px; margin-bottom:20px; }
+  .tag { display:inline-block; padding:3px 10px; border-radius:20px; font-size:12px; font-weight:700; margin-bottom:12px; }
+  .tag-student { background:rgba(56,189,248,0.15); color:var(--blue); border:1px solid rgba(56,189,248,0.4); }
+  .tag-screen { background:rgba(168,85,247,0.15); color:var(--purple); border:1px solid rgba(168,85,247,0.4); }
+  .tag-phone { background:rgba(234,179,8,0.15); color:var(--yellow); border:1px solid rgba(234,179,8,0.4); }
+  .tag-tablet { background:rgba(34,197,94,0.15); color:var(--green); border:1px solid rgba(34,197,94,0.4); }
+
+  /* 翻页 */
+  .nav { position:fixed; bottom:24px; right:24px; display:flex; gap:10px; align-items:center; background:var(--card); border:1px solid var(--border); border-radius:30px; padding:8px 14px; z-index:100; }
+  .nav button { background:#334155; color:#e2e8f0; border:none; width:36px; height:36px; border-radius:50%; cursor:pointer; font-size:18px; font-weight:700; }
+  .nav span { font-size:14px; color:var(--muted); min-width:50px; text-align:center; }
+
+  /* 卡片 */
+  .card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:16px; }
+  .pill { display:inline-block; padding:2px 8px; border-radius:6px; font-size:11px; font-weight:700; }
+
+  /* ===== 学生端工作台 ===== */
+  .workspace { display:grid; gap:18px; }
+  .workspace.tablet { grid-template-columns: 1fr 1fr; }
+  .workspace.phone { grid-template-columns: 1fr; }
+  .panel { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:18px; }
+  .panel h4 { font-size:16px; font-weight:700; margin-bottom:12px; display:flex; justify-content:space-between; align-items:center; }
+  .doc-chip { display:flex; align-items:center; gap:8px; padding:8px 10px; background:#0f172a; border:1px solid var(--border); border-radius:8px; margin-bottom:6px; font-size:13px; }
+  .doc-chip .num { width:22px; height:22px; border-radius:50%; background:var(--green); color:#fff; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; }
+  .doc-chip .swap { margin-left:auto; padding:3px 8px; background:#334155; border-radius:4px; font-size:11px; cursor:pointer; }
+  .skill-block { margin-bottom:10px; }
+  .skill-block label { font-size:12px; color:var(--muted); display:block; margin-bottom:4px; }
+  .skill-block textarea { width:100%; background:#0f172a; border:1px solid var(--border); border-radius:6px; color:#e2e8f0; padding:8px; font-size:12px; resize:vertical; min-height:36px; }
+  .result-box { background:#0f172a; border:1px solid var(--border); border-left:3px solid; border-radius:8px; padding:12px; margin-bottom:10px; }
+  .result-box.lin { border-left-color:var(--orange); }
+  .result-box.zhou { border-left-color:var(--blue); }
+  .result-box .name { font-weight:700; font-size:14px; margin-bottom:6px; }
+  .result-box .field { font-size:12px; color:#cbd5e1; margin-bottom:3px; }
+  .result-box .field b { color:var(--muted); }
+  .check-box { background:rgba(168,85,247,0.08); border:1px solid rgba(168,85,247,0.3); border-radius:8px; padding:12px; font-size:12px; line-height:1.6; }
+  .check-box .item { margin-bottom:6px; }
+  .check-box .item b { color:var(--purple); }
+
+  .round-bar { display:flex; gap:6px; align-items:center; margin-bottom:14px; }
+  .round-dot { width:28px; height:28px; border-radius:50%; background:#334155; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; }
+  .round-dot.done { background:var(--green); color:#fff; }
+  .round-dot.current { background:var(--yellow); color:#000; }
+  .round-line { flex:1; height:2px; background:#334155; }
+
+  .actions { display:flex; gap:10px; margin-top:14px; }
+  .btn { padding:10px 18px; border-radius:8px; border:none; cursor:pointer; font-size:14px; font-weight:700; }
+  .btn-primary { background:var(--green); color:#fff; }
+  .btn-secondary { background:#334155; color:#e2e8f0; }
+  .btn-disabled { background:#1e293b; color:#475569; cursor:not-allowed; }
+
+  /* 手机 tab */
+  .tabs { display:flex; gap:4px; background:#0f172a; padding:4px; border-radius:8px; margin-bottom:14px; }
+  .tab { flex:1; padding:10px; text-align:center; border-radius:6px; cursor:pointer; font-size:14px; font-weight:600; color:var(--muted); }
+  .tab.active { background:var(--blue); color:#fff; }
+
+  /* ===== 大屏全班复盘 ===== */
+  .stat-row { display:flex; gap:24px; flex-wrap:wrap; margin-bottom:24px; }
+  .stat { text-align:center; }
+  .stat .num { font-size:40px; font-weight:800; }
+  .stat .lbl { color:var(--muted); font-size:13px; }
+  .student-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:14px; margin-bottom:24px; }
+  .student-card { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:14px; }
+  .student-card .id { font-size:12px; color:var(--muted); margin-bottom:6px; }
+  .student-card .docs { font-size:12px; color:#cbd5e1; margin-bottom:6px; }
+  .student-card .score { font-size:13px; }
+  .score-bar { height:6px; background:#334155; border-radius:3px; margin-top:4px; overflow:hidden; }
+  .score-fill { height:100%; background:var(--green); }
+
+  .insight-box { background:rgba(56,189,248,0.08); border:1px solid rgba(56,189,248,0.3); border-radius:12px; padding:18px; margin-bottom:20px; }
+  .insight-box h4 { color:var(--blue); font-size:16px; margin-bottom:10px; }
+
+  .next-box { background:rgba(168,85,247,0.1); border:1px solid rgba(168,85,247,0.4); border-radius:14px; padding:24px; text-align:center; max-width:800px; margin:30px auto; }
+  .next-box h2 { color:var(--purple); font-size:24px; margin-bottom:14px; }
+  .next-box p { font-size:16px; color:#cbd5e1; line-height:1.8; margin-bottom:10px; }
+  .next-box .arrow { font-size:30px; color:var(--purple); margin:14px 0; }
+
+  .rest-box { text-align:center; padding:60px 20px; }
+  .rest-box .icon { font-size:80px; margin-bottom:20px; }
+  .rest-box h2 { font-size:36px; color:var(--green); margin-bottom:14px; }
+  .rest-box p { font-size:18px; color:var(--muted); }
+</style>
+</head>
+<body>
+
+<!-- ========== 屏1: 学生端 A06 工作台 - 平板/PC 左右布局 ========== -->
+<div class="slide active">
+  <span class="tag tag-student">学生端 · A06 测试工作台</span>
+  <span class="tag tag-tablet">平板/PC 布局</span>
+  <h1>测试你的 AI 助手</h1>
+  <p class="sub">左边可改知识库和 Skill，右边看运行结果和 AI 检查。最多 3 轮。</p>
+
+  <div class="round-bar">
+    <div class="round-dot done">1</div>
+    <div class="round-line"></div>
+    <div class="round-dot current">2</div>
+    <div class="round-line"></div>
+    <div class="round-dot">3</div>
+    <span style="margin-left:14px; color:var(--muted); font-size:14px;">第 2 / 3 轮</span>
+  </div>
+
+  <div class="workspace tablet">
+    <!-- 左栏：编辑区 -->
+    <div class="panel">
+      <h4>📚 知识库 <span style="font-size:12px; color:var(--muted); font-weight:400;">点「换」可替换</span></h4>
+      <div class="doc-chip"><div class="num">1</div>基础阅读短文：大学社团活动 <span class="swap">换</span></div>
+      <div class="doc-chip"><div class="num">2</div>分层阅读训练方法 <span class="swap">换</span></div>
+      <div class="doc-chip"><div class="num">3</div>进阶阅读材料：主动学习研究 <span class="swap">换</span></div>
+      <div class="doc-chip"><div class="num">4</div>阅读训练反馈与错因分析 <span class="swap">换</span></div>
+
+      <h4 style="margin-top:18px;">📋 Skill <span style="font-size:12px; color:var(--muted); font-weight:400;">可直接编辑</span></h4>
+      <div class="skill-block">
+        <label>了解（先了解这个人是谁）</label>
+        <textarea>先了解学习者的基础、薄弱点、可用时间，判断适合什么训练。</textarea>
+      </div>
+      <div class="skill-block">
+        <label>判断（根据什么选知识）</label>
+        <textarea>基础弱选短文+生词处理；基础好选长文+推理分析。</textarea>
+      </div>
+      <div class="skill-block">
+        <label>执行（怎么用知识库）</label>
+        <textarea>从知识库选对应方法，设计匹配时间的训练量。</textarea>
+      </div>
+      <div class="skill-block">
+        <label>反馈（怎么验收）</label>
+        <textarea>训练后指出错误原因，引用原文证据，推荐下一步。</textarea>
+      </div>
+    </div>
+
+    <!-- 右栏：结果区 -->
+    <div class="panel">
+      <h4>🤖 运行结果 <span style="font-size:12px; color:var(--green); font-weight:700;">第 2 轮</span></h4>
+
+      <div class="result-box lin">
+        <div class="name" style="color:var(--orange);">📖 小林（基础弱 · 15分钟）</div>
+        <div class="field"><b>训练重点：</b>生词处理 + 细节定位</div>
+        <div class="field"><b>材料：</b>基础阅读短文（大学社团活动）</div>
+        <div class="field"><b>训练量：</b>1 篇短文 + 3 道细节题（约 12 分钟）</div>
+        <div class="field"><b>反馈：</b>指出长难句理解困难，建议先标注生词再读</div>
+      </div>
+
+      <div class="result-box zhou">
+        <div class="name" style="color:var(--blue);">📚 小周（基础好 · 30分钟）</div>
+        <div class="field"><b>训练重点：</b>推理分析 + 作者态度</div>
+        <div class="field"><b>材料：</b>进阶阅读材料（主动学习研究）</div>
+        <div class="field"><b>训练量：</b>1 篇长文 + 2 道推理题 + 1 道态度题（约 25 分钟）</div>
+        <div class="field"><b>反馈：</b>指出推理过度引申问题，建议回到原文找依据</div>
+      </div>
+
+      <h4 style="margin-top:14px;">🔍 AI 检查</h4>
+      <div class="check-box">
+        <div class="item">✅ <b>知识库：</b>4 份都相关，小林和小周的语料+方法都覆盖</div>
+        <div class="item">⚠️ <b>Skill·判断：</b>「基础弱选短文」可以更具体——什么算短文？建议给出字数范围</div>
+        <div class="item">✅ <b>Skill·反馈：</b>引用原文证据的要求写得到位</div>
+        <div class="item">💡 <b>建议：</b>第 3 轮可以把 Skill·判断改得更可检验</div>
+      </div>
+
+      <div class="actions">
+        <button class="btn btn-primary">重新运行（第 3 轮）</button>
+        <button class="btn btn-secondary">提交最终版本</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== 屏2: 学生端 A06 工作台 - 手机 tab 布局 ========== -->
+<div class="slide">
+  <span class="tag tag-student">学生端 · A06 测试工作台</span>
+  <span class="tag tag-phone">手机布局 · tab 切换</span>
+  <h1>测试你的 AI 助手（手机）</h1>
+  <p class="sub">手机屏幕窄，用 tab 切换「编辑」和「结果」，避免上下滚动太长。</p>
+
+  <div class="round-bar">
+    <div class="round-dot done">1</div>
+    <div class="round-line"></div>
+    <div class="round-dot done">2</div>
+    <div class="round-line"></div>
+    <div class="round-dot current">3</div>
+    <span style="margin-left:14px; color:var(--muted); font-size:14px;">第 3 / 3 轮（最后一轮）</span>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active">✏️ 编辑</div>
+    <div class="tab">🤖 结果</div>
+  </div>
+
+  <div class="workspace phone">
+    <div class="panel">
+      <h4>📚 知识库</h4>
+      <div class="doc-chip"><div class="num">1</div>基础阅读短文：大学社团 <span class="swap">换</span></div>
+      <div class="doc-chip"><div class="num">2</div>分层阅读训练方法 <span class="swap">换</span></div>
+      <div class="doc-chip"><div class="num">3</div>进阶阅读：主动学习 <span class="swap">换</span></div>
+      <div class="doc-chip"><div class="num">4</div>反馈与错因分析 <span class="swap">换</span></div>
+
+      <h4 style="margin-top:14px;">📋 Skill</h4>
+      <div class="skill-block">
+        <label>了解</label>
+        <textarea>先了解学习者基础、薄弱点、时间。</textarea>
+      </div>
+      <div class="skill-block">
+        <label>判断</label>
+        <textarea>基础弱选短文（200字内）；基础好选长文。</textarea>
+      </div>
+      <div class="skill-block">
+        <label>执行</label>
+        <textarea>从知识库选方法，设计匹配时间的训练。</textarea>
+      </div>
+      <div class="skill-block">
+        <label>反馈</label>
+        <textarea>指出错误原因，引用原文，推荐下一步。</textarea>
+      </div>
+
+      <div class="actions">
+        <button class="btn btn-disabled">重新运行（已达上限）</button>
+        <button class="btn btn-primary">提交最终版本</button>
+      </div>
+      <p style="margin-top:10px; font-size:12px; color:var(--muted); text-align:center;">已达 3 轮上限，请提交最终版本</p>
+    </div>
+  </div>
+</div>
+
+<!-- ========== 屏3: 大屏全班复盘 - 所有人结果概要 ========== -->
+<div class="slide">
+  <span class="tag tag-screen">大屏 · 全班复盘</span>
+  <h1>全班都做完了，看看结果</h1>
+  <p class="sub">教师点「查看全班结果」按钮后，大屏显示这一屏。</p>
+
+  <div class="stat-row">
+    <div class="stat"><div class="num" style="color:var(--green);">12</div><div class="lbl">已完成提交</div></div>
+    <div class="stat"><div class="num" style="color:var(--blue);">12</div><div class="lbl">总人数</div></div>
+    <div class="stat"><div class="num" style="color:var(--yellow);">2.4</div><div class="lbl">平均运行轮次</div></div>
+    <div class="stat"><div class="num" style="color:var(--purple);">8</div><div class="lbl">选对语料+方法</div></div>
+    <div class="stat"><div class="num" style="color:var(--orange);">4</div><div class="lbl">只选对一类</div></div>
+  </div>
+
+  <h2>知识库选择分布</h2>
+  <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:10px; margin-bottom:24px;">
+    <div class="card" style="padding:12px;"><div style="font-size:13px;">基础阅读短文（语料·小林）</div><div style="font-size:24px; font-weight:700; color:var(--green);">9 人</div></div>
+    <div class="card" style="padding:12px;"><div style="font-size:13px;">分层阅读训练方法（方法）</div><div style="font-size:24px; font-weight:700; color:var(--green);">11 人</div></div>
+    <div class="card" style="padding:12px;"><div style="font-size:13px;">进阶阅读材料（语料·小周）</div><div style="font-size:24px; font-weight:700; color:var(--green);">10 人</div></div>
+    <div class="card" style="padding:12px;"><div style="font-size:13px;">反馈与错因分析（方法）</div><div style="font-size:24px; font-weight:700; color:var(--green);">8 人</div></div>
+    <div class="card" style="padding:12px; opacity:0.6;"><div style="font-size:13px;">四级词汇表（相关性中）</div><div style="font-size:24px; font-weight:700; color:var(--yellow);">5 人</div></div>
+    <div class="card" style="padding:12px; opacity:0.5;"><div style="font-size:13px;">2015快速得分攻略（不可靠）</div><div style="font-size:24px; font-weight:700; color:var(--red);">2 人</div></div>
+  </div>
+
+  <h2>几个典型作品（匿名）</h2>
+  <div class="student-grid">
+    <div class="student-card">
+      <div class="id">学员 #03</div>
+      <div class="docs">📚 基础短文 + 进阶材料 + 分层方法 + 反馈规范</div>
+      <div class="score">两份方案差异合理 ✅<div class="score-bar"><div class="score-fill" style="width:92%"></div></div></div>
+    </div>
+    <div class="student-card">
+      <div class="id">学员 #07</div>
+      <div class="docs">📚 基础短文 + 四级词汇 + 分层方法 + 反馈规范</div>
+      <div class="score">小周缺进阶语料，方案偏基础 ⚠️<div class="score-bar"><div class="score-fill" style="width:65%; background:var(--yellow);"></div></div></div>
+    </div>
+    <div class="student-card">
+      <div class="id">学员 #11</div>
+      <div class="docs">📚 基础短文 + 进阶材料 + 2015攻略 + 网友经验</div>
+      <div class="score">选了不可靠资料，方案有偏差 ❌<div class="score-bar"><div class="score-fill" style="width:40%; background:var(--red);"></div></div></div>
+    </div>
+  </div>
+
+  <div class="insight-box">
+    <h4>📊 本班发现</h4>
+    <p style="font-size:15px; line-height:1.8;">8 人同时选了「语料+方法」两类，方案差异合理；4 人只选了一类（多是只选方法没选语料），小林或小周的方案会偏空。<br>2 人选了不可靠资料（2015攻略/网友经验），AI 检查已提示。多数人在第 2 轮改对了 Skill 的「判断」模块。</p>
+  </div>
+</div>
+
+<!-- ========== 屏4: 教师点评 + 引出"给更多人做需要什么" ========== -->
+<div class="slide">
+  <span class="tag tag-screen">大屏 · 教师点评 + 引出下一阶段</span>
+  <h1>教师点评</h1>
+  <p class="sub">看完结果后，教师在大屏讲解，引出下一个问题。</p>
+
+  <div class="insight-box">
+    <h4>🎯 点评要点</h4>
+    <p style="font-size:16px; line-height:2;">
+      · 选对「语料+方法」两类的，两份方案差异明显——知识库决定 AI 有没有合适的依据<br>
+      · 只选方法没选语料的，方案偏空——AI 没有具体材料可用<br>
+      · Skill 的「判断」写得好不好，直接决定 AI 能不能区分两个人<br>
+      · 改了 Skill 再跑一遍的人，第 2 轮普遍比第 1 轮好——这就是迭代的价值
+    </p>
+  </div>
+
+  <div class="next-box">
+    <h2>今天我们给 2 个人做了助手</h2>
+    <p>小林和小周，情况不同，你用知识库 + Skill 让一个 AI 分别帮到了他们。</p>
+    <div class="arrow">↓</div>
+    <p style="font-size:20px; color:var(--purple); font-weight:700;">如果给 20 个人做呢？200 个人呢？</p>
+    <p style="margin-top:14px;">给 2 个人，你可以手动选知识库、手动写 Skill。<br>给 200 个人——你不可能手动写 200 套。</p>
+    <div class="arrow">↓</div>
+    <p style="color:var(--green); font-weight:700; font-size:18px;">那就需要把今天的手动操作，变成自动的、可复用的流程。</p>
+    <p style="margin-top:10px; font-size:14px; color:var(--muted);">这就是我们下一阶段要做的事。</p>
+  </div>
+</div>
+
+<!-- ========== 屏5: 休息 ========== -->
+<div class="slide">
+  <div class="rest-box">
+    <div class="icon">☕</div>
+    <h2>休息一下</h2>
+    <p>刚才大家完成了第二关：从「自己用 AI」到「设计一个助手给别人用」。</p>
+    <p style="margin-top:14px;">休息之后，我们回来聊：<br>怎么把这套手动流程，变成更多人都能用上的东西。</p>
+    <div style="margin-top:30px; padding:14px 28px; display:inline-block; border:1px solid var(--border); border-radius:30px; color:var(--muted); font-size:14px;">
+      教师休息后点「进入下一阶段」继续
+    </div>
+  </div>
+</div>
+
+<div class="nav">
+  <button onclick="prev()">‹</button>
+  <span id="page">1 / 5</span>
+  <button onclick="next()">›</button>
+</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  let cur = 0;
+  function show(i) {
+    cur = Math.max(0, Math.min(slides.length - 1, i));
+    slides.forEach((s, idx) => s.classList.toggle('active', idx === cur));
+    document.getElementById('page').textContent = (cur + 1) + ' / ' + slides.length;
+  }
+  function next() { show(cur + 1); }
+  function prev() { show(cur - 1); }
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight') next();
+    if (e.key === 'ArrowLeft') prev();
+  });
+</script>
+</body>
+</html>
