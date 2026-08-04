@@ -85,6 +85,7 @@ export default function StudentPage() {
   const sp = getStyleProfile(myStyle); // 学员实操分类画像（A02/A03 个性化内容）
   const cfg = (current?.teacherContent ?? {}) as {
     prompt?: string;
+    originalPrompt?: string;
     requirements?: string[];
     materials?: { id: string; title: string; body: string }[];
     timeLimitSec?: number;
@@ -647,7 +648,16 @@ export default function StudentPage() {
               <div className="ai-workspace">
                 <div className="zone task-zone">
                   <h3>任务区</h3>
-                  <p className="task-prompt">{cfg.prompt}</p>
+                  {cfg.originalPrompt && (
+                    <div style={{ marginBottom: 14 }}>
+                      <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 4 }}>第一轮任务（原文）</div>
+                      <p className="task-prompt" style={{ color: '#cbd5e1' }}>{cfg.originalPrompt}</p>
+                    </div>
+                  )}
+                  <div style={{ marginBottom: cfg.originalPrompt ? 14 : 0 }}>
+                    <div style={{ fontSize: 12, color: '#fbbf24', marginBottom: 4 }}>第二轮</div>
+                    <p className="task-prompt">{cfg.prompt}</p>
+                  </div>
                   {current.screenContent?.phase === 'redo' && (
                     <p className="task-hint" style={{ marginTop: 10, color: '#bae6fd', fontSize: 14, lineHeight: 1.6 }}>
                       先想清楚：对象 / 任务 / 过程 / 检验，再组织你的输入与 AI 交流。同一个 AI，不换工具，用同一个任务再做一次。

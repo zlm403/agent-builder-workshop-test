@@ -461,8 +461,16 @@ const TEMPLATE: CourseTemplateData = {
           '揭晓后大屏展示前后变化对比',
         ],
         prompt: '不更换 AI。请在第一轮基础上，让这次训练更适合真实的学习者。',
+        // 第一轮原文（A01），学生屏任务区同时显示，让学生看到"同一任务"再改
+        originalPrompt:
+          '请使用 AI，为准备考研的小林制定一轮英语阅读训练方案。你可以自由决定怎样向 AI 说明任务、是否使用给定资料、分几步完成、是否检查 AI 的结果。按你平时真实使用 AI 的方式完成即可。',
         revealOrder: ['brief', 'pause', 'reveal'],
-        materials: MATERIALS,
+        // 资料与 A01 一致（同一训练场景：小林的 3 份资料，不是考研题型规范）
+        materials: [
+          { id: 'profile', title: '学生情况：小林', kind: 'student_profile', body: '大学三年级，准备参加考研。\n英语阅读平均每篇错 3 题。\n每天可训练时间约 30 分钟。' },
+          { id: 'issues', title: '小林近期三个主要问题', kind: 'recent_issues', body: '1. 长难句理解困难；\n2. 容易用自己的常识代替原文；\n3. 做完题只看答案，不分析错误原因。' },
+          { id: 'reading', title: '阅读材料（来源：模拟考研英语真题节选）', kind: 'reading_material', body: 'The shift toward remote work has changed how teams measure productivity. A 2021 study found that output rose in the first months, but long-term collaboration suffered as informal knowledge sharing declined. Researchers warn that companies may be optimizing for visible tasks while ignoring the slow loss of shared context.\n\n词汇提示：productivity 生产力；informal knowledge sharing 非正式知识共享；shared context 共同语境；optimizing 优化。' },
+        ],
         operationHint:
           '讲解完四要素后，点击「暂停锁定」停止学生端输入；准备好后再「揭晓」对比。',
       },
@@ -480,7 +488,11 @@ const TEMPLATE: CourseTemplateData = {
         headline: 'A03 第二轮',
         subline: '同一个 AI，重新设计一次',
         teacherMaterialsLabel: '本轮参考资料',
-        materials: MATERIALS,
+        materials: [
+          { id: 'profile', title: '学生情况：小林', kind: 'student_profile', body: '大学三年级，准备参加考研。\n英语阅读平均每篇错 3 题。\n每天可训练时间约 30 分钟。' },
+          { id: 'issues', title: '小林近期三个主要问题', kind: 'recent_issues', body: '1. 长难句理解困难；\n2. 容易用自己的常识代替原文；\n3. 做完题只看答案，不分析错误原因。' },
+          { id: 'reading', title: '阅读材料（来源：模拟考研英语真题节选）', kind: 'reading_material', body: 'The shift toward remote work has changed how teams measure productivity. A 2021 study found that output rose in the first months, but long-term collaboration suffered as informal knowledge sharing declined. Researchers warn that companies may be optimizing for visible tasks while ignoring the slow loss of shared context.\n\n词汇提示：productivity 生产力；informal knowledge sharing 非正式知识共享；shared context 共同语境；optimizing 优化。' },
+        ],
       },
     },
 
