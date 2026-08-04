@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { chatWithLLM } from '@/lib/llm';
+import { chatWithLLM, LLMError } from '@/lib/llm';
 import { publish } from '@/lib/realtime';
 import { getTemplate } from '@/lib/courseConfig';
 import type { A01OperationData, A01Turn } from '@/lib/analytics';
@@ -127,6 +127,24 @@ export async function POST(req: NextRequest, { params }: { params: { anonymousId
       },
     });
   } catch (err) {
-    return NextResponse.json({ error: { code: 'CHAT_FAILED', message: String(err) } }, { status: 500 });
+    if (err instanceof LLMError) {
+      const friendly: Record<LLMError['code'], string> = {
+        TIMEOUT: 'AI 响应超时，请稍后重试',
+        SERVICE_BUSY: 'AI 服务繁忙，请稍后再试',
+        AUTH: '教师端 API Key 无效，请在「设置」中检查',
+        RATE_LIMIT: 'AI 请求过快，请稍后重试',
+        NETWORK: '网络异常，请稍后重试',
+        EMPTY: 'AI 返回为空，请稍后重试',
+        UNKNOWN: 'AI 调用失败，请稍后重试',
+      };
+      return NextResponse.json(
+        { error: { code: 'LLM_' + err.code, message: friendly[err.code] } },
+        { status: 503 },
+      );
+    }
+    return NextResponse.json(
+      { error: { code: 'CHAT_FAILED', message: '服务异常，请稍后重试' } },
+      { status: 500 },
+    );
   }
 }

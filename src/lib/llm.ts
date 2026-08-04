@@ -17,19 +17,24 @@ export interface LLMOptions {
   model?: string; // 允许覆盖模型（用于快速降级模型）
 }
 
-export async function chatWithLLM(
-  messages: ChatMessage[],
-  system?: string,
-  options?: LLMOptions,
-): Promise<string> {
-  const config = getLLMConfig();
-  const timeoutMs = options?.timeoutMs ?? 60000;
-
-  // 离线（无 API Key）：返回内置 mock，保证流程可演示。
-  if (!config.apiKey) {
-    return mockReply(messages, system);
+export class LLMError extends Error {
+  code: 'TIMEOUT' | 'SERVICE_BUSY' | 'AUTH' | 'RATE_LIMIT' | 'NETWORK' | 'EMPTY' | 'UNKNOWN';
+  status?: number;
+  constructor(code: LLMError['code'], message: string, status?: number) {
+    super(message);
+    this.code = code;
+    this.status = status;
   }
+}
 
+// 单次调用：分类错误抛出 LLMError
+async function callLLMOnce(
+  messages: ChatMessage[],
+  system: string | undefined,
+  options: LLMOptions | undefined,
+  config: ReturnType<typeof getLLMConfig>,
+): Promise<string> {
+  const timeoutMs = options?.timeoutMs ?? 60000;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -41,30 +46,85 @@ export async function chatWithLLM(
     if (options?.maxTokens) body.max_tokens = options.maxTokens;
     if (options?.json) body.response_format = { type: 'json_object' };
 
-    const res = await fetch(`${config.baseUrl}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${config.apiKey}`,
-      },
-      body: JSON.stringify(body),
-      signal: controller.signal,
-    });
+    let res: Response;
+    try {
+      res = await fetch(`${config.baseUrl}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${config.apiKey}`,
+        },
+        body: JSON.stringify(body),
+        signal: controller.signal,
+      });
+    } catch (err) {
+      const isAbort = err instanceof Error && err.name === 'AbortError';
+      if (isAbort) throw new LLMError('TIMEOUT', 'LLM 响应超时');
+      throw new LLMError('NETWORK', `LLM 网络异常：${err instanceof Error ? err.message : String(err)}`);
+    }
 
     if (!res.ok) {
       const text = await res.text().catch(() => '');
-      throw new Error(`LLM 请求失败（${res.status}）${text ? `：${text}` : ''}`);
+      const status = res.status;
+      if (status === 401 || status === 403) {
+        throw new LLMError('AUTH', `LLM 鉴权失败（${status}）`, status);
+      }
+      if (status === 429) {
+        throw new LLMError('RATE_LIMIT', `LLM 请求过快（429）`, status);
+      }
+      if (status >= 500) {
+        // 5xx（含 503 service_unavailable）：服务繁忙，调用方可重试
+        throw new LLMError('SERVICE_BUSY', `LLM 服务繁忙（${status}）`, status);
+      }
+      throw new LLMError('UNKNOWN', `LLM 请求失败（${status}）：${text}`, status);
     }
 
-    const data = (await res.json()) as { choices?: { message?: { content?: string } }[] };
-    const content = data.choices?.[0]?.message?.content?.trim();
-    if (!content) {
-      throw new Error('LLM 返回内容为空');
+    let data: { choices?: { message?: { content?: string } }[] };
+    try {
+      data = (await res.json()) as typeof data;
+    } catch {
+      throw new LLMError('NETWORK', 'LLM 响应解析失败');
     }
+    const content = data.choices?.[0]?.message?.content?.trim();
+    if (!content) throw new LLMError('EMPTY', 'LLM 返回内容为空');
     return content;
   } finally {
     clearTimeout(timer);
   }
+}
+
+export async function chatWithLLM(
+  messages: ChatMessage[],
+  system?: string,
+  options?: LLMOptions,
+): Promise<string> {
+  const config = getLLMConfig();
+
+  // 离线（无 API Key）：返回内置 mock，保证流程可演示。
+  if (!config.apiKey) {
+    return mockReply(messages, system);
+  }
+
+  // 5xx / 429 / 网络 / 超时自动重试（最多 2 次，间隔 1s / 2s）
+  const maxRetries = 2;
+  let lastErr: unknown;
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await callLLMOnce(messages, system, options, config);
+    } catch (err) {
+      lastErr = err;
+      if (
+        err instanceof LLMError &&
+        (err.code === 'SERVICE_BUSY' || err.code === 'RATE_LIMIT' || err.code === 'NETWORK' || err.code === 'TIMEOUT') &&
+        attempt < maxRetries
+      ) {
+        await new Promise((r) => setTimeout(r, 1000 * (attempt + 1)));
+        continue;
+      }
+      throw err;
+    }
+  }
+  throw lastErr;
 }
 
 // 离线 mock：基于完整对话历史给出结构性回复。
