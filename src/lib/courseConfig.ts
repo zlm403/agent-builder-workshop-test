@@ -513,6 +513,22 @@ const TEMPLATE: CourseTemplateData = {
         revealOrder: ['intro'],
         coreQuestion: '他们的情况不同，同一个助手怎样分别帮助他们？',
         flow: ['选择知识', '编写Skill', '两人运行', 'AI检查', '修改提交'],
+        // 阶段2：困难1 → 引出知识库（大屏 PPT 第2屏）
+        difficulty1: {
+          headline: '困难 1：我怎么知道他们各自需要什么训练？',
+          subline: '两个人的基础、问题、可用时间都不一样。',
+          lin: {
+            problem: '生词多、阅读容易中断，只有 15 分钟',
+            need: '需要基础训练方法：生词处理、短篇精读、细节定位',
+          },
+          zhou: {
+            problem: '推理题、作者态度题易错，有 30 分钟',
+            need: '需要进阶训练方法：推理分析、选项辨析、长篇阅读',
+          },
+          conclusion: '如果只靠你自己的经验，很难同时照顾到两个人的不同需要。而且你的经验可能不准确、也不全面。',
+          solution: '所以，我们需要给 AI 建立【知识库】',
+          solutionSub: '提供可靠的、针对不同情况的训练方法，让 AI 有依据可用',
+        },
       },
       studentTask: {
         prompt: '第二关来了：你要设计一个 AI 助手，让它能服务情况不同的同学。',

@@ -725,50 +725,74 @@ function L2Progress({ summary, total, module }: { summary: Summary | null; total
 
 // 第二关开场（L2_INTRO）：大屏展示第一关→第二关的关系、两位使用者与流程
 function L2IntroScreen({ module }: { module: ModuleDef }) {
+  const [slide, setSlide] = useState(1);
   const sc: any = module.screenContent ?? {};
+  const tc: any = module.teacherContent ?? {};
   const personas: any[] = sc.personas ?? [];
-  const flow: string[] = sc.flow ?? [];
+  const d1 = tc.difficulty1;
+
   return (
-    <div>
-      <div style={{ fontSize: 44, fontWeight: 800, marginBottom: 8 }}>{sc.headline ?? module.title}</div>
-      <div style={{ fontSize: 20, color: '#cbd5e1', marginBottom: 20 }}>{sc.subline}</div>
-      {sc.firstLevel && (
-        <div
-          style={{
-            border: '1px solid #334155',
-            borderRadius: 10,
-            padding: 14,
-            marginBottom: 18,
-            background: '#0f172a',
-            maxWidth: 620,
-          }}
-        >
-          <div style={{ fontWeight: 700, color: '#94a3b8' }}>{sc.firstLevel.title}</div>
-          <div style={{ color: '#cbd5e1', marginTop: 6, fontSize: 16 }}>{sc.firstLevel.desc}</div>
-        </div>
+    <div style={{ minHeight: 'calc(100vh - 80px)' }}>
+      {/* 阶段1：开场 + 两位使用者人物卡 */}
+      {slide === 1 && (
+        <>
+          <div style={{ fontSize: 44, fontWeight: 800, marginBottom: 8 }}>{sc.headline ?? module.title}</div>
+          <div style={{ fontSize: 20, color: '#cbd5e1', marginBottom: 20 }}>{sc.subline}</div>
+          {sc.firstLevel && (
+            <div style={{ border: '1px solid #334155', borderRadius: 10, padding: 14, marginBottom: 18, background: '#0f172a', maxWidth: 620 }}>
+              <div style={{ fontWeight: 700, color: '#94a3b8' }}>{sc.firstLevel.title}</div>
+              <div style={{ color: '#cbd5e1', marginTop: 6, fontSize: 16 }}>{sc.firstLevel.desc}</div>
+            </div>
+          )}
+          <h3 style={{ color: '#94a3b8', marginBottom: 12 }}>两位使用者</h3>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16, maxWidth: 860 }}>
+            {personas.map((p) => (
+              <div key={p.id} style={{ border: '1px solid #334155', borderRadius: 12, padding: 16, background: '#1e293b' }}>
+                <div style={{ fontWeight: 700, fontSize: 20, marginBottom: 8 }}>{p.name}（基础{p.base}）</div>
+                <div style={{ color: '#cbd5e1', fontSize: 15, lineHeight: 1.8 }}>
+                  <div><b style={{ color: '#94a3b8' }}>主要问题：</b>{p.mainProblem}</div>
+                  <div><b style={{ color: '#94a3b8' }}>薄弱题型：</b>{p.weakType}</div>
+                  <div><b style={{ color: '#94a3b8' }}>可用时间：</b>{p.availableTime}</div>
+                  <div><b style={{ color: '#94a3b8' }}>目标：</b>{p.goal}</div>
+                  <div><b style={{ color: '#94a3b8' }}>偏好：</b>{p.preference}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
       )}
-      {sc.coreQuestion && (
-        <div style={{ fontSize: 26, color: 'var(--green)', fontWeight: 700, margin: '18px 0' }}>
-          核心问题：{sc.coreQuestion}
-        </div>
-      )}
-      {flow.length > 0 && (
-        <div style={{ fontSize: 20, color: '#38bdf8', margin: '12px 0 20px' }}>{flow.join('  →  ')}</div>
-      )}
-      <h3 style={{ color: '#94a3b8', marginBottom: 12 }}>两位使用者</h3>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16, maxWidth: 860 }}>
-        {personas.map((p) => (
-          <div key={p.id} style={{ border: '1px solid #334155', borderRadius: 12, padding: 16, background: '#1e293b' }}>
-            <div style={{ fontWeight: 700, fontSize: 20, marginBottom: 8 }}>{p.name}（基础{p.base}）</div>
-            <div style={{ color: '#cbd5e1', fontSize: 15, lineHeight: 1.8 }}>
-              <div><b style={{ color: '#94a3b8' }}>主要问题：</b>{p.mainProblem}</div>
-              <div><b style={{ color: '#94a3b8' }}>薄弱题型：</b>{p.weakType}</div>
-              <div><b style={{ color: '#94a3b8' }}>可用时间：</b>{p.availableTime}</div>
-              <div><b style={{ color: '#94a3b8' }}>目标：</b>{p.goal}</div>
-              <div><b style={{ color: '#94a3b8' }}>偏好：</b>{p.preference}</div>
+
+      {/* 阶段2：困难1 → 引出知识库 */}
+      {slide === 2 && d1 && (
+        <>
+          <div style={{ fontSize: 40, fontWeight: 800, marginBottom: 6 }}>{d1.headline}</div>
+          <div style={{ fontSize: 18, color: '#94a3b8', marginBottom: 22 }}>{d1.subline}</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18, maxWidth: 900 }}>
+            <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 12, padding: 18 }}>
+              <div style={{ fontWeight: 700, color: 'var(--orange)', marginBottom: 8, fontSize: 17 }}>📖 小林</div>
+              <div style={{ fontSize: 15, color: '#cbd5e1', marginBottom: 10, lineHeight: 1.6 }}>{d1.lin.problem}</div>
+              <div style={{ fontSize: 13, padding: '8px 10px', borderRadius: 8, background: 'rgba(234,179,8,0.1)', border: '1px solid rgba(234,179,8,0.3)', color: '#fde68a', lineHeight: 1.4 }}>→ {d1.lin.need}</div>
+            </div>
+            <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 12, padding: 18 }}>
+              <div style={{ fontWeight: 700, color: 'var(--blue)', marginBottom: 8, fontSize: 17 }}>📚 小周</div>
+              <div style={{ fontSize: 15, color: '#cbd5e1', marginBottom: 10, lineHeight: 1.6 }}>{d1.zhou.problem}</div>
+              <div style={{ fontSize: 13, padding: '8px 10px', borderRadius: 8, background: 'rgba(234,179,8,0.1)', border: '1px solid rgba(234,179,8,0.3)', color: '#fde68a', lineHeight: 1.4 }}>→ {d1.zhou.need}</div>
             </div>
           </div>
-        ))}
+          <div style={{ marginTop: 26, padding: 20, background: 'rgba(168,85,247,0.1)', border: '1px solid rgba(168,85,247,0.4)', borderRadius: 14, textAlign: 'center', maxWidth: 900 }}>
+            <div style={{ fontSize: 16, color: '#cbd5e1', marginBottom: 10, lineHeight: 1.6 }}>{d1.conclusion}</div>
+            <div style={{ fontSize: 24, color: 'var(--purple)' }}>↓</div>
+            <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--purple)' }}>{d1.solution}</div>
+            <div style={{ marginTop: 10, color: '#cbd5e1', fontSize: 14 }}>{d1.solutionSub}</div>
+          </div>
+        </>
+      )}
+
+      {/* 翻页控制 */}
+      <div style={{ position: 'fixed', bottom: 24, right: 24, display: 'flex', gap: 10, alignItems: 'center', background: '#1e293b', border: '1px solid #334155', borderRadius: 30, padding: '8px 14px', zIndex: 100 }}>
+        <button onClick={() => setSlide(Math.max(1, slide - 1))} style={{ background: '#334155', color: '#e2e8f0', border: 'none', width: 36, height: 36, borderRadius: '50%', cursor: 'pointer', fontSize: 18, fontWeight: 700 }}>‹</button>
+        <span style={{ fontSize: 14, color: '#94a3b8', minWidth: 50, textAlign: 'center' }}>{slide} / 2</span>
+        <button onClick={() => setSlide(Math.min(2, slide + 1))} style={{ background: '#334155', color: '#e2e8f0', border: 'none', width: 36, height: 36, borderRadius: '50%', cursor: 'pointer', fontSize: 18, fontWeight: 700 }}>›</button>
       </div>
     </div>
   );

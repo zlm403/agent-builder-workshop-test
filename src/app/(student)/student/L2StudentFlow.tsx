@@ -191,54 +191,16 @@ export default function L2StudentFlow({
         />
       );
     case 'l2_intro': {
-      const st: any = current.studentTask ?? {};
-      const sc: any = current.screenContent ?? {};
-      const personas: any[] = sc.personas ?? [];
+      // 教师讲解阶段：学生屏极简，不展开 personas/flow/details，避免抢注意力（请看大屏）
       return (
         <div>
-          <div className="card">
-            <p className="note">{st.prompt}</p>
-            {(st.details ?? []).map((d: string, i: number) => (
-              <div key={i} style={{ marginBottom: 6 }}>· {d}</div>
-            ))}
-            {sc.coreQuestion && (
-              <p style={{ marginTop: 10, color: 'var(--green)', fontWeight: 700 }}>
-                核心问题：{sc.coreQuestion}
-              </p>
-            )}
-            {(sc.flow ?? []).length > 0 && (
-              <p className="note" style={{ marginTop: 8 }}>
-                第二关流程：<b>{sc.flow.join('  →  ')}</b>
-              </p>
-            )}
-            {personas.length > 0 && (
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
-                  gap: 12,
-                  marginTop: 14,
-                }}
-              >
-                {personas.map((p) => (
-                  <div key={p.id} style={{ border: '1px solid var(--border)', borderRadius: 8, padding: 12, background: 'var(--card)' }}>
-                    <div style={{ fontWeight: 700, fontSize: 16 }}>{p.name}（基础{p.base}）</div>
-                    <div className="note" style={{ fontSize: 12, marginTop: 4 }}>
-                      可用时间：{p.availableTime} · 目标：{p.goal}
-                    </div>
-                    <div style={{ fontSize: 13, marginTop: 6 }}>
-                      <div><b>主要问题：</b>{p.mainProblem}</div>
-                      <div><b>薄弱题型：</b>{p.weakType}</div>
-                      <div><b>偏好：</b>{p.preference}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+          <div className="card" style={{ textAlign: 'center', padding: '48px 20px' }}>
+            <div style={{ fontSize: 24, fontWeight: 700, marginBottom: 14 }}>第二关开始</div>
+            <p className="note" style={{ fontSize: 18, color: '#cbd5e1' }}>请看大屏</p>
+            <p className="note" style={{ marginTop: 16, color: 'var(--muted)', fontSize: 14 }}>
+              教师正在讲解第二关的任务和两位使用者，请专注大屏。
+            </p>
           </div>
-<p className="note" style={{ marginTop: 14, color: 'var(--muted)' }}>
-            请仔细阅读两位使用者的情况差异。理解后，等待教师推进到下一环节开始选择知识库。
-          </p>
           {message && <p style={{ color: 'var(--green)' }}>{message}</p>}
         </div>
       );
