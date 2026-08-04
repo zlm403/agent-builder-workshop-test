@@ -594,11 +594,11 @@ const TEMPLATE: CourseTemplateData = {
     {
       id: 'A04_KNOWLEDGE',
       type: 'knowledge_select',
-      title: 'A04 选择知识库：从 8 份资料中选 4 份核心知识',
+      title: 'A04 选择知识库：从 10 份资料中选 4 份核心知识',
       durationSeconds: 240,
       teacherContent: {
         headline: '知识库不是越多越好，关键是选得合适',
-        subline: '从 8 份资料中选择 4 份，建立核心知识库',
+        subline: '从 10 份资料中选择 4 份，建立核心知识库',
         bullets: [
           '相关性：与当前任务有关吗？',
           '可靠性：来源值得信任吗？',
@@ -635,7 +635,7 @@ const TEMPLATE: CourseTemplateData = {
       screenContent: {
         phase: 'knowledge',
         headline: '知识库不是越多越好，关键是选得合适',
-        subline: '从 8 份资料中选择 4 份核心资料',
+        subline: '从 10 份资料中选择 4 份核心资料',
         docs: KNOWLEDGE_DOCS,
         criteria: [
           { key: '相关性', q: '与当前任务有关吗？' },
