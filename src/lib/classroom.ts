@@ -105,6 +105,15 @@ export async function jumpClassroom(sessionId: string, targetModuleId: string) {
   const tpl = await ensureTemplate();
   const mod = findModule(tpl, targetModuleId);
   if (!mod) throw new Error('MODULE_NOT_FOUND');
+  const session = await prisma.classSession.findUnique({ where: { id: sessionId } });
+  const curMod = findModule(tpl, session?.currentModuleId ?? '');
+  // 与 advanceClassroom 保持一致：离开终章（A07）时复位并通知学生端退出终章，
+  // 进入终章时初始化（锁定 + 推送 finale:enter）。否则退回 A6 后学生端仍卡在终章。
+  if (curMod?.type === 'finale' && mod.type !== 'finale') {
+    await exitFinale(sessionId);
+  } else if (mod.type === 'finale' && curMod?.type !== 'finale') {
+    await enterFinale(sessionId);
+  }
   const updated = await prisma.classSession.update({
     where: { id: sessionId },
     data: { currentModuleId: targetModuleId, moduleStartedAt: new Date() },
@@ -581,9 +590,9 @@ export function invalidateSessionCache(sessionId: string) {
   _stateCache.delete(sessionId);
 }
 
-// ================= 终章：一人公司 · 多 Agent 协同 =================
+// ================= 一人公司 · 多 Agent 协同 =================
 
-// 终章 Agent 人设卡类型集中定义在客户端安全的 finaleConfig，这里引入并再导出以保持兼容。
+// Agent 人设卡类型集中定义在客户端安全的 finaleConfig，这里引入并再导出以保持兼容。
 import type { FinaleAgent } from './finaleConfig';
 export type { FinaleAgent };
 
@@ -598,7 +607,10 @@ export async function getFinaleState(sessionId: string) {
 export async function enterFinale(sessionId: string) {
   await getFinaleState(sessionId);
   const s = await prisma.finaleState.update({ where: { sessionId }, data: { active: true, round: 0, open: false } });
+  // 进入 A07 时自动锁定模块，学生端先显示占位页（等教师讲完点"解锁"再让学生自由玩）
+  await prisma.classSession.update({ where: { id: sessionId }, data: { moduleLocked: true } });
   publish(sessionId, { type: 'finale:enter', payload: {} });
+  publish(sessionId, { type: 'module:locked', payload: {} });
   return s;
 }
 
@@ -613,6 +625,8 @@ export async function closeFinaleRound(sessionId: string) {
 
 export async function exitFinale(sessionId: string) {
   const s = await prisma.finaleState.update({ where: { sessionId }, data: { active: false, open: false } });
+  // 退出终章时解除模块锁，避免学生回到普通环节后仍被卡在"讲解中"占位页
+  await prisma.classSession.update({ where: { id: sessionId }, data: { moduleLocked: false } });
   publish(sessionId, { type: 'finale:exit', payload: {} });
   return s;
 }

@@ -143,7 +143,7 @@ model AuditLog {
   @@index([sessionId, createdAt])
 }
 
-/// 终章（一人公司 · 多 Agent 协同）：每个学生搭建的 4-Agent 产品，发布后供他人访问体验
+/// （一人公司 · 多 Agent 协同）：每个学生搭建的 4-Agent 产品，发布后供他人访问体验
 model AgentCompany {
   id              String   @id @default(uuid())
   sessionId       String
@@ -161,7 +161,7 @@ model AgentCompany {
   @@index([sessionId, round])
 }
 
-/// 终章课堂状态：是否进入终章、当前轮次、是否开放（接受发布/访问）
+/// 课堂状态：是否进入、当前轮次、是否开放（接受发布/访问）
 model FinaleState {
   sessionId String @id
   active    Boolean @default(false)
@@ -170,7 +170,7 @@ model FinaleState {
   updatedAt DateTime @updatedAt
 }
 
-/// 终章访问反馈（他人体验某产品后提交）
+/// 访问反馈（他人体验某产品后提交）
 model CompanyFeedback {
   id                String   @id @default(uuid())
   sessionId         String

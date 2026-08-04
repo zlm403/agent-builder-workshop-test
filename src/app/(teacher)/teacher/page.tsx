@@ -447,7 +447,7 @@ export default function TeacherPage() {
             </div>
           ))}
         </div>
-        <p className="hint" style={{ padding: '10px 16px 4px' }}>学员逐人明细与代表性样本请见「终章模式 → 学员明细」。</p>
+        <p className="hint" style={{ padding: '10px 16px 4px' }}>学员逐人明细与代表性样本请见「模式 → 学员明细」。</p>
       </div>
     );
   }
@@ -564,7 +564,7 @@ export default function TeacherPage() {
             )}
           </div>
         )}
-        <p className="hint" style={{ padding: '10px 16px 4px' }}>学员逐人明细与代表性样本请见「终章模式 → 学员明细」。</p>
+        <p className="hint" style={{ padding: '10px 16px 4px' }}>学员逐人明细与代表性样本请见「模式 → 学员明细」。</p>
       </div>
     );
   }
@@ -917,7 +917,7 @@ export default function TeacherPage() {
               关闭课堂
             </button>
             <button className="primary" onClick={() => setShowFinale(true)}>
-              终章模式 →
+              模式 →
             </button>
           </div>
           {isA0 ? (

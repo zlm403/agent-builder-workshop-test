@@ -234,6 +234,8 @@ export default function ScreenPage() {
         <A05Screen summary={summary} total={total} module={module} />
       ) : module.type === 'assistant_try' ? (
         <A06Screen summary={summary} total={total} module={module} />
+      ) : module.type === 'wrap_up' ? (
+        <A08Screen module={module} />
       ) : (
         <GenericScreen summary={summary} total={total} module={module} />
       )}
@@ -1153,6 +1155,30 @@ function GenericScreen({ summary, total, module }: { summary: Summary | null; to
         );
       })}
     </>
+  );
+}
+
+function A08Screen({ module }: { module: ModuleDef }) {
+  const [slide, setSlide] = useState(0);
+  const slides = (module.screenContent?.slides ?? []) as Array<{ h: string; p: string; isQuestion?: boolean }>;
+  if (slides.length === 0) {
+    return <p style={{ color: '#94a3b8' }}>A08 内容未配置</p>;
+  }
+  const s = slides[slide];
+  return (
+    <div style={{ minHeight: 'calc(100vh - 80px)', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+      <div style={{ fontSize: 20, color: '#94a3b8', marginBottom: 16, letterSpacing: 2 }}>A08 · 一期收尾</div>
+      <div style={{ fontSize: 56, fontWeight: 800, marginBottom: 20, lineHeight: 1.15 }}>{s.h}</div>
+      <p style={{ color: '#cbd5e1', fontSize: 22, lineHeight: 1.7, maxWidth: 900, marginBottom: 24 }}>{s.p}</p>
+      {s.isQuestion && (
+        <div style={{ fontSize: 96, color: 'var(--yellow)', fontWeight: 800, marginTop: 8 }}>？</div>
+      )}
+      <div style={{ position: 'fixed', bottom: 24, right: 24, display: 'flex', gap: 10, alignItems: 'center', background: '#1e293b', border: '1px solid #334155', borderRadius: 30, padding: '8px 14px', zIndex: 100 }}>
+        <button onClick={() => setSlide(Math.max(0, slide - 1))} style={{ background: '#334155', color: '#e2e8f0', border: 'none', width: 36, height: 36, borderRadius: '50%', cursor: 'pointer', fontSize: 18, fontWeight: 700 }}>‹</button>
+        <span style={{ fontSize: 14, color: '#94a3b8', minWidth: 50, textAlign: 'center' }}>{slide + 1} / {slides.length}</span>
+        <button onClick={() => setSlide(Math.min(slides.length - 1, slide + 1))} style={{ background: '#334155', color: '#e2e8f0', border: 'none', width: 36, height: 36, borderRadius: '50%', cursor: 'pointer', fontSize: 18, fontWeight: 700 }}>›</button>
+      </div>
+    </div>
   );
 }
 

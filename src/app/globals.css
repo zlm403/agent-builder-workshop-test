@@ -719,7 +719,7 @@ select {
 @keyframes a0Blink { 0%, 100% { opacity: 0.25; } 50% { opacity: 1; } }
 @keyframes a0Fade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 
-/* ================= 终章：一人公司 · 多 Agent 协同 ================= */
+/* ================= 一人公司 · 多 Agent 协同 ================= */
 .finale-kicker { font-size: 12px; font-weight: 700; color: #c4b5fd; letter-spacing: 1px; }
 .finale-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
 .finale-head h2 { margin: 4px 0 0; font-size: 22px; }
@@ -810,7 +810,7 @@ select {
 .vr-input { display: flex; gap: 10px; }
 .vr-input input { flex: 1; }
 
-/* 教师终章控制台 */
+/* 教师控制台 */
 .finale-tc-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
 .finale-tc-head h2 { margin: 4px 0 0; font-size: 22px; }
 .tc-state { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
@@ -849,14 +849,14 @@ select {
 .style-hint { font-size: 12px; color: #e2e8f0; line-height: 1.6; margin: 4px 0 0; }
 .style-hint b { color: #c4b5fd; }
 
-/* 终章：学员明细表 */
+/* 学员明细表 */
 .tc-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 10px; }
 .tc-table th, .tc-table td { text-align: left; padding: 8px 10px; border-top: 1px solid var(--border); }
 .tc-table th { color: var(--muted); font-weight: 600; font-size: 12px; }
 .tc-table .mono { font-family: ui-monospace, Menlo, Consolas, monospace; color: var(--muted); }
 .tc-table .note { color: var(--muted); }
 
-/* 大屏终章 */
+/* 大屏 */
 .screen-finale { padding: 24px 32px; }
 .sf-head { margin-bottom: 20px; }
 .sf-head h1 { margin: 0; font-size: 30px; font-weight: 800; }

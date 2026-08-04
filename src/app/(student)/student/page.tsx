@@ -344,8 +344,9 @@ export default function StudentPage() {
         setScreeningStep('q1');
       }
       setMyStyle(data.aiStyle ?? null);
-      // 终章：教师进入终章后，自动切换到终章体验
+      // 教师进入终章后自动切到体验；终章复位（退回其它环节）后主动退出，避免学生端卡死在 A07
       if (data.finale?.active && phase !== 'finale') setPhase('finale');
+      else if (!data.finale?.active && phase === 'finale') setPhase('class');
     } catch {
       // 网络错误等静默忽略，下次 visibilitychange/onopen 会重试
     }
@@ -558,7 +559,24 @@ export default function StudentPage() {
   if (phase === 'finale' || current?.type === 'finale') {
     return (
       <div className="container" style={{ maxWidth: 880 }}>
-        <StudentFinale sessionId={sessionId} anonymousId={anonymousId} nickname={wechatName} />
+        <StudentFinale sessionId={sessionId} anonymousId={anonymousId} nickname={wechatName} locked={locked} />
+      </div>
+    );
+  }
+
+  if (current?.type === 'wrap_up') {
+    return (
+      <div className="container" style={{ maxWidth: 480, textAlign: 'center', paddingTop: '24vh' }}>
+        <div style={{ fontSize: 56, marginBottom: 18 }}>👀</div>
+        <h2 style={{ fontSize: 28, marginBottom: 10 }}>请看大屏</h2>
+        <p style={{ color: 'var(--muted)', fontSize: 16, lineHeight: 1.7 }}>
+          老师正在做一期收尾讲解。<br />
+          听完之后，等下一期开始。
+        </p>
+        <div style={{ marginTop: 24, display: 'inline-flex', alignItems: 'center', gap: 10, padding: '10px 20px', borderRadius: 999, background: 'rgba(56,189,248,.1)', border: '1px solid rgba(56,189,248,.3)', color: 'var(--blue)', fontSize: 14 }}>
+          <span style={{ display: 'inline-block', width: 10, height: 10, borderRadius: '50%', background: 'var(--blue)' }} />
+          等待下一期…
+        </div>
       </div>
     );
   }

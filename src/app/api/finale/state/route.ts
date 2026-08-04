@@ -8,17 +8,32 @@ import {
   listCompanies,
 } from '@/lib/classroom';
 
-// GET：读取终章状态 + 当前轮次已发布的产品列表（仅 active 时返回 companies）
+// GET：读取状态 + 当前轮次已发布的产品列表 + 漏斗数据
 export async function GET(req: NextRequest) {
   try {
     const sessionId = req.nextUrl.searchParams.get('sessionId') ?? '';
     if (!sessionId) return NextResponse.json({ error: { code: 'BAD_REQUEST' } }, { status: 400 });
     const state = await getFinaleState(sessionId);
     const companies = state.active ? await listCompanies(sessionId, state.round) : [];
+
+    // 计算漏斗数据（从已发布公司中统计）
+    const funnel: Record<string, number> = { chosen: 0, team: 0, dup: 0, recep: 0, open: 0 };
+    for (const c of companies) {
+      const agents = c.agents as Array<{ role: string }> | null | undefined;
+      if (agents && agents.length > 0) {
+        funnel.chosen++;
+        if (agents.length >= 3) funnel.team++;
+        if (agents.length >= 4) funnel.recep++;
+      }
+      if ((c as unknown as { revenue?: number }).revenue) funnel.open++;
+    }
+    funnel.dup = funnel.team;
+
     return NextResponse.json({
       active: state.active,
       round: state.round,
       open: state.open,
+      funnel,
       companies: companies.map((c) => ({
         id: c.id,
         name: c.name,
@@ -36,7 +51,7 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// POST：教师控制（进入终章 / 开本轮 / 关闭本轮 / 退出终章）
+// POST：教师控制（进入 / 开本轮 / 关闭本轮 / 退出）
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json().catch(() => ({}));

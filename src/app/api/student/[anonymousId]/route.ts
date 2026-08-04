@@ -21,7 +21,7 @@ export async function GET(_req: NextRequest, { params }: { params: { anonymousId
     // 学员在 A01 的实操分类（一次性 / 多轮 / 流程），驱动 A02/A03 个性化内容
     const aiStyle = await getStudentAiStyle(p.anonymousId, p.sessionId);
 
-    // 终章状态：教师进入终章后，学生端据此切换到终章体验
+    // 状态：教师进入后，学生端据此切换到体验
     const finale = await getFinaleState(p.sessionId);
 
     return NextResponse.json({

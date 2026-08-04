@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { SCENE_LABEL, SCENE_ICON } from '@/lib/finaleConfig';
+import { SCENE_LABEL, SCENE_ICON, FUNNEL_STAGES } from '@/lib/finaleConfig';
 
 type CompanyItem = {
   id: string;
@@ -13,6 +13,8 @@ type CompanyItem = {
 
 type ScreeningRow = { anonymousId: string; answer: string; label: string };
 type ScreeningData = { total: number; submitted: number; labels: { tool_user: number; task_solver: number; app_creator: number }; rows: ScreeningRow[] };
+
+type FunnelData = Record<string, number>;
 
 export default function TeacherFinale({
   sessionId,
@@ -28,6 +30,9 @@ export default function TeacherFinale({
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState('');
   const [screening, setScreening] = useState<ScreeningData | null>(null);
+  // 模块锁：进入 A07 自动锁，教师点"解锁"学生才能自由玩
+  const [locked, setLocked] = useState(true);
+  const [funnel, setFunnel] = useState<FunnelData>({});
 
   async function load() {
     const r = await fetch(`/api/finale/state?sessionId=${sessionId}`);
@@ -36,6 +41,15 @@ export default function TeacherFinale({
     setRound(d.round ?? 0);
     setOpen(!!d.open);
     if (Array.isArray(d.companies)) setCompanies(d.companies);
+    if (d.funnel) setFunnel(d.funnel);
+    // 读模块锁状态
+    try {
+      const cs = await fetch(`/api/classroom/${sessionId}`);
+      const csd = await cs.json();
+      setLocked(csd.summary?.moduleLocked ?? false);
+    } catch {
+      /* ignore */
+    }
   }
 
   useEffect(() => {
@@ -63,6 +77,7 @@ export default function TeacherFinale({
     };
   }, [active, round, sessionId]);
 
+  // finale 控制（进入/开放发布/关闭本轮/退出）
   async function ctrl(action: string) {
     setBusy(true);
     setToast('');
@@ -81,12 +96,12 @@ export default function TeacherFinale({
         setOpen(d.open);
         setToast(
           action === 'enter'
-            ? '已进入终章，学生端已切换。现在让他们搭建产品。'
+            ? '已进入 A07，学生端已自动锁定。大屏讲解，讲完点「解锁」让学生自由玩。'
             : action === 'open'
-              ? `第 ${d.round} 轮已开放发布，叫学生点「发布」。`
+              ? `第 ${d.round} 轮已开放发布。`
               : action === 'close'
-                ? '本轮已关闭，学生不能再发布。可让他们去体验别人的产品。'
-                : '已退出终章，学生回到常规环节。'
+                ? '本轮已关闭，学生不能再发布。'
+                : '已退出，学生回到常规环节。'
         );
         await load();
       }
@@ -95,12 +110,33 @@ export default function TeacherFinale({
     }
   }
 
+  // 模块锁定/解锁（控学生端能不能动）
+  async function lockCtrl(nextLocked: boolean) {
+    setBusy(true);
+    setToast('');
+    try {
+      await fetch(`/api/classroom/${sessionId}/control`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'lock', locked: nextLocked }),
+      });
+      setToast(
+        nextLocked
+          ? '已锁定，学生端动不了。'
+          : '已解锁，学生可以自由玩了——一路走到底，中间不再有锁。'
+      );
+      await load();
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
-    <div className="container" style={{ maxWidth: 900 }}>
+    <div className="container" style={{ maxWidth: 960 }}>
       <div className="finale-tc-head">
         <div>
-          <div className="finale-kicker">教师导演台 · 终章</div>
-          <h2>一人公司 · 多 Agent 协同控制台</h2>
+          <div className="finale-kicker">教师导演台</div>
+          <h2>一人公司 · 控制台</h2>
         </div>
         <button className="secondary" onClick={onClose}>
           返回常规课堂 →
@@ -109,33 +145,42 @@ export default function TeacherFinale({
 
       <div className="card">
         <div className="tc-state">
-          <span className={`pill ${active ? 'green' : 'gray'}`}>{active ? '终章进行中' : '未进入终章'}</span>
+          <span className={`pill ${active ? 'green' : 'gray'}`}>{active ? '进行中' : '未进入'}</span>
+          <span className={`pill ${locked ? 'yellow' : 'green'}`}>{locked ? '已锁定' : '已解锁'}</span>
           <span className="pill gray">第 {round} 轮</span>
           <span className={`pill ${open ? 'yellow' : 'gray'}`}>{open ? '发布开放中' : '发布已关闭'}</span>
           <span className="pill blue">已发布 {companies.length} 个</span>
         </div>
 
         <div className="tc-guide">
-          <b>流程：</b>① 点「进入终章」→ 学生开始搭建 4-Agent 产品 → ② 点「开放本轮发布」并喊“现在发布”→
-          学生点发布 → ③ 时间到 → 点「关闭本轮」→ 学生去体验别人的产品 → ④ 想让另一批人当“搭建者”，再点「开放本轮发布」（轮次+1，新的同学发布）。
+          <b>流程：</b>① 点「进入」→ 学生端自动锁定，看大屏讲解 → ② 讲完点「解锁」→ 学生自由玩到底（选公司→招专家→前台→开业→收款→分享）→ ③ 玩完点「锁定」停下来，或点「退出」推进到 A08。
         </div>
 
         <div className="tc-buttons">
           {!active && (
             <button className="primary" disabled={busy} onClick={() => ctrl('enter')}>
-              进入终章
+              进入
             </button>
           )}
           {active && (
             <>
-              <button className="primary" disabled={busy || open} onClick={() => ctrl('open')}>
+              {locked ? (
+                <button className="primary" disabled={busy} onClick={() => lockCtrl(false)}>
+                  🔓 解锁（让学生自由玩）
+                </button>
+              ) : (
+                <button className="secondary" disabled={busy} onClick={() => lockCtrl(true)}>
+                  🔒 锁定（让学生停下来）
+                </button>
+              )}
+              <button className="secondary" disabled={busy || open} onClick={() => ctrl('open')}>
                 {open ? '发布已开放' : '开放本轮发布'}
               </button>
               <button className="secondary" disabled={busy || !open} onClick={() => ctrl('close')}>
-                关闭本轮（停止发布）
+                关闭本轮
               </button>
               <button className="danger" disabled={busy} onClick={() => ctrl('exit')}>
-                退出终章
+                退出 → 推进到 A08
               </button>
             </>
           )}
@@ -145,15 +190,44 @@ export default function TeacherFinale({
 
         <div className="tc-links">
           <a href={`/screen?sessionId=${sessionId}`} target="_blank" rel="noreferrer">
-            <button className="secondary">打开大屏（实时闪烁 Agent）</button>
+            <button className="secondary">打开大屏（讲解态 / 作战态）</button>
           </a>
         </div>
       </div>
 
+      {/* 全班进度漏斗 */}
+      {active && (
+        <div className="card">
+          <h3>全班进度</h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 12 }}>
+            {FUNNEL_STAGES.map((st, i) => {
+              const cnt = funnel[st.key] || 0;
+              return (
+                <div key={st.key} style={{
+                  display: 'flex', alignItems: 'center', gap: 10,
+                  padding: '8px 12px', borderRadius: 8,
+                }}>
+                  <span style={{
+                    width: 26, height: 26, borderRadius: 6,
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 13, fontWeight: 800,
+                    background: '#22c55e', color: '#06210f',
+                  }}>
+                    {i + 1}
+                  </span>
+                  <span style={{ flex: 1 }}>{st.label}</span>
+                  <span style={{ fontWeight: 800, minWidth: 40, textAlign: 'right' }}>{cnt} 人</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       <div className="card">
         <h3>已发布的产品（第 {round} 轮）</h3>
         {companies.length === 0 ? (
-          <p className="note">还没有人发布。开放发布后，学生填完属性卡点「发布」即可出现在这里。</p>
+          <p className="note">还没有人发布。学生完成公司组建后会自动出现。</p>
         ) : (
           <div className="tc-company-list">
             {companies.map((c) => (

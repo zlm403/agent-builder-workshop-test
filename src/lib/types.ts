@@ -25,8 +25,8 @@ export type ModuleType =
   | 'ai_task' // A01：真实任务 AI 工作区（基线测试）
   | 'class_mirror' // A02：全班行为镜像与复盘
   | 'hr_screening' // A0：AI 审判官 · 应聘自检（离线 mock HR，后续可接 LLM）
-  | 'persona_config' // A11：一人一配置（桥接终章·多 Agent）
-  | 'finale' // A07：终章（一人公司·多 Agent 协同）
+  | 'persona_config' // A11：一人一配置（桥接·多 Agent）
+  | 'finale' // A07：一人公司·多 Agent 协同
   | 'l2_intro' // 第二关开场
   | 'knowledge_select' // A04：选择知识库
   | 'skill_build' // A05：编写 Skill
@@ -237,4 +237,71 @@ export interface L2ProcessData {
     at: string;
   }[];
   submittedAt?: string;
+}
+
+// ============ A07 一人公司 · 学生搭建状态 ============
+
+export type A07StudentPhase =
+  | 'company'   // 选公司
+  | 'hire'      // 招聘专家（含子阶段 role/skill/style）
+  | 'dup'       // 暴露重复
+  | 'recep'     // 招接待员
+  | 'gm'        // AI 总经理整顿
+  | 'open'      // 开业对话
+  | 'share';    // 分享 + 自由体验
+
+export type HireSubStage = 'role' | 'skill' | 'style';
+
+export interface A07StudentState {
+  phase: A07StudentPhase;
+  companyKey: string | null;       // 'study' | 'shop' | 'fun'
+  specialists: Array<{             // 已招专家
+    role: string;
+    skill: string;
+    style: string;
+    name: string;
+  }>;
+  receptionist: {                  // 接待员（招完才有）
+    style: string;
+    styleDesc: string;
+    routes: string[];
+    name: string;
+  } | null;
+  hireIdx: number;                 // 当前招第几名 (0-2)
+  hireStage: HireSubStage;         // 招聘子阶段
+  hirePick: { role: string; skill: string; style: string }; // 当前选择
+  // 开业对话状态
+  chatMessages: Array<{
+    role: 'user' | 'recep' | 'spec';
+    name: string;
+    text: string;
+  }>;
+  chatPhase: 'recep' | 'spec' | 'done';
+  chatRecepTurns: number;
+  chatSpecTurns: number;
+  chatSpec: { role: string; name: string } | null;
+  chatFirstNeed: string;
+  // 订单
+  orderPrice: number;
+  orderPriceStr: string;
+  orderDone: boolean;
+}
+
+// ============ A07 一人公司 · 大屏状态 ============
+
+export type A07ScreenMode = 'brief' | 'dash';
+
+export interface A07ScreenState {
+  mode: A07ScreenMode;
+  briefSlideIndex: number;        // 讲解态当前幻灯片
+  // 作战态数据
+  totalStudents: number;
+  typeCount: Record<string, number>;     // 公司类型分布
+  funnel: Record<string, number>;        // 漏斗各阶段人数
+  released: { dup: boolean; open: boolean }; // 阶段释放锁
+  leaderboard: Array<{               // 营收排行榜
+    bossName: string;
+    companyName: string;
+    revenue: number;
+  }>;
 }

@@ -822,7 +822,7 @@ const TEMPLATE: CourseTemplateData = {
     {
       id: 'A07_FINALE',
       type: 'finale',
-      title: 'A07 终章 · 一人公司（多 Agent 协同）',
+      title: 'A07 · 一人公司（多 Agent 协同）',
       durationSeconds: 1800,
       teacherContent: {
         headline: '用你设计的 AI 助手解决真实问题',
@@ -835,6 +835,47 @@ const TEMPLATE: CourseTemplateData = {
       },
       studentTask: {},
       screenContent: {},
+    },
+    {
+      id: 'A08_WRAP',
+      type: 'wrap_up',
+      title: 'A08 · 你想做什么？',
+      durationSeconds: 600,
+      teacherContent: {
+        headline: '你已经会了 AI，接下来做什么？',
+        subline: '一期收尾，把问号问死，等下一期',
+        bullets: [
+          '大屏讲解：一路走来的能力成长线，停在「你想做什么？」',
+          '学生端不放任何内容，全部注意力回到大屏',
+          '等下一期 A09 推送完整内容',
+        ],
+      },
+      studentTask: {},
+      screenContent: {
+        slides: [
+          {
+            h: '你的 AI 标签是什么？',
+            p: '一开始，面试官问你会不会用 AI。你的回答，能让别人记住你吗？',
+          },
+          {
+            h: '你能自己用吗？',
+            p: '同一个任务、同一个 AI，结果可以差很多。区别在你怎么定义问题、怎么设计过程、怎么检查结果。',
+          },
+          {
+            h: '你能给别人用吗？',
+            p: '把会做的事，变成一个助手：选对知识、写清 Skill、定好规则。别人也能用你的方法。',
+          },
+          {
+            h: '你能开公司吗？',
+            p: '多个专业员工 + 一个统一前台 = 一家会协作的公司。你刚刚做到了。',
+          },
+          {
+            h: '面对真实世界，你想做什么？',
+            p: '能力，你已经有了。问题是：你拿它，去做什么？',
+            isQuestion: true,
+          },
+        ],
+      },
     },
   ],
 };
