@@ -217,6 +217,7 @@ export default function L2StudentFlow({
           onFinish={finish}
           busy={busy}
           message={message}
+          setMessage={setMessage}
         />
       );
     default:
@@ -417,6 +418,7 @@ function A06Try({
   onFinish,
   busy,
   message,
+  setMessage,
 }: {
   st: any;
   process: any;
@@ -427,6 +429,7 @@ function A06Try({
   onFinish: () => void;
   busy: boolean;
   message: string;
+  setMessage: (msg: string) => void;
 }) {
   const [run, setRun] = useState<DualRunResponse | null>(
     process?.firstRun ? {
