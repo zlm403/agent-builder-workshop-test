@@ -466,8 +466,11 @@ function A02Screen({ module, analytics, total }: { module: ModuleDef; analytics:
     behaviors?: { key: string; label: string }[];
     paths?: { key: string; name: string; flow: string; note: string }[];
     artifactsTitle?: string;
-    fourElements?: { name: string; meaning: string; action: string }[];
+    fourElements?: { name: string; icon: string; q: string; bad: string; good: string }[];
+    scripts?: { elem: string; icon: string; what: string; say: string }[];
+    nextCue?: string;
   };
+  const [slide, setSlide] = useState(1);
   const m = analytics?.metrics;
   const behaviors = cfg.behaviors ?? [];
   const rateOf = (key: string): number => {
@@ -482,62 +485,118 @@ function A02Screen({ module, analytics, total }: { module: ModuleDef; analytics:
     pct: analytics?.pathDistribution?.find((x) => x.key === p.key)?.pct ?? 0,
     count: analytics?.pathDistribution?.find((x) => x.key === p.key)?.count ?? 0,
   }));
+  const elemColors = ['var(--blue)', 'var(--green)', 'var(--yellow)', 'var(--purple)'];
+
   return (
-    <>
-      <div style={{ fontSize: 40, fontWeight: 800, marginBottom: 6 }}>{cfg.headline ?? '刚才，全班是怎样使用 AI 的？'}</div>
-      <p style={{ color: '#94a3b8', fontSize: 16, marginBottom: 18 }}>同一个任务、同一个 AI，大家采取的方式却不同。</p>
+    <div style={{ minHeight: 'calc(100vh - 80px)' }}>
+      {/* 第1屏：全班行为镜像 */}
+      {slide === 1 && (
+        <>
+          <div style={{ fontSize: 40, fontWeight: 800, marginBottom: 6 }}>{cfg.headline ?? '刚才，全班是怎样使用 AI 的？'}</div>
+          <p style={{ color: '#94a3b8', fontSize: 16, marginBottom: 18 }}>同一个任务、同一个 AI，大家采取的方式却不同。</p>
 
-      <h3 style={{ color: '#94a3b8', marginBottom: 12 }}>全班真实行为</h3>
-      <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', marginBottom: 26 }}>
-        {behaviors.map((b) => (
-          <div key={b.key} style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 12, padding: 16, minWidth: 180, textAlign: 'center' }}>
-            <div style={{ fontSize: 34, fontWeight: 800, color: 'var(--blue)' }}>{rateOf(b.key)}%</div>
-            <div style={{ color: '#cbd5e1', fontSize: 15, marginTop: 6 }}>{b.label}</div>
+          <h3 style={{ color: '#94a3b8', marginBottom: 12 }}>全班真实行为</h3>
+          <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', marginBottom: 26 }}>
+            {behaviors.map((b) => (
+              <div key={b.key} style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 12, padding: 16, minWidth: 180, textAlign: 'center' }}>
+                <div style={{ fontSize: 34, fontWeight: 800, color: 'var(--blue)' }}>{rateOf(b.key)}%</div>
+                <div style={{ color: '#cbd5e1', fontSize: 15, marginTop: 6 }}>{b.label}</div>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
 
-      <h3 style={{ color: '#94a3b8', marginBottom: 12 }}>三种使用路径</h3>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 18 }}>
-        {pathList.map((p) => (
-          <div key={p.key} style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 12, padding: 16 }}>
-            <div style={{ fontWeight: 700, marginBottom: 8, color: 'var(--yellow)' }}>{p.name}</div>
-            <div style={{ fontSize: 14, color: '#cbd5e1', marginBottom: 10 }}>{p.flow}</div>
-            <div style={{ fontSize: 13, color: '#94a3b8', marginBottom: 10 }}>{p.note}</div>
-            <div style={{ fontSize: 24, fontWeight: 800 }}>{p.pct}%</div>
-            <div style={{ fontSize: 12, color: '#94a3b8' }}>{p.count} 名学员</div>
+          <h3 style={{ color: '#94a3b8', marginBottom: 12 }}>三种使用路径</h3>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 18 }}>
+            {pathList.map((p) => (
+              <div key={p.key} style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 12, padding: 16 }}>
+                <div style={{ fontWeight: 700, marginBottom: 8, color: 'var(--yellow)' }}>{p.name}</div>
+                <div style={{ fontSize: 14, color: '#cbd5e1', marginBottom: 10 }}>{p.flow}</div>
+                <div style={{ fontSize: 13, color: '#94a3b8', marginBottom: 10 }}>{p.note}</div>
+                <div style={{ fontSize: 24, fontWeight: 800 }}>{p.pct}%</div>
+                <div style={{ fontSize: 12, color: '#94a3b8' }}>{p.count} 名学员</div>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
 
-      <h3 style={{ color: '#94a3b8', marginTop: 26, marginBottom: 12 }}>{cfg.artifactsTitle ?? '全班做出了什么'}</h3>
-      <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap' }}>
-        {(analytics?.artifactDistribution ?? []).map((a) => (
-          <div key={a.key} style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 12, padding: 14, minWidth: 150, textAlign: 'center' }}>
-            <div style={{ fontSize: 22, fontWeight: 700 }}>{a.pct}%</div>
-            <div style={{ fontSize: 13, color: '#cbd5e1', marginTop: 4 }}>{a.label}</div>
+          <h3 style={{ color: '#94a3b8', marginTop: 26, marginBottom: 12 }}>{cfg.artifactsTitle ?? '全班做出了什么'}</h3>
+          <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap' }}>
+            {(analytics?.artifactDistribution ?? []).map((a) => (
+              <div key={a.key} style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 12, padding: 14, minWidth: 150, textAlign: 'center' }}>
+                <div style={{ fontSize: 22, fontWeight: 700 }}>{a.pct}%</div>
+                <div style={{ fontSize: 13, color: '#cbd5e1', marginTop: 4 }}>{a.label}</div>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
 
-      <div style={{ marginTop: 26, padding: 16, background: 'rgba(56,189,248,0.08)', border: '1px solid rgba(56,189,248,0.3)', borderRadius: 12 }}>
-        <div style={{ color: 'var(--blue)', fontWeight: 700, marginBottom: 6 }}>本班发现</div>
-        <p style={{ margin: 0, fontSize: 18 }}>{analytics?.classInsight ?? '提交仍在统计中，稍后生成本班发现。'}</p>
-      </div>
-
-      <h3 style={{ color: '#94a3b8', marginTop: 26, marginBottom: 12 }}>为什么结果不同？看清四个要素</h3>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 14 }}>
-        {(cfg.fourElements ?? []).map((e) => (
-          <div key={e.name} style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 12, padding: 14 }}>
-            <div style={{ fontWeight: 700, color: 'var(--green)', marginBottom: 6 }}>{e.name}</div>
-            <div style={{ fontSize: 13, color: '#cbd5e1', marginBottom: 6, lineHeight: 1.5 }}>{e.meaning}</div>
-            <div style={{ fontSize: 12, color: '#94a3b8', lineHeight: 1.5 }}>学生：{e.action}</div>
+          <div style={{ marginTop: 26, padding: 16, background: 'rgba(56,189,248,0.08)', border: '1px solid rgba(56,189,248,0.3)', borderRadius: 12 }}>
+            <div style={{ color: 'var(--blue)', fontWeight: 700, marginBottom: 6 }}>本班发现</div>
+            <p style={{ margin: 0, fontSize: 18 }}>{analytics?.classInsight ?? '提交仍在统计中，稍后生成本班发现。'}</p>
           </div>
-        ))}
-      </div>
 
-      <p style={{ fontSize: 22, marginTop: 30, color: 'var(--green)', fontWeight: 700 }}>{cfg.question}</p>
-    </>
+          <p style={{ fontSize: 22, marginTop: 30, color: 'var(--green)', fontWeight: 700 }}>{cfg.question}</p>
+        </>
+      )}
+
+      {/* 第2屏：四个要素（图形化） */}
+      {slide === 2 && (
+        <>
+          <div style={{ fontSize: 38, fontWeight: 800, marginBottom: 6 }}>结果不同的关键，在这四个要素</div>
+          <p style={{ color: '#94a3b8', fontSize: 18, marginBottom: 24 }}>同样是和 AI 对话，做对这四步的人，结果质量明显更高。</p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 18 }}>
+            {(cfg.fourElements ?? []).map((e, i) => {
+              const c = elemColors[i % 4];
+              return (
+                <div key={e.name} style={{ background: '#1e293b', border: '1px solid #334155', borderTop: `4px solid ${c}`, borderRadius: 16, padding: '24px 18px', textAlign: 'center' }}>
+                  <div style={{ fontSize: 48, marginBottom: 10 }}>{e.icon}</div>
+                  <div style={{ fontSize: 26, fontWeight: 800, color: c, marginBottom: 8 }}>{e.name}</div>
+                  <div style={{ fontSize: 15, color: '#cbd5e1', marginBottom: 14, lineHeight: 1.5 }}>{e.q}</div>
+                  <div style={{ fontSize: 12, padding: '8px 10px', borderRadius: 8, marginBottom: 8, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', color: '#fca5a5', lineHeight: 1.4 }}>✗ {e.bad}</div>
+                  <div style={{ fontSize: 12, padding: '8px 10px', borderRadius: 8, background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.3)', color: '#86efac', lineHeight: 1.4 }}>✓ {e.good}</div>
+                </div>
+              );
+            })}
+          </div>
+          <p style={{ textAlign: 'center', fontSize: 22, marginTop: 30, color: 'var(--green)', fontWeight: 700 }}>那这四步，具体要怎么和 AI 说？</p>
+        </>
+      )}
+
+      {/* 第3屏：话术范本 */}
+      {slide === 3 && (
+        <>
+          <div style={{ fontSize: 38, fontWeight: 800, marginBottom: 6 }}>针对四个要素，你可以这么说</div>
+          <p style={{ color: '#94a3b8', fontSize: 18, marginBottom: 24 }}>把每个要素变成一句明确的话，AI 才知道你要什么。</p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+            {(cfg.scripts ?? []).map((s, i) => {
+              const c = elemColors[i % 4];
+              return (
+                <div key={s.elem} style={{ display: 'grid', gridTemplateColumns: '220px 1fr', gap: 20, background: '#1e293b', border: '1px solid #334155', borderRadius: 14, padding: 20 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    <div style={{ fontSize: 36 }}>{s.icon}</div>
+                    <div style={{ fontSize: 22, fontWeight: 800, color: c }}>{s.elem}</div>
+                    <div style={{ fontSize: 13, color: '#94a3b8', lineHeight: 1.5 }}>{s.what}</div>
+                  </div>
+                  <div style={{ background: 'rgba(34,197,94,0.06)', border: '1px solid rgba(34,197,94,0.3)', borderLeft: '4px solid var(--green)', borderRadius: 10, padding: '14px 16px' }}>
+                    <div style={{ fontSize: 12, color: 'var(--green)', fontWeight: 700, marginBottom: 6 }}>✓ 你可以这么说</div>
+                    <div style={{ fontSize: 15, lineHeight: 1.7, color: '#e2e8f0' }}>{s.say}</div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <div style={{ marginTop: 28, textAlign: 'center', padding: 18, background: 'rgba(168,85,247,0.1)', border: '1px solid rgba(168,85,247,0.3)', borderRadius: 12 }}>
+            <div style={{ color: 'var(--purple)', fontWeight: 700, fontSize: 18, marginBottom: 6 }}>{(cfg.nextCue ?? '').split('：')[0] || '接下来'}</div>
+            <div style={{ fontSize: 15, color: '#cbd5e1' }}>{(cfg.nextCue ?? '').split('：').slice(1).join('：')}</div>
+          </div>
+        </>
+      )}
+
+      {/* 翻页控制 */}
+      <div style={{ position: 'fixed', bottom: 24, right: 24, display: 'flex', gap: 10, alignItems: 'center', background: '#1e293b', border: '1px solid #334155', borderRadius: 30, padding: '8px 14px', zIndex: 100 }}>
+        <button onClick={() => setSlide(Math.max(1, slide - 1))} style={{ background: '#334155', color: '#e2e8f0', border: 'none', width: 36, height: 36, borderRadius: '50%', cursor: 'pointer', fontSize: 18, fontWeight: 700 }}>‹</button>
+        <span style={{ fontSize: 14, color: '#94a3b8', minWidth: 50, textAlign: 'center' }}>{slide} / 3</span>
+        <button onClick={() => setSlide(Math.min(3, slide + 1))} style={{ background: '#334155', color: '#e2e8f0', border: 'none', width: 36, height: 36, borderRadius: '50%', cursor: 'pointer', fontSize: 18, fontWeight: 700 }}>›</button>
+      </div>
+    </div>
   );
 }
 

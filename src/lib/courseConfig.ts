@@ -394,18 +394,41 @@ const TEMPLATE: CourseTemplateData = {
     },
     {
       id: 'A02_MIRROR',
-      type: 'lecture',
+      type: 'class_mirror',
       title: 'A02 镜像讲解：你的使用方式被看见了',
       durationSeconds: 600,
       teacherContent: {
-        headline: 'A02 镜像讲解',
-        subline: '把学生刚才的 AI 使用方式“照镜子”呈现出来',
-        bullets: [
-          '四要素：对象 / 任务 / 过程 / 检验',
-          '用学生自己的例子说明差异',
-          '先不讲方法，只呈现“你是怎么用的”',
+        headline: '刚才，全班是怎样使用 AI 的？',
+        subline: '同一个任务、同一个 AI，大家采取的方式却不同。',
+        question: '大家使用的是同一个 AI，为什么结果和过程差别这么大？',
+        // 第1屏：全班行为镜像（key 对齐 analytics，rateOf 支持 context/process/modified/verified）
+        behaviors: [
+          { key: 'context', label: '使用了给定资料' },
+          { key: 'process', label: '分步推进过程' },
+          { key: 'modified', label: '进行了二次追问/修改' },
+          { key: 'verified', label: '主动检查内容依据' },
         ],
-        revealOrder: ['mirror', 'four-elements'],
+        paths: [
+          { key: 'direct', name: '路径一 · 一次性问答', flow: '提出一个大问题 → AI 生成完整答案 → 直接提交', note: '最省力，但结果不可控' },
+          { key: 'iterate', name: '路径二 · 多轮修改', flow: '提出任务 → 查看结果 → 要求修改 → 提交', note: '会迭代，但缺少方法' },
+          { key: 'workflow', name: '路径三 · 任务流程', flow: '分析对象 → 提供资料 → 明确规则 → 分步执行 → 检查依据 → 修改 → 提交', note: '最接近 Agent 式工作' },
+        ],
+        // 第2屏：四个要素（图形化，icon+问句+做对/没做对对比）
+        fourElements: [
+          { name: '对象', icon: '👤', q: '你让 AI 为谁服务？', bad: '模糊："帮我做个学习计划"', good: '具体："为准备考研的小林"' },
+          { name: '任务', icon: '🎯', q: '你希望 AI 完成什么？', bad: '无法检验："做个英语计划"', good: '可检验："设计30分钟训练+测试题"' },
+          { name: '过程', icon: '🔁', q: '你和 AI 怎样对话？', bad: '一次要全部答案', good: '分步：先诊断→再设计→再出题' },
+          { name: '检验', icon: '✓', q: '你怎么知道结果合格？', bad: '直接采纳 AI 输出', good: '逐项核对，能找到出处' },
+        ],
+        // 第3屏：话术范本（每个要素"你可以这么说"）
+        scripts: [
+          { elem: '对象', icon: '👤', what: '说清对象是谁、什么情况、什么约束——让 AI 知道为谁做。', say: '我需要为准备考研的小林设计训练——他大三，英语阅读平均每篇错 3 题，每天可训练 30 分钟。' },
+          { elem: '任务', icon: '🎯', what: '说清要完成什么、交付什么——让结果可检验。', say: '请基于我给的材料，设计一次约 30 分钟的阅读训练，并生成一道测试题。' },
+          { elem: '过程', icon: '🔁', what: '说清分几步、先做什么后做什么——不要一次要全部答案。', say: '请分三步：先判断小林最主要的问题；再基于材料设计训练；最后出测试题。每步等我确认后再继续。' },
+          { elem: '检验', icon: '✓', what: '说清怎么验收、依据在哪——让 AI 给出处，你能核对。', say: '每一步请说明针对小林的哪个问题；测试题要能在原文找到依据，并指出在哪一段。' },
+        ],
+        nextCue: '接下来 · 第二轮（A03）：用同一个 AI、同一个任务，按这四步重新做一次，看看结果有什么不同。',
+        revealOrder: ['mirror', 'four-elements', 'scripts'],
       },
       studentTask: {
         prompt: '看看你刚才的使用方式，被怎样呈现出来。',
