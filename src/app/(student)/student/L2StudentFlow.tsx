@@ -441,6 +441,10 @@ function A06Try({
   const [loadingRun, setLoadingRun] = useState(false);
   const [loadingCheck, setLoadingCheck] = useState(false);
   const [editing, setEditing] = useState(false);
+  // A06 卡片切换：默认选中小林（A），可切换看小周（B）
+  const [selectedPersona, setSelectedPersona] = useState<'A' | 'B'>('A');
+  // 视图模式：single（卡片切换，下方窗口显示单人）/ sideBySide（两人并排）
+  const [viewMode, setViewMode] = useState<'single' | 'sideBySide'>('single');
   const initSkill: SkillVersion = {
     understand: process?.skill?.initialVersion?.understand ?? '',
     judge: process?.skill?.initialVersion?.judge ?? '',
@@ -508,6 +512,39 @@ function A06Try({
     }
   }
 
+  function PersonaCard({ personaKey, selected, onClick, learner }: { personaKey: 'A' | 'B'; selected: boolean; onClick: () => void; learner: LearnerRunResult }) {
+    const name = LEARNER_NAMES[learner.learnerId] ?? `学员${personaKey}`;
+    const icon = personaKey === 'A' ? '📖' : '📚';
+    const tagColor = personaKey === 'A' ? 'var(--orange)' : 'var(--blue)';
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        style={{
+          display: 'block',
+          width: '100%',
+          textAlign: 'left',
+          padding: '14px 16px',
+          borderRadius: 12,
+          border: selected ? `2px solid ${tagColor}` : '1px solid var(--border)',
+          background: selected ? `rgba(56,189,248,0.08)` : 'var(--card)',
+          cursor: 'pointer',
+          transition: 'all 0.15s',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+          <span style={{ fontSize: 22 }}>{icon}</span>
+          <span style={{ fontWeight: 700, fontSize: 16, color: tagColor }}>{name}</span>
+          {selected && <span style={{ marginLeft: 'auto', fontSize: 11, padding: '2px 8px', borderRadius: 10, background: tagColor, color: '#fff' }}>查看中</span>}
+        </div>
+        <div style={{ fontSize: 13, color: 'var(--muted)', lineHeight: 1.6 }}>
+          <div>⏱ 训练时长：{learner.trainingDuration}</div>
+          <div>🎯 训练重点：{learner.trainingFocus}</div>
+        </div>
+      </button>
+    );
+  }
+
   function renderLearner(l: LearnerRunResult) {
     return (
       <div style={{ border: '1px solid var(--border)', borderRadius: 8, padding: 12, background: 'var(--card)' }}>
@@ -548,17 +585,76 @@ function A06Try({
 
         {run && (
           <div style={{ marginTop: 12 }}>
-            <div style={{ fontWeight: 700, marginBottom: 8 }}>两人运行结果</div>
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: '1fr 1fr',
-                gap: 12,
-              }}
-            >
-              {renderLearner(run.learnerA)}
-              {renderLearner(run.learnerB)}
+            {/* 头部：标题 + 视图切换 */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <div style={{ fontWeight: 700, fontSize: 15 }}>两人运行结果</div>
+              <div style={{ display: 'flex', gap: 4, background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 8, padding: 3 }}>
+                <button
+                  type="button"
+                  onClick={() => setViewMode('single')}
+                  style={{
+                    padding: '6px 12px',
+                    borderRadius: 6,
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontSize: 13,
+                    fontWeight: 600,
+                    background: viewMode === 'single' ? 'var(--blue)' : 'transparent',
+                    color: viewMode === 'single' ? '#fff' : 'var(--muted)',
+                  }}
+                >
+                  👤 单人
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewMode('sideBySide')}
+                  style={{
+                    padding: '6px 12px',
+                    borderRadius: 6,
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontSize: 13,
+                    fontWeight: 600,
+                    background: viewMode === 'sideBySide' ? 'var(--blue)' : 'transparent',
+                    color: viewMode === 'sideBySide' ? '#fff' : 'var(--muted)',
+                  }}
+                >
+                  ⬌ 并排
+                </button>
+              </div>
             </div>
+
+            {/* 单人视图：上方两张卡片 + 下方窗口 */}
+            {viewMode === 'single' && (
+              <>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
+                  <PersonaCard
+                    personaKey="A"
+                    selected={selectedPersona === 'A'}
+                    onClick={() => setSelectedPersona('A')}
+                    learner={run.learnerA}
+                  />
+                  <PersonaCard
+                    personaKey="B"
+                    selected={selectedPersona === 'B'}
+                    onClick={() => setSelectedPersona('B')}
+                    learner={run.learnerB}
+                  />
+                </div>
+                <div style={{ border: '1px solid var(--blue)', borderRadius: 10, padding: 14, background: 'rgba(56,189,248,0.05)' }}>
+                  {renderLearner(selectedPersona === 'A' ? run.learnerA : run.learnerB)}
+                </div>
+              </>
+            )}
+
+            {/* 并排视图：两人同时显示 */}
+            {viewMode === 'sideBySide' && (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                {renderLearner(run.learnerA)}
+                {renderLearner(run.learnerB)}
+              </div>
+            )}
+
             {run.generationMode && (
               <div className="note" style={{ fontSize: 12, marginTop: 6 }}>
                 生成方式：{run.generationMode}
