@@ -43,7 +43,7 @@ export default function StudentPage() {
   const [code, setCode] = useState('');
   const [invitationCode, setInvitationCode] = useState('');
   const [wechatName, setWechatName] = useState(''); // 微信扫码自动识别的昵称
-  const [phase, setPhase] = useState<'join' | 'class' | 'finale'>('join');
+  const [phase, setPhase] = useState<'loading' | 'join' | 'class' | 'finale'>('loading');
   const [anonymousId, setAnonymousId] = useState('');
   const [current, setCurrent] = useState<ModuleDef | null>(null);
   const [moduleStatus, setModuleStatus] = useState('pending');
@@ -105,11 +105,17 @@ export default function StudentPage() {
       // 扫了新课堂的码：仅当旧 token 属于同一课堂才直接恢复，否则清掉旧 token 重新报名
       if (savedToken) {
         resumeForCode(savedToken, code);
+      } else {
+        // 没有旧 token：学生需要填个人邀请码报名
+        setPhase('join');
       }
       return;
     }
     if (savedToken) {
       doResume(savedToken);
+    } else {
+      // 没扫码、没旧 token：显示加入页
+      setPhase('join');
     }
   }, []);
 
@@ -226,7 +232,12 @@ export default function StudentPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ resumeToken: token }),
     });
-    if (!res.ok) return;
+    if (!res.ok) {
+      // resume 失败（token 失效/课堂已重置）：清掉旧 token，显示加入页
+      localStorage.removeItem('studentResumeToken');
+      setPhase('join');
+      return;
+    }
     const data = await res.json();
     setAnonymousId(data.anonymousId);
     setSessionId(data.sessionId);
@@ -501,6 +512,15 @@ export default function StudentPage() {
     } finally {
       setBusy(false);
     }
+  }
+
+  if (phase === 'loading') {
+    return (
+      <div className="container" style={{ maxWidth: 480, textAlign: 'center', paddingTop: '30vh' }}>
+        <div style={{ fontSize: 24, fontWeight: 700, marginBottom: 10 }}>加载中…</div>
+        <div style={{ color: 'var(--muted)', fontSize: 14 }}>正在恢复你的课堂进度</div>
+      </div>
+    );
   }
 
   if (phase === 'join') {

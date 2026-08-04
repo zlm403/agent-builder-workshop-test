@@ -59,6 +59,8 @@ export default function ScreenPage() {
   const [effectiveHost, setEffectiveHost] = useState('');
   const esRef = useRef<EventSource | null>(null);
   const [finaleActive, setFinaleActive] = useState(false);
+  // 刷新时不闪过 A00Screen 开场页，先显示"加载中"等首次 load 返回
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setHostname(window.location.hostname);
@@ -141,6 +143,7 @@ export default function ScreenPage() {
     setStartedAt(s.moduleStartedAt ?? null);
     setMeta({ inviteCode: s.inviteCode, courseName: s.courseName, createdAt: s.createdAt, scheduledStartAt: s.scheduledStartAt ?? null });
     fetchQr(id);
+    setLoading(false);
     const cur = s.currentModule;
     if (cur?.type === 'ai_task') {
       if (cur.screenContent?.phase === 'redo') fetchAnalytics(id, cur.id);
@@ -197,6 +200,11 @@ export default function ScreenPage() {
         <ScreenFinale sessionId={sessionId} />
       ) : !sessionId ? (
         <p style={{ color: '#94a3b8' }}>请在教师端点击“打开大屏”后访问此页（需带 ?sessionId=）。</p>
+      ) : loading ? (
+        <div style={{ textAlign: 'center', marginTop: '30vh', color: '#94a3b8' }}>
+          <div style={{ fontSize: 28, fontWeight: 700, marginBottom: 12 }}>加载中…</div>
+          <div style={{ fontSize: 14 }}>正在获取课堂状态</div>
+        </div>
       ) : summary?.status === 'closed' ? (
         <div style={{ textAlign: 'center', marginTop: '20vh' }}>
           <div style={{ fontSize: 44, fontWeight: 700 }}>本课堂已关闭</div>
