@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import ScreenFinale from '@/components/ScreenFinale';
+import ClosingScreen from '@/components/ClosingScreen';
 import { compareRounds } from '@/lib/analytics';
 import { KNOWLEDGE_DOCS, SKILL_BLOCKS } from '@/lib/courseConfig';
 
@@ -59,6 +60,8 @@ export default function ScreenPage() {
   const [effectiveHost, setEffectiveHost] = useState('');
   const esRef = useRef<EventSource | null>(null);
   const [finaleActive, setFinaleActive] = useState(false);
+  const [closingActive, setClosingActive] = useState(false);
+  const [closingBeat, setClosingBeat] = useState(0);
   // 刷新时不闪过 A00Screen 开场页，先显示"加载中"等首次 load 返回
   const [loading, setLoading] = useState(true);
 
@@ -110,6 +113,9 @@ export default function ScreenPage() {
             if (evt.type === 'analytics:update') { fetchAnalytics(id); fetchScreening(id); }
             if (evt.type === 'finale:enter') setFinaleActive(true);
             if (evt.type === 'finale:exit') setFinaleActive(false);
+            if (evt.type === 'closing:enter') setClosingActive(true);
+            if (evt.type === 'closing:exit') setClosingActive(false);
+            if (evt.type === 'closing:beat') setClosingBeat(evt.payload?.beatIdx ?? 0);
           } catch {
             /* noop */
           }
@@ -196,7 +202,9 @@ export default function ScreenPage() {
         </div>
       </div>
 
-      {(finaleActive || module?.type === 'finale') ? (
+      {closingActive ? (
+        <ClosingScreen sessionId={sessionId} beatIdx={closingBeat} />
+      ) : (finaleActive || module?.type === 'finale') ? (
         <ScreenFinale sessionId={sessionId} />
       ) : !sessionId ? (
         <p style={{ color: '#94a3b8' }}>请在教师端点击“打开大屏”后访问此页（需带 ?sessionId=）。</p>

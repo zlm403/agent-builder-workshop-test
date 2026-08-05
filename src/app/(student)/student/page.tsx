@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { getStyleProfile } from '@/lib/styleProfiles';
 import { A1_REVIEW } from '@/lib/a1Review';
 import StudentFinale from '@/components/StudentFinale';
+import ClosingStudent from '@/components/ClosingStudent';
 import StudentWaitingRoom from '@/components/StudentWaitingRoom';
 import L2StudentFlow from './L2StudentFlow';
 
@@ -44,11 +45,26 @@ export default function StudentPage() {
   const [invitationCode, setInvitationCode] = useState('');
   const [wechatName, setWechatName] = useState(''); // 微信扫码自动识别的昵称
   const [phase, setPhase] = useState<'loading' | 'join' | 'class' | 'finale'>('loading');
+  const [closingActive, setClosingActive] = useState(false);
+  const [closingBeat, setClosingBeat] = useState(0);
   const [anonymousId, setAnonymousId] = useState('');
   const [current, setCurrent] = useState<ModuleDef | null>(null);
   const [moduleStatus, setModuleStatus] = useState('pending');
   const [locked, setLocked] = useState(false);
   const [sessionId, setSessionId] = useState('');
+
+  // 连接建立即拉取收官状态：SSE 不回放历史事件，学生端若晚于 enter 连上需自愈
+  useEffect(() => {
+    if (!sessionId) return;
+    fetch(`/api/closing/state?sessionId=${encodeURIComponent(sessionId)}`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (d?.active) setClosingActive(true);
+        if (typeof d?.beatIdx === 'number') setClosingBeat(d.beatIdx);
+      })
+      .catch(() => {});
+  }, [sessionId]);
+
   const [form, setForm] = useState<Record<string, unknown>>({});
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
@@ -161,6 +177,13 @@ export default function StudentPage() {
           } else if (evt.type === 'finale:exit') {
             setPhase('class');
             refreshCurrent();
+          } else if (evt.type === 'closing:enter') {
+            setClosingActive(true);
+          } else if (evt.type === 'closing:exit') {
+            setClosingActive(false);
+          } else if (evt.type === 'closing:beat') {
+            const b = (evt.payload as { beatIdx?: number })?.beatIdx;
+            if (typeof b === 'number') setClosingBeat(b);
           }
         } catch {
           /* noop */
@@ -553,6 +576,17 @@ export default function StudentPage() {
           {message ? <p style={{ color: 'var(--red)' }}>{message}</p> : null}
         </div>
       </div>
+    );
+  }
+
+  if (closingActive) {
+    return (
+      <ClosingStudent
+        key={sessionId}
+        beatIdx={closingBeat}
+        sessionId={sessionId}
+        anon={anonymousId || undefined}
+      />
     );
   }
 

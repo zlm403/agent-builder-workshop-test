@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { STYLE_PROFILES, STYLE_ORDER } from '@/lib/styleProfiles';
 import TeacherFinale from '@/components/TeacherFinale';
+import TeacherClosing from '@/components/TeacherClosing';
 
 const pctOf = (n: number, base: number) => (base > 0 ? Math.round((n / base) * 100) : 0);
 
@@ -95,6 +96,7 @@ export default function TeacherPage() {
   const [invitations, setInvitations] = useState<{ total: number; used: number; invitations: { id: string; code: string; used: boolean }[] } | null>(null);
   const [genBusy, setGenBusy] = useState(false);
   const [showFinale, setShowFinale] = useState(false);
+  const [showClosing, setShowClosing] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [llmKey, setLlmKey] = useState('');
   const [llmBaseUrl, setLlmBaseUrl] = useState('https://api.deepseek.com/v1');
@@ -625,6 +627,10 @@ export default function TeacherPage() {
     );
   }
 
+  if (showClosing) {
+    return <TeacherClosing sessionId={sessionId} onClose={() => setShowClosing(false)} />;
+  }
+
   if (showFinale) {
     return <TeacherFinale sessionId={sessionId} onClose={() => setShowFinale(false)} />;
   }
@@ -915,6 +921,9 @@ export default function TeacherPage() {
               }}
             >
               关闭课堂
+            </button>
+            <button className="secondary" onClick={() => setShowClosing(true)}>
+              收官阶段
             </button>
             <button className="primary" onClick={() => setShowFinale(true)}>
               模式 →
