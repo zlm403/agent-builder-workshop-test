@@ -241,13 +241,21 @@ export default function StudentPage() {
 
   // A0 开始时的"上线"小仪式：进入 hr_screening 后短暂展示"面试官已上线"，再揭晓问题
   useEffect(() => {
-    if (current?.type === 'hr_screening' && !screeningResult) {
-      setScreeningReveal(false);
-      const t = setTimeout(() => setScreeningReveal(true), 1000);
-      return () => clearTimeout(t);
+    if (current?.type === 'hr_screening') {
+      // 若面试数据已恢复（有 screeningResult）但 step 仍卡在 q1/reading，
+      // 说明是恢复状态与仪式动画的竞态，直接跳过仪式避免白屏
+      if (screeningResult && (screeningStep === 'q1' || screeningStep === 'reading')) {
+        setScreeningReveal(true);
+        return;
+      }
+      if (!screeningResult) {
+        setScreeningReveal(false);
+        const t = setTimeout(() => setScreeningReveal(true), 1000);
+        return () => clearTimeout(t);
+      }
     }
     setScreeningReveal(false);
-  }, [current?.type, current?.id, screeningResult]);
+  }, [current?.type, current?.id, screeningResult, screeningStep]);
 
   async function doResume(token: string) {
     const res = await fetch('/api/student/resume', {
@@ -362,6 +370,14 @@ export default function StudentPage() {
         setScreeningStep('done');
       } else if (hasActiveProgress && md?.followup) {
         setScreeningStep('q2');
+      } else if (hasActiveProgress && md?.screening?.followup) {
+        // 兼容 followup 嵌在 screening 对象里的情况
+        setScreeningFollowupText(md.screening.followup.text ?? '');
+        setScreeningFollowupAnswer(md.screening.followup.answer ?? '');
+        setScreeningStep('q2');
+      } else if (hasActiveProgress && md?.screening) {
+        // 已生成判定但追问未写入，给一个 reading 态兜底
+        setScreeningStep('reading');
       } else {
         // 无有效进度时，始终从 q1 开始（不渲染旧反馈卡）
         setScreeningStep('q1');
