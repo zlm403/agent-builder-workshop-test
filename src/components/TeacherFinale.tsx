@@ -96,7 +96,7 @@ export default function TeacherFinale({
         setOpen(d.open);
         setToast(
           action === 'enter'
-            ? '已进入 A07，学生端已自动锁定。大屏讲解，讲完点「解锁」让学生自由玩。'
+            ? '已进入一人公司，学生端已自动锁定。大屏讲解，讲完点「解锁」让学生自由玩。'
             : action === 'open'
               ? `第 ${d.round} 轮已开放发布。`
               : action === 'close'
@@ -153,7 +153,7 @@ export default function TeacherFinale({
         </div>
 
         <div className="tc-guide">
-          <b>流程：</b>① 点「进入」→ 学生端自动锁定，看大屏讲解 → ② 讲完点「解锁」→ 学生自由玩到底（选公司→招专家→前台→开业→收款→分享）→ ③ 玩完点「锁定」停下来，或点「退出」推进到 A08。
+          <b>流程：</b>① 点「进入」→ 学生端自动锁定，看大屏讲解 → ② 讲完点「解锁」→ 学生自由玩到底（选公司→招专家→前台→开业→收款→分享）→ ③ 玩完点「锁定」停下来，或点「退出」推进到收尾环节。
         </div>
 
         <div className="tc-buttons">
@@ -180,7 +180,7 @@ export default function TeacherFinale({
                 关闭本轮
               </button>
               <button className="danger" disabled={busy} onClick={() => ctrl('exit')}>
-                退出 → 推进到 A08
+                退出 → 推进到收尾
               </button>
             </>
           )}
@@ -252,16 +252,16 @@ export default function TeacherFinale({
 
       {active && (
         <div className="card">
-          <h3>A0 学员明细（面试环节 · 匿名）</h3>
+          <h3>A0 学员明细（标签环节 · 匿名）</h3>
           {!screening ? (
-            <p className="note">正在加载 A0 面试数据…</p>
+            <p className="note">正在加载 A0 标签数据…</p>
           ) : (
             <>
               <div className="tc-state">
                 <span className="pill blue">{screening.submitted} 人已提交</span>
-                <span className="pill yellow">工具体验者 {screening.labels.tool_user}</span>
-                <span className="pill blue">任务解决者 {screening.labels.task_solver}</span>
-                <span className="pill green">应用创造者 {screening.labels.app_creator}</span>
+                <span className="pill yellow">AI 路人 {screening.labels.tool_user}</span>
+                <span className="pill blue">AI 搭子 {screening.labels.task_solver}</span>
+                <span className="pill green">AI 合伙人 {screening.labels.app_creator}</span>
               </div>
               <div style={{ overflowX: 'auto' }}>
                 <table className="tc-table">
@@ -278,7 +278,7 @@ export default function TeacherFinale({
                         <td className="mono">{r.anonymousId}</td>
                         <td>
                           <span className={`pill ${r.label === 'app_creator' ? 'green' : r.label === 'task_solver' ? 'blue' : 'yellow'}`}>
-                            {r.label === 'app_creator' ? '应用创造者' : r.label === 'task_solver' ? '任务解决者' : '工具体验者'}
+                            {r.label === 'app_creator' ? 'AI 合伙人' : r.label === 'task_solver' ? 'AI 搭子' : 'AI 路人'}
                           </span>
                         </td>
                         <td>{r.answer.length > 60 ? r.answer.slice(0, 60) + '…' : r.answer}</td>

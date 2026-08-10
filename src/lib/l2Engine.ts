@@ -145,7 +145,7 @@ function buildLearner(obj: unknown, allowedIds: string[]): { result: LearnerRunR
 // 双跑：模型调用
 // ---------------------------------------------------------------------------
 function dualRunSystem(): string {
-  return `你是考研英语个性化训练助手的设计评测员。给定学生的「知识库资料」「Skill（方法）」和「两位学习者画像」，请分别为两位学习者生成一份训练方案。
+  return `你是英语个性化学习助手的设计评测员。给定学生的「知识库资料」「Skill（方法）」和「两位学习者画像」，请分别为两位学习者生成一份训练方案。
 
 严格要求：
 1. 必须返回 JSON，结构为 { "learnerA": {...}, "learnerB": {...} }。

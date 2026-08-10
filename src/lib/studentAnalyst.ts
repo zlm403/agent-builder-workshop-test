@@ -10,7 +10,8 @@ export type SalesPriority = 'high' | 'mid' | 'low';
 export interface StudentAnalysis {
   anonymousId: string;
   wechatName: string | null; // 微信昵称（与 anonymousId 一一对应，用于销售定位到人）
-  a0Label: AiLabel | null; // AI 面试后的“当前标签”
+  nickname: string | null; // 学生自填昵称（无微信授权时的身份标识）
+  a0Label: AiLabel | null; // AI 标签后的“当前标签”
   interestSignal: number; // 0-5
   a0Answer: string | null;
   a01AiStyle: string | null; // A01 真实任务中的 AI 使用方式
@@ -19,9 +20,10 @@ export interface StudentAnalysis {
   note: string; // 给销售顾问的画像说明
 }
 
-/** 展示用标识：优先微信昵称，其次匿名编号。例：微信昵称(A023) */
-export function displayName(a: { wechatName: string | null; anonymousId: string }): string {
-  return a.wechatName ? `${a.wechatName}(${a.anonymousId})` : a.anonymousId;
+/** 展示用标识：优先微信昵称，其次学生自填昵称，最后匿名编号。例：小林(A023) */
+export function displayName(a: { wechatName: string | null; nickname: string | null; anonymousId: string }): string {
+  const name = a.wechatName ?? a.nickname;
+  return name ? `${name}(${a.anonymousId})` : a.anonymousId;
 }
 
 /** A0 标签的对外展示文案 */
@@ -53,7 +55,7 @@ export async function analyzeStudents(sessionId: string): Promise<StudentAnalysi
     const a01AiStyle = a1?.profile?.aiStyle ?? a1?.aiStyle ?? null;
     const a01Clarity = a1?.profile?.taskClarity ?? a1?.taskClarity ?? null;
 
-    // 销售优先级：高意向 + 非应用创造者 = 重点转化；已具应用/系统能力 = 推进阶/内推；其余轻量跟进
+    // 销售优先级：高意向 + 非合伙人 = 重点转化；已具应用/系统能力 = 推进阶/内推；其余轻量跟进
     let priority: SalesPriority = 'low';
     let note = '';
     if (interest >= 3 && a0Label !== 'app_creator') {
@@ -72,6 +74,7 @@ export async function analyzeStudents(sessionId: string): Promise<StudentAnalysi
     list.push({
       anonymousId: p.anonymousId,
       wechatName: p.wechatName,
+      nickname: p.nickname,
       a0Label,
       interestSignal: interest,
       a0Answer: s?.answer ?? null,
@@ -114,9 +117,9 @@ export async function buildSalesBrief(sessionId: string): Promise<SalesBrief> {
   const interestAvg = submitted > 0 ? Math.round((analyses.reduce((s, a) => s + a.interestSignal, 0) / submitted) * 10) / 10 : 0;
 
   const lines: string[] = [];
-  lines.push('【销售简报 · AI 试听课 A0 面试】');
-  lines.push(`课堂人数：${total}　已参与 A0 面试：${submitted}`);
-  lines.push(`AI 标签分布：工具体验者 ${toolUser} 人 / 任务解决者 ${taskSolver} 人 / 应用创造者 ${appCreator} 人`);
+  lines.push('【销售简报 · AI 试听课 A0 标签】');
+  lines.push(`课堂人数：${total}　已参与 A0 标签挑战：${submitted}`);
+  lines.push(`AI 标签分布：路人 ${toolUser} 人 / 搭子 ${taskSolver} 人 / 合伙人 ${appCreator} 人`);
   lines.push(`平均兴趣信号：${interestAvg} / 5`);
   lines.push('');
 
@@ -135,8 +138,8 @@ export async function buildSalesBrief(sessionId: string): Promise<SalesBrief> {
 
   lines.push('');
   lines.push('三、给销售顾问的衔接话术：');
-  lines.push('· 对“工具体验者”学员：先共情“AI 面试官说你的用法还停留在工具层”，再引出我们如何把工具型用法升级成系统/流程型能力。');
-  lines.push('· 对“应用创造者”学员：肯定其系统思维，推荐进阶 Agent 工作流训练或内推。');
+  lines.push('· 对“路人”学员：先共情“你和 AI 还只是打个照面”，再引出如何让这段关系变深——从偶尔使用走向一起把事情办成。');
+  lines.push('· 对“合伙人”学员：肯定其深度共创，推荐进阶 Agent 工作流训练或内推。');
   lines.push('· 普遍切入点：用 A0 的“真实回答”作为诊断起点，自然过渡到报名正式课。');
 
   return {

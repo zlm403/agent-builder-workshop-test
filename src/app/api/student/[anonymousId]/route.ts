@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { ensureTemplate, findModule } from '@/lib/courseConfig';
@@ -30,6 +31,7 @@ export async function GET(_req: NextRequest, { params }: { params: { anonymousId
       sessionId: p.sessionId,
       sessionStatus: session?.status,
       moduleLocked: session?.moduleLocked ?? false,
+      moduleSubState: session?.moduleSubState ?? null,
       moduleStartedAt: session?.moduleStartedAt?.toISOString() ?? null,
       currentModule: current ?? null,
       currentModuleStatus: progress?.status ?? 'pending',

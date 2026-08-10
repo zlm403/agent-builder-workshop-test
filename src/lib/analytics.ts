@@ -98,16 +98,16 @@ export interface ClassAnalytics {
   profiles: StudentProfile[];
 }
 
-const MATERIAL_KW = ['资料', '材料', '小林', '阅读', '原文', '根据', '依据'];
-const VERIFY_KW = ['依据', '核对', '检查', '验证', '原文找', '能否在原文', '出处'];
+const MATERIAL_KW = ['资料', '材料', '词库', '词汇', '四级', '400 词', '单词', '根据', '依据'];
+const VERIFY_KW = ['依据', '核对', '检查', '验证', '能否执行', '可执行', '出处', '考场'];
 const MODIFY_KW = ['修改', '调整', '重新', '改一下', '优化', '更正'];
-const GOAL_KW = ['训练', '计划', '方案', '设计', '学习', '提升', '练习', '测试', '题'];
-const OBJECT_KW = ['小林', '我', '学生', '他', '她', '同学', '用户', '对象', '薄弱', '长难句', '问题', '需要'];
-const PROCESS_KW = ['步骤', '流程', '先', '再', '然后', '作答', '反馈', '计划', '方案', '训练'];
-const ARTICLE_KW = ['文章', '材料', '阅读', '文本', '段落'];
-const EXERCISE_KW = ['题', '测试', '练习', 'quiz', '问答', '填空'];
-const FEEDBACK_KW = ['答案', '解析', '依据', '反馈', '批改', '讲解', '说明'];
-const WORKFLOW_KW = ['流程', '步骤', '计划', '方案', '训练', '先', '再', '作答', '反馈', '检查'];
+const GOAL_KW = ['计划', '方案', '设计', '学习', '提升', '复习', '自测', '背', '词', '词汇'];
+const OBJECT_KW = ['学员', '我', '学生', '他', '她', '同学', '用户', '对象', '背了就忘', '形近词', '易混', '问题', '需要'];
+const PROCESS_KW = ['步骤', '流程', '先', '再', '然后', '每天', '复习', '计划', '方案', '安排'];
+const ARTICLE_KW = ['词库', '词汇', '单词', '词表', '释义'];
+const EXERCISE_KW = ['自测', '拼写', '选义', '测试', '抽', 'quiz', '认读'];
+const FEEDBACK_KW = ['错词', '回炉', '复测', '纠错', '反馈', '批改', '讲解', '说明'];
+const WORKFLOW_KW = ['步骤', '流程', '计划', '方案', '安排', '先', '再', '每天', '复习', '自测', '检查'];
 
 const pct = (n: number, total: number) => (total === 0 ? 0 : Math.round((n / total) * 100));
 
@@ -140,7 +140,7 @@ function computeDimensions(data: A01OperationData): DimensionFlags {
   const context =
     !!fw.object && fw.object.trim().length > 0
       ? true
-      : OBJECT_KW.some((k) => allText.includes(k)) || /薄弱|长难句|不会|困难/.test(allText);
+      : OBJECT_KW.some((k) => allText.includes(k)) || /背了就忘|形近词|易混|不会|困难/.test(allText);
   const task =
     !!fw.task && fw.task.trim().length > 0
       ? true
@@ -277,10 +277,10 @@ export async function computeClassAnalytics(sessionId: string, moduleId = 'A01_B
 
   // ===== 成果类型分布 =====
   const artifactLabel: Record<ArtifactKey, string> = {
-    article: '阅读材料 / 文章',
-    exercise: '练习题 / 测试题',
-    feedback: '含答案与解析',
-    workflow: '可执行训练流程',
+    article: '词库 / 词汇资料',
+    exercise: '自测 / 测试安排',
+    feedback: '含错词与反馈机制',
+    workflow: '可执行 10 天计划',
   };
   const artifactCount = (k: ArtifactKey) => profiles.filter((p) => p.artifactType === k).length;
   const artifactDistribution = (['article', 'exercise', 'feedback', 'workflow'] as ArtifactKey[]).map((k) => ({
@@ -325,7 +325,7 @@ export async function computeClassAnalytics(sessionId: string, moduleId = 'A01_B
         severity: 'warn',
         title: '建议讲解“检验”',
         detail: `仅 ${verPct}% 主动检查 AI 结果的依据。`,
-        actions: ['演示要求 AI 逐项说明依据', '练习核对测试题能否在原文找到出处'],
+        actions: ['演示要求 AI 逐项说明依据', '练习核对计划是否真的能在 10 天内执行'],
       });
     }
     if (ctxPct < 40) {

@@ -6,6 +6,7 @@ import { A1_REVIEW } from '@/lib/a1Review';
 import StudentFinale from '@/components/StudentFinale';
 import ClosingStudent from '@/components/ClosingStudent';
 import StudentWaitingRoom from '@/components/StudentWaitingRoom';
+import VocabBrowser from '@/components/VocabBrowser';
 import L2StudentFlow from './L2StudentFlow';
 
 interface ModuleDef {
@@ -33,16 +34,17 @@ interface Turn {
   content: string;
 }
 
-// AI 面试三类标签的展示文案（与筛查引擎一致）
+// AI 标签三类展示文案（与筛查引擎一致）
 const LABEL_TEXT: Record<string, string> = {
-  tool_user: 'AI工具体验者',
-  task_solver: 'AI任务解决者',
-  app_creator: 'AI应用创造者',
+  tool_user: 'AI 路人',
+  task_solver: 'AI 搭子',
+  app_creator: 'AI 合伙人',
 };
 
 export default function StudentPage() {
   const [code, setCode] = useState('');
   const [invitationCode, setInvitationCode] = useState('');
+  const [nickname, setNickname] = useState(''); // 学生自己填的昵称（无微信授权时的身份标识）
   const [wechatName, setWechatName] = useState(''); // 微信扫码自动识别的昵称
   const [phase, setPhase] = useState<'loading' | 'join' | 'class' | 'finale'>('loading');
   const [closingActive, setClosingActive] = useState(false);
@@ -51,6 +53,7 @@ export default function StudentPage() {
   const [current, setCurrent] = useState<ModuleDef | null>(null);
   const [moduleStatus, setModuleStatus] = useState('pending');
   const [locked, setLocked] = useState(false);
+  const [subState, setSubState] = useState<string | null>(null);
   const [sessionId, setSessionId] = useState('');
 
   // 连接建立即拉取收官状态：SSE 不回放历史事件，学生端若晚于 enter 连上需自愈
@@ -69,7 +72,9 @@ export default function StudentPage() {
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [showVocab, setShowVocab] = useState(false);
   const esRef = useRef<EventSource | null>(null);
+  const connectRef = useRef<(() => void) | null>(null);
   const refreshRef = useRef<(anonId?: string) => void>(() => {});
 
   // A01 工作区状态
@@ -82,7 +87,7 @@ export default function StudentPage() {
   const [remaining, setRemaining] = useState<number | null>(null);
   const [startedAt, setStartedAt] = useState<string | null>(null);
 
-  // A0 环节：AI 面试（一个主问题 + 一次针对性追问）
+  // A0 环节：AI 标签（一个主问题 + 一次针对性追问）
   const [screeningAnswer, setScreeningAnswer] = useState('');
   const [screeningFollowupAnswer, setScreeningFollowupAnswer] = useState('');
   const [screeningFollowupText, setScreeningFollowupText] = useState('');
@@ -103,7 +108,7 @@ export default function StudentPage() {
     prompt?: string;
     originalPrompt?: string;
     requirements?: string[];
-    materials?: { id: string; title: string; body: string }[];
+    materials?: { id: string; title: string; body: string; kind?: string }[];
     timeLimitSec?: number;
     taskArea?: { targetUser: string; goal: string; available: string; finalDeliverable: string };
   };
@@ -117,7 +122,10 @@ export default function StudentPage() {
     if (c) {
       const code = c.toUpperCase();
       setCode(code);
-      if (wx) setWechatName(decodeURIComponent(wx));
+      if (wx) {
+        setWechatName(decodeURIComponent(wx));
+        setNickname(decodeURIComponent(wx)); // 有微信昵称时作为默认昵称
+      }
       // 扫了新课堂的码：仅当旧 token 属于同一课堂才直接恢复，否则清掉旧 token 重新报名
       if (savedToken) {
         resumeForCode(savedToken, code);
@@ -147,10 +155,10 @@ export default function StudentPage() {
       es.onmessage = (e) => {
         try {
           const evt = JSON.parse(e.data);
-          if (evt.type === 'module:advanced' || evt.type === 'module:locked') {
+          if (evt.type === 'module:advanced' || evt.type === 'module:locked' || evt.type === 'module:substate') {
             refreshCurrent();
           } else if (evt.type === 'classroom:reset') {
-            // 课堂被重置：清除本地恢复凭证 + 所有面试状态，回到"加入课堂"
+            // 课堂被重置：清除本地恢复凭证 + 所有标签状态，回到"加入课堂"
             localStorage.removeItem('studentResumeToken');
             setAnonymousId('');
             setSessionId('');
@@ -199,9 +207,11 @@ export default function StudentPage() {
         retryTimer = setTimeout(connect, 3000);
       };
     }
+    connectRef.current = connect;
     connect();
     return () => {
       closed = true;
+      connectRef.current = null;
       if (retryTimer) clearTimeout(retryTimer);
       esRef.current?.close();
     };
@@ -212,11 +222,10 @@ export default function StudentPage() {
     const onVisible = () => {
       if (document.visibilityState === 'visible') {
         if (anonymousId) refreshRef.current();
-        // SSE 若已断开，立即重连
+        // SSE 若已断开，复用带事件处理的 connect 重连（避免新建无回调连接导致推送全丢）
         if (sessionId && (!esRef.current || esRef.current.readyState === EventSource.CLOSED)) {
           esRef.current?.close();
-          const es = new EventSource(`/api/events/${sessionId}`);
-          esRef.current = es;
+          connectRef.current?.();
         }
       }
     };
@@ -239,23 +248,15 @@ export default function StudentPage() {
     return () => clearInterval(t);
   }, [isAiTask, cfg.timeLimitSec, current?.id, startedAt]);
 
-  // A0 开始时的"上线"小仪式：进入 hr_screening 后短暂展示"面试官已上线"，再揭晓问题
+  // A0 开始时的"准备"小仪式：进入 hr_screening 后短暂展示"你的标签正在生成"，再揭晓问题
   useEffect(() => {
-    if (current?.type === 'hr_screening') {
-      // 若面试数据已恢复（有 screeningResult）但 step 仍卡在 q1/reading，
-      // 说明是恢复状态与仪式动画的竞态，直接跳过仪式避免白屏
-      if (screeningResult && (screeningStep === 'q1' || screeningStep === 'reading')) {
-        setScreeningReveal(true);
-        return;
-      }
-      if (!screeningResult) {
-        setScreeningReveal(false);
-        const t = setTimeout(() => setScreeningReveal(true), 1000);
-        return () => clearTimeout(t);
-      }
+    if (current?.type === 'hr_screening' && !screeningResult) {
+      setScreeningReveal(false);
+      const t = setTimeout(() => setScreeningReveal(true), 1000);
+      return () => clearTimeout(t);
     }
     setScreeningReveal(false);
-  }, [current?.type, current?.id, screeningResult, screeningStep]);
+  }, [current?.type, current?.id, screeningResult]);
 
   async function doResume(token: string) {
     const res = await fetch('/api/student/resume', {
@@ -312,6 +313,7 @@ export default function StudentPage() {
       body: JSON.stringify({
         inviteCode: useCode,
         invitationCode: useInvitation,
+        nickname: nickname || wechatName || undefined,
         wechatName: wechatName || undefined,
         deviceInfo: { ua: navigator.userAgent },
       }),
@@ -354,10 +356,11 @@ export default function StudentPage() {
       setCurrent(data.currentModule);
       setModuleStatus(data.currentModuleStatus);
       setLocked(data.moduleLocked);
+      setSubState(data.moduleSubState ?? null);
       if (data.moduleStartedAt) setStartedAt(data.moduleStartedAt);
       if (data.currentModuleData) setForm(data.currentModuleData);
       const md = data.currentModuleData as any;
-      // 防护：仅当模块状态为 submitted/completed 时才恢复面试数据
+      // 防护：仅当模块状态为 submitted/completed 时才恢复标签数据
       // 避免重置后残留的旧 progress.data 被当成当前数据渲染
       const hasActiveProgress = data.currentModuleStatus === 'submitted' || data.currentModuleStatus === 'completed';
       if (hasActiveProgress && md?.screening) setScreeningResult(md.screening);
@@ -370,14 +373,6 @@ export default function StudentPage() {
         setScreeningStep('done');
       } else if (hasActiveProgress && md?.followup) {
         setScreeningStep('q2');
-      } else if (hasActiveProgress && md?.screening?.followup) {
-        // 兼容 followup 嵌在 screening 对象里的情况
-        setScreeningFollowupText(md.screening.followup.text ?? '');
-        setScreeningFollowupAnswer(md.screening.followup.answer ?? '');
-        setScreeningStep('q2');
-      } else if (hasActiveProgress && md?.screening) {
-        // 已生成判定但追问未写入，给一个 reading 态兜底
-        setScreeningStep('reading');
       } else {
         // 无有效进度时，始终从 q1 开始（不渲染旧反馈卡）
         setScreeningStep('q1');
@@ -569,7 +564,7 @@ export default function StudentPage() {
         <h1>进入课堂</h1>
         <div className="welcome-banner">
           <div style={{ fontSize: 40 }}>🤖</div>
-          <h2 style={{ margin: '8px 0' }}>AI Agent 互动试听课</h2>
+          <h2 style={{ margin: '8px 0' }}>AI 互动体验课</h2>
           <p className="note">扫码后输入你的个人邀请码即可入场。入场后请保持手机打开，准备参与实时环节。</p>
         </div>
         <div className="card">
@@ -582,8 +577,15 @@ export default function StudentPage() {
           <input placeholder="如 HEPK3F" value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} />
           <label style={{ fontSize: 13, color: 'var(--muted)', marginTop: 12 }}>你的个人邀请码</label>
           <input placeholder="如 AB12CD34" value={invitationCode} onChange={(e) => setInvitationCode(e.target.value.toUpperCase())} />
+          <label style={{ fontSize: 13, color: 'var(--muted)', marginTop: 12 }}>你的昵称</label>
+          <input
+            placeholder="给自己起个称呼，如：小林"
+            value={nickname}
+            maxLength={20}
+            onChange={(e) => setNickname(e.target.value)}
+          />
           <p className="note" style={{ marginTop: 12 }}>
-            每人一码，不可复用。微信昵称会在扫码时自动获取，与课堂内匿名编号一一对应；课堂讲解全程匿名，仅课后顾问跟进时显示真实昵称。
+            昵称方便我们课后更好地回答你的问题，课堂讲解全程匿名。不填也可以，将用课堂编号代替。
           </p>
           <div style={{ height: 12 }} />
           <button disabled={busy || !code || !invitationCode} onClick={() => join()}>
@@ -609,7 +611,7 @@ export default function StudentPage() {
   if (phase === 'finale' || current?.type === 'finale') {
     return (
       <div className="container" style={{ maxWidth: 880 }}>
-        <StudentFinale sessionId={sessionId} anonymousId={anonymousId} nickname={wechatName} locked={locked} />
+        <StudentFinale locked={locked} />
       </div>
     );
   }
@@ -636,7 +638,9 @@ export default function StudentPage() {
   return (
     <div className="container" style={{ maxWidth: 760 }}>
       {!current || current.type === 'waiting' ? (
-        <StudentWaitingRoom anonymousId={anonymousId} />
+        <StudentWaitingRoom anonymousId={anonymousId} sessionId={sessionId} />
+      ) : current.type === 'hr_screening' && typeof subState === 'string' && subState.startsWith('story') ? (
+        <StudentStoryWait />
       ) : (
         <>
           <div className="status-bar">
@@ -648,7 +652,7 @@ export default function StudentPage() {
             {isAiTask && remaining !== null ? <div><span className="label">剩余</span>{fmt(remaining)}</div> : null}
             <div style={{ marginLeft: 'auto' }}>
               {current.type === 'hr_screening' ? (
-                <span className="pill blue">AI面试 {screeningStep === 'q2' || screeningStep === 'done' ? '2' : '1'} / 2</span>
+                <span className="pill blue">AI 标签 {screeningStep === 'q2' || screeningStep === 'done' ? '2' : '1'} / 2</span>
               ) : (
                 <span className={`pill ${locked ? 'red' : 'green'}`}>{locked ? '已锁定' : '可操作'}</span>
               )}
@@ -662,8 +666,7 @@ export default function StudentPage() {
               {current.type === 'hr_screening' && (
               <div className="hr-screening">
                 <div className="a0-h">
-                  <div className="a0-eyebrow">AI 简历标签挑战</div>
-                  <h2 className="a0-title">AI面试 · 第1问</h2>
+                  <div className="a0-eyebrow">顷悟 · AI 互动体验课</div>
                 </div>
 
                 {screeningStep === 'done' && screeningResult ? (
@@ -671,12 +674,12 @@ export default function StudentPage() {
                     <div className="a0-fb-eyebrow">你的当前 AI 标签 · 基于本次回答</div>
                     <div className={`a0-fb-label k-${screeningResult.label}`}>{LABEL_TEXT[screeningResult.label] || screeningResult.label}</div>
                     <div className="a0-fb-section">
-                      <div className="a0-fb-key">面试官听到了</div>
+                      <div className="a0-fb-key">我们看到了</div>
                       <div className="a0-fb-val">{screeningResult.feedback?.heard}</div>
                     </div>
                     {screeningResult.feedback?.notHeard ? (
                       <div className="a0-fb-section">
-                        <div className="a0-fb-key">面试官还没听到</div>
+                        <div className="a0-fb-key">还没看到</div>
                         <div className="a0-fb-val">{screeningResult.feedback.notHeard}</div>
                       </div>
                     ) : null}
@@ -684,16 +687,15 @@ export default function StudentPage() {
                       <div className="a0-fb-key">让标签更有说服力</div>
                       <div className="a0-fb-val">{screeningResult.feedback?.strengthen}</div>
                     </div>
-                    <p className="a0-fb-foot">这是基于你这次面试表达的判断，不是对你全部 AI 能力的最终结论。</p>
+                    <p className="a0-fb-foot">这是基于你这次回答的判断，不是对你全部 AI 能力的最终结论。</p>
                   </div>
                 ) : screeningStep === 'reading' ? (
                   <div className="a0-reading">
-                    <div className="a0-reading-1">AI 面试官正在阅读你的回答……</div>
+                    <div className="a0-reading-1">正在解读你的回答……</div>
                     <div className="a0-dots"><i /><i /><i /></div>
                   </div>
                 ) : screeningStep === 'q2' ? (
                   <div>
-                    <p className="a0-q2-label">第 2 问 · 面试官追问</p>
                     <p className="task-prompt a0-q2">{screeningFollowupText}</p>
                     <textarea
                       placeholder="例如：我用它做过……"
@@ -703,30 +705,29 @@ export default function StudentPage() {
                       style={{ minHeight: 130 }}
                     />
                     <button disabled={busy || locked || !screeningFollowupAnswer.trim()} onClick={submitScreeningQ2}>
-                      {busy ? '提交中…' : '提交追问回答'}
+                      {busy ? '提交中…' : '提交'}
                     </button>
                     {locked && <p className="note">本环节已截止。</p>}
                   </div>
                 ) : !screeningReveal ? (
                   <div className="sw-ritual">
-                    <div className="sw-ritual-1">面试官已上线</div>
-                    <div className="sw-ritual-2">正在向你提问…</div>
+                    <div className="sw-ritual-1">正在生成你的 AI 标签</div>
+                    <div className="sw-ritual-2">先想一想你和 AI 的故事…</div>
                   </div>
                 ) : (
                   <div>
                     <p className="task-prompt a0-q1">{current.studentTask?.prompt}</p>
-                    <p className="a0-guidance">请像真实面试一样回答，不必包装。</p>
                     <textarea
-                      placeholder="我曾经用AI……"
+                      placeholder="例如：我用 DeepSeek 写过年会发言稿…"
                       value={screeningAnswer}
                       disabled={locked}
                       onChange={(e) => setScreeningAnswer(e.target.value)}
                       style={{ minHeight: 180 }}
                     />
                     <button disabled={busy || locked || !screeningAnswer.trim()} onClick={submitScreeningQ1}>
-                      {busy ? '提交中…' : '回答面试官'}
+                      {busy ? '提交中…' : '提交'}
                     </button>
-                    {locked && <p className="note">本环节已截止。可留意大屏上的全班复盘。</p>}
+                    {locked && <p className="note">本环节已截止。可留意大屏上的全班揭晓。</p>}
                   </div>
                 )}
               </div>
@@ -761,6 +762,11 @@ export default function StudentPage() {
                       <div className="material-head">
                         <div className="material-title">{m.title}</div>
                         <div className="material-actions">
+                          {m.kind === 'vocab_bank' && (
+                            <button type="button" className="mini-btn primary" onClick={() => setShowVocab(true)}>
+                              查看词库
+                            </button>
+                          )}
                           <button type="button" className="mini-btn primary" disabled={locked} onClick={() => citeMaterial(m)}>
                             引用到对话
                           </button>
@@ -790,7 +796,7 @@ export default function StudentPage() {
                   </div>
                   <div className="row">
                     <textarea
-                      placeholder="例如：请根据资料分析小林最主要的学习问题，并说明判断依据…"
+                      placeholder="例如：请根据资料分析这位学员最核心的词汇问题，并说明判断依据…"
                       value={input}
                       disabled={locked || busy}
                       onChange={(e) => setInput(e.target.value)}
@@ -811,8 +817,7 @@ export default function StudentPage() {
                   )}
 
                   {/* 提交确认弹窗 */}
-                  {showConfirm && (
-                    <div style={{
+                  {showConfirm && (                    <div style={{
                       position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)',
                       display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999,
                     }} onClick={() => setShowConfirm(false)}>
@@ -838,6 +843,9 @@ export default function StudentPage() {
                       </div>
                     </div>
                   )}
+
+                  {/* 四级词汇 400 词库浏览弹层 */}
+                  <VocabBrowser open={showVocab} onClose={() => setShowVocab(false)} />
                 </div>
 
                 {moduleStatus === 'submitted' && profile && (
@@ -929,20 +937,16 @@ export default function StudentPage() {
             )}
 
             {current.type === 'class_mirror' && (
-              <div className="module-card">
-                <div className="section-head">
-                  <span className="badge purple">A02 · 查看全班真实使用方式</span>
-                  <h2>刚才，全班是怎样使用 AI 的？</h2>
-                </div>
-                <p className="note">你的第一轮结果已经记录。请观看大屏，看看不同使用方式带来了什么差异。</p>
-                <p className="hint">正在观看全班结果 · 等待教师讲解</p>
+              <div className="module-card" style={{ textAlign: 'center', paddingTop: '10vh' }}>
+                <div style={{ fontSize: 34, fontWeight: 800, marginBottom: 10 }}>请看大屏</div>
+                <p className="note">老师正在讲解刚才全班的使用方式，跟着大屏一起看。</p>
               </div>
             )}
 
             {current.type === 'lecture' && (
               <div className="module-card">
                 <div className="section-head">
-                  <span className="badge purple">A03 · 你需要什么</span>
+                  <span className="badge purple">第二轮 · 你需要什么</span>
                   <h2>从聊天式使用到 Agent 式工作</h2>
                 </div>
                 {sp ? (
@@ -953,7 +957,7 @@ export default function StudentPage() {
                     <p className="hint">听课时带着自己的类别去对照——不同类别的「重点」不一样，别听完就忘。</p>
                   </>
                 ) : (
-                  <p className="note">你的个性化重点将在完成 A01 实操作后生成；先跟着老师讲解走即可。</p>
+                  <p className="note">你的个性化重点将在完成第一轮实操作后生成；先跟着老师讲解走即可。</p>
                 )}
               </div>
             )}
@@ -1069,7 +1073,7 @@ export default function StudentPage() {
                 {(form.scenario === 'stress' && runOutput) && (
                   <div className="run-console">
                     <pre className="run-output">{runOutput}</pre>
-                    <p className="note">判断一下：它是老实说"依据不足"，还是越界编造了？把你的判断写进提交备注，或回到 A10 对比改进。</p>
+                    <p className="note">判断一下：它是老实说"依据不足"，还是越界编造了？把你的判断写进提交备注，或回到对比改进环节重看。</p>
                   </div>
                 )}
               </div>
@@ -1085,7 +1089,7 @@ export default function StudentPage() {
                 /* noop */
               }
               if (!normal && !stress) {
-                return <p className="note">请先完成 A08（运行）与 A09（压力测试），再回到这里对比改进前后。</p>;
+                return <p className="note">请先完成运行与压力测试，再回到这里对比改进前后。</p>;
               }
               return (
                 <div>
@@ -1172,6 +1176,44 @@ export default function StudentPage() {
           </>
         </div>
       </>)}
+    </div>
+  );
+}
+
+// 开场故事阶段：学生端纯等待页，只看大屏
+function StudentStoryWait() {
+  return (
+    <div className="student-waiting">
+      <div className="sw-top">
+        <span className="sw-brand">顷悟 · AI 互动体验课</span>
+      </div>
+      <div className="sw-stage">
+        <div className="sw-avatar">
+          <div className="sw-frame">
+            <svg className="sw-bust" viewBox="0 0 120 120" aria-hidden>
+              <defs>
+                <linearGradient id="swBust" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0" stopColor="#e2e8f0" />
+                  <stop offset="1" stopColor="#94a3b8" />
+                </linearGradient>
+              </defs>
+              <circle cx="60" cy="46" r="22" fill="url(#swBust)" />
+              <path d="M22 114 C22 84 42 76 60 76 C78 76 98 84 98 114 Z" fill="url(#swBust)" />
+              <path d="M52 78 L60 96 L68 78 Z" fill="#0b1220" />
+            </svg>
+            <span className="sw-ring" />
+          </div>
+          <div className="sw-connecting">已入场 · 等待开场</div>
+        </div>
+      </div>
+      <div className="sw-core">
+        <div className="sw-title">请看大屏</div>
+        <div className="sw-sub">老师正在讲开场，跟着大屏一起看。</div>
+      </div>
+      <div className="sw-foot">
+        <span className="sw-dot" />
+        <span>讲完开场，我们马上开始</span>
+      </div>
     </div>
   );
 }

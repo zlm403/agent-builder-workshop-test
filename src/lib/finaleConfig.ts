@@ -69,7 +69,7 @@ export const SPECIALIST_STYLES = ['专业可靠', '亲切耐心', '幽默有趣'
 
 export interface ReceptionistStyleOption {
   key: string; // 极速接待 / 准确接待 / 温暖接待
-  desc: string;
+  s: string;
 }
 
 export const RECEPTIONIST_STYLES: ReceptionistStyleOption[] = [
@@ -108,6 +108,7 @@ export interface Receptionist {
   style: string;          // 接待风格
   styleDesc: string;      // 风格描述
   routes: string[];       // 认识的专家岗位列表
+  name: string;           // 名字（如 '小迎'）
 }
 
 // ============ 大屏讲解态幻灯片 ============

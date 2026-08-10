@@ -1,5 +1,6 @@
+export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
-import { publishCompany, listCompanies, getCompany, type FinaleAgent } from '@/lib/classroom';
+import { publishCompany, listCompanies, type FinaleAgent } from '@/lib/classroom';
 
 // POST：学生发布自己的 4-Agent 产品
 export async function POST(req: NextRequest) {
@@ -70,5 +71,3 @@ async function prismaOwner(anonymousId: string): Promise<string | null> {
   const p = await prisma.participant.findUnique({ where: { anonymousId } });
   return p?.nickname ?? null;
 }
-
-export { getCompany };

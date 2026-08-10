@@ -87,7 +87,7 @@ export default function ScreenFinale() {
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{ fontSize: 24, fontWeight: 800, letterSpacing: 0.5 }}>
-            <span style={{ color: cssVars.yellow }}>A07</span> · 大屏
+            <span style={{ color: cssVars.yellow }}>一人公司</span> · 大屏
           </div>
           <div style={{
             fontSize: 12, color: cssVars.sub, border: `1px solid ${cssVars.line}`,

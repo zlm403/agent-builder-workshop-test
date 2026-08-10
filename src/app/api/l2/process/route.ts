@@ -1,3 +1,4 @@
+﻿export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getL2Process, saveL2Process } from '@/lib/l2Store';
@@ -42,7 +43,7 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// 前端 L2StudentFlow.save() / finish() 用 PUT 整体覆盖保存过程数据
+// 鍓嶇 L2StudentFlow.save() / finish() 鐢?PUT 鏁翠綋瑕嗙洊淇濆瓨杩囩▼鏁版嵁
 export async function PUT(req: NextRequest) {
   try {
     const body = await req.json();

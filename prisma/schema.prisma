@@ -5,6 +5,7 @@
 
 generator client {
   provider = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
 }
 
 datasource db {
@@ -49,7 +50,11 @@ model ClassSession {
   invitations     ClassInvitation[]
   moduleProgress  ModuleProgress[]
   a0Screenings    A0Screening[]
+  entryThoughts   EntryThought[]
   auditLogs       AuditLog[]
+  agentCompanies  AgentCompany[]
+  companyFeedbacks CompanyFeedback[]
+  finaleState     FinaleState?
 
   @@index([inviteCode])
   @@index([teacherId])
@@ -72,7 +77,23 @@ model Participant {
   session         ClassSession    @relation(fields: [sessionId], references: [id])
   moduleProgress  ModuleProgress[]
   a0Screenings    A0Screening[]
+  entryThoughts   EntryThought[]
   consentRecords  ConsentRecord[]
+
+  @@index([sessionId])
+}
+
+/// 入场暖场：学生扫码进入后写下的 AI 认知想法（匿名，用于大屏弹幕）
+model EntryThought {
+  id           String   @id @default(uuid())
+  sessionId    String
+  participantId String
+  anonymousId  String
+  text         String // 想法内容（已过滤）
+  createdAt    DateTime @default(now())
+
+  participant Participant   @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  session     ClassSession  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 
   @@index([sessionId])
 }
@@ -157,6 +178,8 @@ model AgentCompany {
   createdAt       DateTime @default(now())
   feedbacks       CompanyFeedback[]
 
+  session ClassSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
   @@index([sessionId])
   @@index([sessionId, round])
 }
@@ -168,6 +191,8 @@ model FinaleState {
   round     Int     @default(0)
   open      Boolean @default(false) // 是否开放发布与访问
   updatedAt DateTime @updatedAt
+
+  session ClassSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 }
 
 /// 访问反馈（他人体验某产品后提交）
@@ -181,8 +206,10 @@ model CompanyFeedback {
   createdAt         DateTime @default(now())
 
   company AgentCompany @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  session ClassSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 
   @@index([companyId])
+  @@index([sessionId])
 }
 
 /// A0 环节（AI 面试 · 应聘自检）：匿名收集每位学员的真实回答、兴趣信号与当前 AI 标签

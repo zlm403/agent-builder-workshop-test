@@ -95,6 +95,8 @@ export default function TeacherPage() {
   const [ips, setIps] = useState<string[]>([]);
   const [invitations, setInvitations] = useState<{ total: number; used: number; invitations: { id: string; code: string; used: boolean }[] } | null>(null);
   const [genBusy, setGenBusy] = useState(false);
+  const [thoughts, setThoughts] = useState<{ id: string; text: string; anonymousId: string; createdAt: string }[]>([]);
+  const [showThoughts, setShowThoughts] = useState(false);
   const [showFinale, setShowFinale] = useState(false);
   const [showClosing, setShowClosing] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -175,10 +177,14 @@ export default function TeacherPage() {
             fetchAnalytics(sessionId!);
           }
           if (evt.type === 'classroom:reset') {
+            setModuleHistory({});
             loadState(sessionId!);
           }
           if (evt.type === 'classroom:closed') {
             loadState(sessionId!);
+          }
+          if (evt.type === 'thought:new') {
+            fetchThoughts(sessionId!);
           }
         } catch {
           /* noop */
@@ -235,6 +241,17 @@ export default function TeacherPage() {
       /* noop */
     }
   }
+  async function fetchThoughts(id: string) {
+    try {
+      const res = await fetch(`/api/classroom/${id}/thoughts`);
+      if (res.ok) {
+        const d = await res.json();
+        setThoughts(d?.thoughts ?? []);
+      }
+    } catch {
+      /* noop */
+    }
+  }
   async function generateInvitations(count: number) {
     if (!sessionId || count < 1) return;
     setGenBusy(true);
@@ -272,7 +289,8 @@ export default function TeacherPage() {
       setModules(state.modules ?? []);
       setSummary(state.summary);
       fetchInvitations(id);
-      fetchAnalytics(id, state.currentModuleId || 'A01_BASELINE');
+      fetchThoughts(id);
+      if (state.currentModuleId) fetchAnalytics(id, state.currentModuleId);
       fetchSettings();
     } catch (err) {
       console.warn('loadState failed for', id, err);
@@ -290,6 +308,7 @@ export default function TeacherPage() {
         }
       } catch { /* ignore */ }
       // 真的没有可用 session
+      setChecking(false);
       setSessionId('');
       localStorage.removeItem(LS_KEY);
       alert('课堂不存在，请创建新课堂。');
@@ -438,9 +457,9 @@ export default function TeacherPage() {
         <h4 style={{ margin: '12px 16px 8px', fontSize: 14 }}>AI 标签分布</h4>
         <div className="label-dist">
           {[
-            { key: 'tool_user' as const, label: '工具体验者', color: 'yellow', count: data.labels.tool_user },
-            { key: 'task_solver' as const, label: '任务解决者', color: 'blue', count: data.labels.task_solver },
-            { key: 'app_creator' as const, label: '应用创造者', color: 'green', count: data.labels.app_creator },
+            { key: 'tool_user' as const, label: 'AI 路人', color: 'yellow', count: data.labels.tool_user },
+            { key: 'task_solver' as const, label: 'AI 搭子', color: 'blue', count: data.labels.task_solver },
+            { key: 'app_creator' as const, label: 'AI 合伙人', color: 'green', count: data.labels.app_creator },
           ].map((item) => (
             <div key={item.key} className="label-dist-row">
               <span>{item.label}</span>
@@ -667,9 +686,9 @@ export default function TeacherPage() {
     if (!s) return out;
     const tot = s.total || 1;
     if (s.labels.tool_user / tot >= 0.4)
-      out.push({ kind: 'more', text: `多说：把"工具型用法"升级为"系统 / 流程型能力"（${s.labels.tool_user} 人仍是工具体验者）` });
+      out.push({ kind: 'more', text: `多引导：让更多人和 AI 从"打个照面"走向"一起办成事"（${s.labels.tool_user} 人还是路人）` });
     if (s.labels.app_creator > 0)
-      out.push({ kind: 'less', text: `少说基础操作：${s.labels.app_creator} 人已能做出应用，可加快或给进阶挑战` });
+      out.push({ kind: 'less', text: `少讲基础：${s.labels.app_creator} 人已和 AI 深度共创，可加快或给进阶挑战` });
     if (out.length === 0) out.push({ kind: 'good', text: '本环节表现均衡，可保持节奏进入下一环节。' });
     return out;
   }
@@ -695,7 +714,7 @@ export default function TeacherPage() {
     }
     if (isA0 && screening) {
       lines.push(`已提交回答：${screening.submitted}/${summary?.totalStudents ?? 0}`);
-      lines.push(`AI 标签分布：工具体验者 ${screening.labels.tool_user} 人 · 任务解决者 ${screening.labels.task_solver} 人 · 应用创造者 ${screening.labels.app_creator} 人`);
+      lines.push(`AI 标签分布：路人 ${screening.labels.tool_user} 人 · 搭子 ${screening.labels.task_solver} 人 · 合伙人 ${screening.labels.app_creator} 人`);
       lines.push('');
       lines.push('教学方向：');
       buildA0Dirs(screening).forEach((d) => lines.push(`· ${d.text}`));
@@ -890,10 +909,66 @@ export default function TeacherPage() {
           </div>
 
           <div className="row">
+            <button className="secondary" disabled={status === 'closed' || busy} onClick={() => setShowThoughts(true)}>
+              查看想法 ({thoughts.length})
+            </button>
             <button className="secondary" disabled={status === 'active' || status === 'closed' || busy} onClick={() => control('start')}>开始课堂</button>
-            <button disabled={busy || status === 'closed'} onClick={() => control('advance')}>下一环节 →</button>
+            {isA0 && typeof summary?.moduleSubState === 'string' && summary.moduleSubState.startsWith('story') ? (
+              <div className="story-control" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                <button
+                  className="secondary"
+                  disabled={busy || status === 'closed' || summary.moduleSubState === 'story:1'}
+                  onClick={() => control('setSubState', { subState: 'story:1' })}
+                >
+                  上页
+                </button>
+                <button
+                  className="secondary"
+                  disabled={busy || status === 'closed' || summary.moduleSubState === 'story:2'}
+                  onClick={() => control('setSubState', { subState: 'story:2' })}
+                >
+                  下页
+                </button>
+                <button
+                  className="secondary"
+                  disabled={busy || status === 'closed' || summary.moduleSubState === 'story:1'}
+                  onClick={() => control('setSubState', { subState: 'story:1' })}
+                >
+                  返回
+                </button>
+                <span className="story-hint">开场故事 · 大屏展示中，翻页引导</span>
+              </div>
+            ) : null}
+            {currentModuleId === 'A02_MIRROR' ? (
+              <div className="story-control" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                <button
+                  className="secondary"
+                  disabled={busy || status === 'closed' || (summary?.moduleSubState ?? 'mirror:1') === 'mirror:1'}
+                  onClick={() => {
+                    const cur = parseInt(String(summary?.moduleSubState ?? 'mirror:1').replace('mirror:', ''), 10) || 1;
+                    control('setSubState', { subState: `mirror:${Math.max(1, cur - 1)}` });
+                  }}
+                >
+                  上页
+                </button>
+                <button
+                  className="secondary"
+                  disabled={busy || status === 'closed' || (summary?.moduleSubState ?? 'mirror:1') === 'mirror:3'}
+                  onClick={() => {
+                    const cur = parseInt(String(summary?.moduleSubState ?? 'mirror:1').replace('mirror:', ''), 10) || 1;
+                    control('setSubState', { subState: `mirror:${Math.min(3, cur + 1)}` });
+                  }}
+                >
+                  下页
+                </button>
+                <span className="story-hint">镜像讲解 · 大屏共 3 屏，翻页引导</span>
+              </div>
+            ) : null}
+            <button disabled={busy || status === 'closed'} onClick={() => control('advance')}>
+              {isA0 && typeof summary?.moduleSubState === 'string' && summary.moduleSubState.startsWith('story') ? '下一步 → 进入测评' : '下一环节 →'}
+            </button>
             <button className="secondary" disabled={busy || status === 'closed'} onClick={() => control('lock', { locked: !moduleLocked })}>
-              {isA0 ? (moduleLocked ? '恢复面试（解锁）' : '揭晓全班标签') : currentModuleId === 'A03_REDO' ? (moduleLocked ? '解锁提交' : '暂停 / 锁定提交') : (moduleLocked ? '解锁' : '锁定')}
+              {isA0 ? (moduleLocked ? '恢复标签（解锁）' : '揭晓全班标签') : currentModuleId === 'A03_REDO' ? (moduleLocked ? '解锁提交' : '暂停 / 锁定提交') : (moduleLocked ? '解锁' : '锁定')}
             </button>
             {currentModuleId === 'A03_REDO' ? (
               <button className="primary" disabled={busy || status === 'closed' || summary?.moduleSubState === 'compare'} onClick={() => control('setSubState', { subState: 'compare' })}>
@@ -931,12 +1006,12 @@ export default function TeacherPage() {
           </div>
           {isA0 ? (
             <p className="note" style={{ marginTop: 12, color: 'var(--yellow)' }}>
-              学生答得差不多时，点上方「揭晓全班标签」，大屏将黑场后显示三类 AI 标签的人数与占比（工具体验者 / 任务解决者 / 应用创造者）。若想让学生继续补充，再点「恢复面试（解锁）」即可。
+              学生答得差不多时，点上方「揭晓全班标签」，大屏将黑场后显示三类 AI 标签的人数与占比（路人 / 搭子 / 合伙人）。若想让学生继续补充，再点「恢复标签（解锁）」即可。
             </p>
           ) : null}
           {currentModuleId === 'A03_REDO' ? (
             <p className="note" style={{ marginTop: 12, color: 'var(--yellow)' }}>
-              学生第二轮提交差不多时，先点「暂停 / 锁定提交」收齐，再点「揭晓前后变化」，大屏将显示 A01 基线 → A03 第二轮 在“对象 / 任务 / 过程 / 检验”上的前后变化与路径迁移。
+              学生第二轮提交差不多时，先点「暂停 / 锁定提交」收齐，再点「揭晓前后变化」，大屏将显示第一轮基线 → 第二轮 在“对象 / 任务 / 过程 / 检验”上的前后变化与路径迁移。
             </p>
           ) : null}
           <div className="row" style={{ marginTop: 12 }}>
@@ -998,28 +1073,42 @@ export default function TeacherPage() {
             <button className="mini-btn share-btn" onClick={copyShare}>{copiedShare ? '已复制 ✓' : '复制分享文案（转发销售/家长）'}</button>
           </div>
 
-          {/* 每个模块一张卡片，按顺序排列（当前模块在最上方展开详情） */}
+          {/* 每个模块一张卡片：当前环节在最顶，已完成按顺序往下排，未开始的环节不显示 */}
           <div className="module-stack">
-            {[...modules].reverse().map((mm) => {
-              const isActive = mm.id === currentModuleId;
-              const hist = moduleHistory[mm.id];
-              const isA0Card = mm.id === 'A0_SCREENING';
+            {modules
+              .filter((mm) => {
+                const isActive = mm.id === currentModuleId;
+                const hist = moduleHistory[mm.id];
+                return isActive || !!hist;
+              })
+              .sort((a, b) => {
+                const aActive = a.id === currentModuleId ? 0 : 1;
+                const bActive = b.id === currentModuleId ? 0 : 1;
+                if (aActive !== bActive) return aActive - bActive;
+                return modules.findIndex((m) => m.id === a.id) - modules.findIndex((m) => m.id === b.id);
+              })
+              .map((mm) => {
+                const isActive = mm.id === currentModuleId;
+                const hist = moduleHistory[mm.id];
+                const isA0Card = mm.id === 'A0_SCREENING';
 
-              return (
-                <div key={mm.id} className={`module-card ${isActive ? 'active' : ''}`}>
-                  <div className="module-card-head">
-                    <span className="module-card-title">{mm.id} · {mm.title}</span>
-                    {isActive && <span className="pill green">进行中</span>}
-                    {!isActive && hist && <span className="pill gray">已完成</span>}
-                    {!isActive && !hist && <span className="pill gray">待开始</span>}
+                return (
+                  <div key={mm.id} className={`module-card ${isActive ? 'active' : ''}`}>
+                    <div className="module-card-head">
+                      <span className="module-card-title">{mm.id} · {mm.title}</span>
+                      {isActive && <span className="pill green">进行中</span>}
+                      {!isActive && hist && <span className="pill gray">已完成</span>}
+                    </div>
+
+                    {isActive && !hist ? (
+                      <p className="hint" style={{ padding: '12px 16px' }}>等待进入此环节…</p>
+                    ) : isActive && hist ? (
+                      <p className="hint" style={{ padding: '12px 16px' }}>此环节进行中，数据随回答实时更新</p>
+                    ) : null}
+                    {hist && (isA0Card && hist.type === 'a0' ? renderA0Card(hist.data) : hist.type === 'normal' ? renderNormalCard(hist.data) : null)}
                   </div>
-
-                  {!hist ? (
-                    <p className="hint" style={{ padding: '12px 16px' }}>等待进入此环节…</p>
-                  ) : isA0Card && hist.type === 'a0' ? renderA0Card(hist.data) : hist.type === 'normal' ? renderNormalCard(hist.data) : null}
-                </div>
-              );
-            })}
+                );
+              })}
           </div>
         </div>
       </div>
@@ -1092,6 +1181,34 @@ export default function TeacherPage() {
               <button onClick={() => saveSettings(false)} disabled={settingsBusy || !llmKey.trim()}>
                 {settingsBusy ? '保存中…' : '保存并生效'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showThoughts && (
+        <div className="modal-backdrop" onClick={(e) => { if (e.target === e.currentTarget) setShowThoughts(false); }}>
+          <div className="modal-card" style={{ maxWidth: 640 }}>
+            <div className="modal-head">
+              <h3>学生的 AI 认知想法</h3>
+              <button className="modal-close" onClick={() => setShowThoughts(false)}>×</button>
+            </div>
+            <div style={{ padding: '4px 0 16px', fontSize: 13, color: 'var(--muted)' }}>
+              共 {thoughts.length} 条（匿名，按时间倒序）。开课前可在大屏引用。
+            </div>
+            <div style={{ maxHeight: '60vh', overflowY: 'auto' }}>
+              {thoughts.length === 0 ? (
+                <p style={{ color: 'var(--muted)', fontSize: 14, padding: 16 }}>还没有学生发送想法。</p>
+              ) : (
+                thoughts.map((t) => (
+                  <div key={t.id} style={{ padding: '12px 14px', border: '1px solid var(--border)', borderRadius: 10, marginBottom: 8, background: 'rgba(15,23,42,0.4)' }}>
+                    <div style={{ fontSize: 15, color: '#e2e8f0', lineHeight: 1.6 }}>“{t.text}”</div>
+                    <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 6 }}>
+                      {t.anonymousId} · {t.createdAt ? new Date(t.createdAt).toLocaleTimeString() : ''}
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </div>

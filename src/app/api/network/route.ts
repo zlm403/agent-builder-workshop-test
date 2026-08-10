@@ -1,3 +1,4 @@
+﻿export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import os from 'os';
 
@@ -6,7 +7,7 @@ export async function GET() {
   const ips: string[] = [];
   for (const name of Object.keys(nets)) {
     for (const net of nets[name] || []) {
-      // IPv4 且非回环地址
+      // IPv4 涓旈潪鍥炵幆鍦板潃
       if (net.family === 'IPv4' && !net.internal) {
         ips.push(net.address);
       }

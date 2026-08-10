@@ -38,15 +38,25 @@ export async function getWechatUser(code: string): Promise<WechatUser> {
   const appid = process.env.WECHAT_APPID!;
   const secret = process.env.WECHAT_APPSECRET!;
 
-  const tokenUrl = `https://api.weixin.qq.com/sns/oauth2/access_token?appid=${appid}&secret=${secret}&code=${code}&grant_type=authorization_code`;
-  const tokenRes = await fetch(tokenUrl);
+  const timeout = (ms: number) =>
+    new Promise<never>((_, reject) => setTimeout(() => reject(new Error('wechat_timeout')), ms));
+
+  // 换取 access_token：secret 放 POST body，避免拼在 URL 出现在服务器日志（P0-12）
+  const tokenUrl = `https://api.weixin.qq.com/sns/oauth2/access_token?appid=${appid}&code=${code}&grant_type=authorization_code`;
+  const tokenRes = await Promise.race([
+    fetch(tokenUrl, { method: 'POST', body: new URLSearchParams({ secret }), headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }),
+    timeout(8000),
+  ]);
+  if (!tokenRes.ok) throw new Error(`wechat_token_http:${tokenRes.status}`);
   const token = await tokenRes.json();
   if (!token.access_token) {
     throw new Error(`wechat_token_failed:${token.errcode || ''} ${token.errmsg || ''}`);
   }
 
   const infoUrl = `https://api.weixin.qq.com/sns/userinfo?access_token=${token.access_token}&openid=${token.openid}&lang=zh_CN`;
-  const info = await (await fetch(infoUrl)).json();
+  const infoRes = await Promise.race([fetch(infoUrl), timeout(8000)]);
+  if (!infoRes.ok) throw new Error(`wechat_userinfo_http:${infoRes.status}`);
+  const info = await infoRes.json();
   if (!info.openid) {
     throw new Error(`wechat_userinfo_failed:${info.errcode || ''} ${info.errmsg || ''}`);
   }

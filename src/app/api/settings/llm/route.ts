@@ -1,3 +1,4 @@
+﻿export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { getLLMConfig, setLLMConfig, maskKey } from '@/lib/serverEnv';
 
@@ -19,7 +20,7 @@ export async function POST(req: NextRequest) {
     const model = body.model ? String(body.model).trim() : undefined;
 
     if (apiKey === undefined) {
-      return NextResponse.json({ error: 'API Key 不能为空' }, { status: 400 });
+      return NextResponse.json({ error: 'API Key 涓嶈兘涓虹┖' }, { status: 400 });
     }
 
     setLLMConfig({
@@ -38,7 +39,7 @@ export async function POST(req: NextRequest) {
     });
   } catch (err) {
     return NextResponse.json(
-      { error: '保存失败', message: String(err) },
+      { error: '淇濆瓨澶辫触', message: String(err) },
       { status: 500 }
     );
   }

@@ -60,6 +60,7 @@ export default function ScreenPage() {
   const [effectiveHost, setEffectiveHost] = useState('');
   const esRef = useRef<EventSource | null>(null);
   const [finaleActive, setFinaleActive] = useState(false);
+  const [thoughts, setThoughts] = useState<{ id: string; text: string; anonymousId: string; createdAt: string }[]>([]);
   const [closingActive, setClosingActive] = useState(false);
   const [closingBeat, setClosingBeat] = useState(0);
   // 刷新时不闪过 A00Screen 开场页，先显示"加载中"等首次 load 返回
@@ -107,7 +108,7 @@ export default function ScreenPage() {
           try {
             const evt = JSON.parse(e.data);
             if (evt.type === 'progress:update') setSummary(evt.payload);
-            if (evt.type === 'module:advanced' || evt.type === 'module:locked') load(id);
+            if (evt.type === 'module:advanced' || evt.type === 'module:locked' || evt.type === 'module:substate') load(id);
             if (evt.type === 'classroom:reset') load(id);
             if (evt.type === 'classroom:closed') load(id);
             if (evt.type === 'analytics:update') { fetchAnalytics(id); fetchScreening(id); }
@@ -116,6 +117,10 @@ export default function ScreenPage() {
             if (evt.type === 'closing:enter') setClosingActive(true);
             if (evt.type === 'closing:exit') setClosingActive(false);
             if (evt.type === 'closing:beat') setClosingBeat(evt.payload?.beatIdx ?? 0);
+            if (evt.type === 'thought:new') {
+              const t = evt.payload as { id: string; text: string; anonymousId: string; createdAt: string };
+              if (t?.text) setThoughts((prev) => [t, ...prev].slice(0, 80));
+            }
           } catch {
             /* noop */
           }
@@ -143,20 +148,29 @@ export default function ScreenPage() {
   }, []);
 
   async function load(id: string) {
-    const s = await (await fetch(`/api/classroom/${id}`)).json();
-    setSummary(s.summary);
-    setModule(s.currentModule ?? null);
-    setStartedAt(s.moduleStartedAt ?? null);
-    setMeta({ inviteCode: s.inviteCode, courseName: s.courseName, createdAt: s.createdAt, scheduledStartAt: s.scheduledStartAt ?? null });
-    fetchQr(id);
-    setLoading(false);
-    const cur = s.currentModule;
-    if (cur?.type === 'ai_task') {
-      if (cur.screenContent?.phase === 'redo') fetchAnalytics(id, cur.id);
-      else fetchAnalytics(id, 'A01_BASELINE');
-    } else if (cur?.type === 'class_mirror') {
-      fetchAnalytics(id, 'A01_BASELINE');
-    } else if (cur?.type === 'hr_screening') fetchScreening(id);
+    try {
+      const res = await fetch(`/api/classroom/${id}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const s = await res.json();
+      setSummary(s.summary);
+      setModule(s.currentModule ?? null);
+      setStartedAt(s.moduleStartedAt ?? null);
+      setMeta({ inviteCode: s.inviteCode, courseName: s.courseName, createdAt: s.createdAt, scheduledStartAt: s.scheduledStartAt ?? null });
+      fetchQr(id);
+      fetchThoughts(id);
+      setLoading(false);
+      const cur = s.currentModule;
+      if (cur?.type === 'ai_task') {
+        if (cur.screenContent?.phase === 'redo') fetchAnalytics(id, cur.id);
+        else fetchAnalytics(id, 'A01_BASELINE');
+      } else if (cur?.type === 'class_mirror') {
+        fetchAnalytics(id, 'A01_BASELINE');
+      } else if (cur?.type === 'hr_screening') fetchScreening(id);
+    } catch (err) {
+      // 加载失败不再抛错：关闭 loading、保留 SSE/poll 后续自愈，避免大屏永久卡在"加载中"
+      console.warn('screen load failed for', id, err);
+      setLoading(false);
+    }
   }
   async function fetchAnalytics(id: string, moduleId = 'A01_BASELINE') {
     try {
@@ -184,6 +198,14 @@ export default function ScreenPage() {
       /* noop */
     }
   }
+  async function fetchThoughts(id: string) {
+    try {
+      const r = await (await fetch(`/api/classroom/${id}/thoughts`)).json();
+      setThoughts(r?.thoughts ?? []);
+    } catch {
+      /* noop */
+    }
+  }
 
   const total = summary?.totalStudents || 1;
 
@@ -196,7 +218,7 @@ export default function ScreenPage() {
         </div>
       )}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-        <h1 style={{ margin: 0, fontSize: 26 }}>{meta?.courseName || 'AI Agent 互动试听课'}</h1>
+        <h1 style={{ margin: 0, fontSize: 26 }}>{meta?.courseName ? `顷悟 · ${meta.courseName}` : '顷悟 · AI 互动体验课'}</h1>
         <div style={{ fontSize: 18 }}>
           在线 <b style={{ color: 'var(--green)' }}>{summary?.onlineStudents ?? 0}</b> / {summary?.totalStudents ?? 0}
         </div>
@@ -205,7 +227,7 @@ export default function ScreenPage() {
       {closingActive ? (
         <ClosingScreen sessionId={sessionId} beatIdx={closingBeat} />
       ) : (finaleActive || module?.type === 'finale') ? (
-        <ScreenFinale sessionId={sessionId} />
+        <ScreenFinale />
       ) : !sessionId ? (
         <p style={{ color: '#94a3b8' }}>请在教师端点击“打开大屏”后访问此页（需带 ?sessionId=）。</p>
       ) : loading ? (
@@ -219,11 +241,11 @@ export default function ScreenPage() {
           <div style={{ color: '#94a3b8', marginTop: 12, fontSize: 18 }}>学生已释放，本场已结束。教师开启新课堂后，请重新打开大屏。</div>
         </div>
       ) : !module ? (
-        <A00Screen module={{ screenContent: { hook: '同一个任务，同一个 AI，结果会一样吗？' } } as unknown as ModuleDef} meta={meta} entered={summary?.totalStudents ?? 0} />
+        <DanmakuScreen thoughts={thoughts} entered={summary?.totalStudents ?? 0} />
       ) : module.type === 'waiting' ? (
-        <A00Screen module={module} meta={meta} entered={summary?.totalStudents ?? 0} />
+        <DanmakuScreen thoughts={thoughts} entered={summary?.totalStudents ?? 0} />
       ) : module.type === 'hr_screening' ? (
-        <A0Screen module={module} screening={screening} summary={summary} locked={summary?.moduleLocked ?? false} />
+        <A0Screen module={module} screening={screening} summary={summary} locked={summary?.moduleLocked ?? false} subState={summary?.moduleSubState ?? null} />
       ) : module.type === 'ai_task' ? (
         module.screenContent?.phase === 'redo' ? (
           <A03Screen module={module} analytics={analytics} total={total} summary={summary} startedAt={startedAt} subState={summary?.moduleSubState ?? null} sessionId={sessionId} />
@@ -231,7 +253,7 @@ export default function ScreenPage() {
           <A01Screen module={module} analytics={analytics} total={total} summary={summary} startedAt={startedAt} />
         )
       ) : module.type === 'class_mirror' ? (
-        <A02Screen module={module} analytics={analytics} total={total} />
+        <A02Screen module={module} analytics={analytics} total={total} subState={summary?.moduleSubState ?? null} />
       ) : module.type === 'lecture' ? (
         <A03Screen module={module} sessionId={sessionId} subState={summary?.moduleSubState ?? null} />
       ) : module.type === 'l2_intro' ? (
@@ -248,8 +270,8 @@ export default function ScreenPage() {
         <GenericScreen summary={summary} total={total} module={module} />
       )}
 
-      {/* 右下角常驻扫码二维码：所有关卡都显示，学生扫码即入场 */}
-      <QrCorner qr={qr} visible={!!sessionId} />
+      {/* 右上角常驻扫码二维码：所有关卡都显示，学生扫码即入场 */}
+      <QrCorner qr={qr} meta={meta} visible={!!sessionId} />
     </div>
   );
 }
@@ -276,6 +298,7 @@ function A01Screen({
 }) {
   const ph = (module.teacherContent?.screenPhase1 ?? {}) as { headline?: string; subline?: string; brief?: string; operationHint?: string };
   const cfg = (module.teacherContent ?? {}) as {
+    headline?: string;
     timeLimitSec?: number;
     taskArea?: { targetUser?: string; goal?: string; available?: string; finalDeliverable?: string };
     prompt?: string;
@@ -360,8 +383,8 @@ function A01Screen({
       <>
         <div style={{ display: 'flex', alignItems: 'flex-end', gap: 24, marginBottom: 10, flexWrap: 'wrap' }}>
           <div>
-            <div style={{ fontSize: 46, fontWeight: 800 }}>{ph.headline ?? 'AI 实战挑战'}</div>
-            <div style={{ fontSize: 20, color: '#cbd5e1', marginTop: 6 }}>{ph.subline}</div>
+            <div style={{ fontSize: 46, fontWeight: 800 }}>{module.screenContent?.headline ?? cfg.headline ?? 'AI 实战挑战'}</div>
+            <div style={{ fontSize: 20, color: '#cbd5e1', marginTop: 6 }}>{module.screenContent?.subline ?? ph.subline}</div>
           </div>
           <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
             <div style={{ fontSize: 48, fontWeight: 800, color: 'var(--yellow)' }}>{fmt(remaining)}</div>
@@ -452,8 +475,8 @@ function A01Screen({
   ];
   return (
     <>
-      <div style={{ fontSize: 46, fontWeight: 800, marginBottom: 10 }}>{ph.headline ?? 'AI 实战挑战'}</div>
-      <div style={{ fontSize: 20, color: '#cbd5e1', marginBottom: 8 }}>{ph.subline}</div>
+      <div style={{ fontSize: 46, fontWeight: 800, marginBottom: 10 }}>{module.screenContent?.headline ?? cfg.headline ?? 'AI 实战挑战'}</div>
+      <div style={{ fontSize: 20, color: '#cbd5e1', marginBottom: 8 }}>{module.screenContent?.subline ?? ph.subline}</div>
       <p style={{ color: '#94a3b8', maxWidth: 900, fontSize: 16 }}>{ph.brief}</p>
       <div style={{ display: 'flex', gap: 28, marginTop: 28, flexWrap: 'wrap' }}>
         {stats.map((s) => (
@@ -477,7 +500,7 @@ function A01Screen({
   );
 }
 
-function A02Screen({ module, analytics, total }: { module: ModuleDef; analytics: Analytics | null; total: number }) {
+function A02Screen({ module, analytics, total, subState }: { module: ModuleDef; analytics: Analytics | null; total: number; subState: string | null }) {
   const cfg = (module.teacherContent ?? {}) as {
     headline?: string;
     question?: string;
@@ -488,7 +511,8 @@ function A02Screen({ module, analytics, total }: { module: ModuleDef; analytics:
     scripts?: { elem: string; icon: string; what: string; say: string }[];
     nextCue?: string;
   };
-  const [slide, setSlide] = useState(1);
+  // 大屏翻页由教师端控制（moduleSubState = mirror:1/2/3），大屏自身不再有翻页按钮
+  const slide = Math.min(3, Math.max(1, parseInt(subState?.replace('mirror:', '') ?? '1', 10) || 1));
   const m = analytics?.metrics;
   const behaviors = cfg.behaviors ?? [];
   const rateOf = (key: string): number => {
@@ -607,13 +631,6 @@ function A02Screen({ module, analytics, total }: { module: ModuleDef; analytics:
           </div>
         </>
       )}
-
-      {/* 翻页控制 */}
-      <div style={{ position: 'fixed', bottom: 24, right: 24, display: 'flex', gap: 10, alignItems: 'center', background: '#1e293b', border: '1px solid #334155', borderRadius: 30, padding: '8px 14px', zIndex: 100 }}>
-        <button onClick={() => setSlide(Math.max(1, slide - 1))} style={{ background: '#334155', color: '#e2e8f0', border: 'none', width: 36, height: 36, borderRadius: '50%', cursor: 'pointer', fontSize: 18, fontWeight: 700 }}>‹</button>
-        <span style={{ fontSize: 14, color: '#94a3b8', minWidth: 50, textAlign: 'center' }}>{slide} / 3</span>
-        <button onClick={() => setSlide(Math.min(3, slide + 1))} style={{ background: '#334155', color: '#e2e8f0', border: 'none', width: 36, height: 36, borderRadius: '50%', cursor: 'pointer', fontSize: 18, fontWeight: 700 }}>›</button>
-      </div>
     </div>
   );
 }
@@ -987,7 +1004,7 @@ function A06Screen({ summary, total, module }: { summary: Summary | null; total:
           <div style={{ fontSize: 17, fontWeight: 700, color: '#38bdf8', marginBottom: 14 }}>👥 各位同学的 Skill 检查</div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 14 }}>
             {[{
-              name: '学生 A001',
+              name: '学生 001',
               blocks: [
                 { label: '了解', status: 'good', note: '收集了基础信息' },
                 { label: '判断', status: 'weak', note: '规则不够具体' },
@@ -995,7 +1012,7 @@ function A06Screen({ summary, total, module }: { summary: Summary | null; total:
                 { label: '反馈', status: 'empty', note: '未填写' },
               ],
             }, {
-              name: '学生 A003',
+              name: '学生 003',
               blocks: [
                 { label: '了解', status: 'good', note: '信息全面' },
                 { label: '判断', status: 'good', note: '区分了两人情况' },
@@ -1003,7 +1020,7 @@ function A06Screen({ summary, total, module }: { summary: Summary | null; total:
                 { label: '反馈', status: 'good', note: '有证据支撑' },
               ],
             }, {
-              name: '学生 A004',
+              name: '学生 004',
               blocks: [
                 { label: '了解', status: 'empty', note: '' },
                 { label: '判断', status: 'empty', note: '' },
@@ -1170,12 +1187,12 @@ function A08Screen({ module }: { module: ModuleDef }) {
   const [slide, setSlide] = useState(0);
   const slides = (module.screenContent?.slides ?? []) as Array<{ h: string; p: string; isQuestion?: boolean }>;
   if (slides.length === 0) {
-    return <p style={{ color: '#94a3b8' }}>A08 内容未配置</p>;
+    return <p style={{ color: '#94a3b8' }}>内容未配置</p>;
   }
   const s = slides[slide];
   return (
     <div style={{ minHeight: 'calc(100vh - 80px)', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-      <div style={{ fontSize: 20, color: '#94a3b8', marginBottom: 16, letterSpacing: 2 }}>A08 · 一期收尾</div>
+      <div style={{ fontSize: 20, color: '#94a3b8', marginBottom: 16, letterSpacing: 2 }}>一期收尾</div>
       <div style={{ fontSize: 56, fontWeight: 800, marginBottom: 20, lineHeight: 1.15 }}>{s.h}</div>
       <p style={{ color: '#cbd5e1', fontSize: 22, lineHeight: 1.7, maxWidth: 900, marginBottom: 24 }}>{s.p}</p>
       {s.isQuestion && (
@@ -1211,22 +1228,63 @@ function fmtCountdown(sec: number | null) {
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
+// 开场故事：教师端翻页（moduleSubState = story:N），大屏纯展示图文
+function StoryScreen({
+  module,
+  subState,
+  summary,
+}: {
+  module: ModuleDef;
+  subState: string;
+  summary: Summary | null;
+}) {
+  const steps = ((module.screenContent?.storySteps ?? []) as Array<{ id: string; image?: string; caption?: string }>);
+  const idx = Math.max(0, parseInt(subState.replace('story:', ''), 10) - 1);
+  const step = steps[idx] ?? steps[0];
+  const isPlaceholder = !step?.image || step.image === '__PLACEHOLDER__';
+  return (
+    <div className="story-screen">
+      <div className="story-image">
+        {isPlaceholder ? (
+          <div className="story-ph" style={{ background: 'linear-gradient(135deg, #1e293b, #334155)' }}>
+            <div style={{ fontSize: 72, marginBottom: 16 }}>{idx === 0 ? '🕰️' : '🌐'}</div>
+            <div style={{ fontSize: 26, color: '#94a3b8', letterSpacing: 3 }}>{step?.caption ?? `第 ${idx + 1} 页`}</div>
+            <div style={{ fontSize: 14, color: '#64748b', marginTop: 10 }}>占位图 · 待替换为真实图片</div>
+          </div>
+        ) : (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={step.image} alt={step.caption ?? ''} style={{ width: 'min(94vw, 1600px)', maxHeight: '80vh', objectFit: 'contain', borderRadius: 16, boxShadow: '0 24px 80px rgba(0,0,0,0.5)' }} />
+        )}
+      </div>
+      <div className="story-foot">
+        <span>{summary?.totalStudents ?? 0} 人已入场</span>
+      </div>
+    </div>
+  );
+}
+
 function A0Screen({
   module,
   screening,
   summary,
   locked,
+  subState,
 }: {
   module: ModuleDef;
   screening: ScreeningData | null;
   summary: Summary | null;
   locked: boolean;
+  subState: string | null;
 }) {
+  // 开场故事态：大屏只展示图文（无按钮），教师端翻页
+  if (typeof subState === 'string' && subState.startsWith('story')) {
+    return <StoryScreen module={module} subState={subState} summary={summary} />;
+  }
   if (locked) return <A0Reveal screening={screening} summary={summary} />;
   return <A0Live module={module} screening={screening} summary={summary} />;
 }
 
-// 状态一 + 状态二：AI 面试现场（进行中）
+// 状态一 + 状态二：AI 标签现场（进行中）
 function A0Live({
   module,
   screening,
@@ -1243,7 +1301,7 @@ function A0Live({
     '你说自己会使用AI。能用一个真实例子证明吗？';
 
   // 现场状态文字（不滚动真实答案，不显示倒计时，由老师手动推进下一环节）
-  const statusMsgs = ['正在读取回答……', '正在生成追问……', '正在寻找可信证据……', 'AI 面试官正在聆听……'];
+  const statusMsgs = ['正在读取回答……', '正在生成追问……', '正在寻找可信证据……', '正在解读每一位同学……'];
   const [sIdx, setSIdx] = useState(0);
   useEffect(() => {
     const t = setInterval(() => setSIdx((i) => (i + 1) % statusMsgs.length), 2600);
@@ -1256,8 +1314,7 @@ function A0Live({
   return (
     <div className="a0-live">
       <div className="a0-topbar">
-        <div className="a0-brand">AI 简历标签挑战</div>
-        <div className="a0-tag">AI 面试现场</div>
+        <div className="a0-tag">AI 标签进行中</div>
       </div>
 
       <div className="a0-stage">
@@ -1275,7 +1332,6 @@ function A0Live({
           {prompt.split('。')[0]}。<br />
           {rest}
         </div>
-        <div className="a0-sub">请像真实面试一样回答，不必包装。</div>
       </div>
 
       <div className="a0-foot">
@@ -1327,13 +1383,13 @@ function A0Reveal({
     <div className="a0-reveal">
       <div className="a0-reveal-statement">
         我们都说自己会 AI。<br />
-        但面试官听到的证据，并不一样。
+        但每个人拿到的标签，并不一样。
       </div>
 
       <div className="a0-snap">
         <div className="a0-snap-title">本班 AI 标签快照</div>
         <div className="a0-bars">
-          {([['tool_user', 'AI工具体验者', '主要说明用过哪些工具'], ['task_solver', 'AI任务解决者', '能够说明解决了什么具体问题'], ['app_creator', 'AI应用创造者', '做出了可以被别人使用、验证或交付的应用']] as const).map(
+          {([['tool_user', 'AI 路人', '主要用过一些 AI 工具'], ['task_solver', 'AI 搭子', '能说清解决了什么具体问题'], ['app_creator', 'AI 合伙人', '做出了可以被别人使用、验证或交付的应用']] as const).map(
             ([k, name, desc]) => (
               <div className="a0-bar-row" key={k}>
                 <div className="a0-bar-name">
@@ -1352,7 +1408,7 @@ function A0Reveal({
       </div>
 
       <div className="a0-samples">
-        <div className="a0-samples-title">三条匿名回答 · 面试官识别到</div>
+        <div className="a0-samples-title">三条匿名回答 · 我们识别到</div>
         {samples.length === 0 ? (
           <div className="a0-samples-empty">等待提交……</div>
         ) : (
@@ -1371,75 +1427,71 @@ function A0Reveal({
         )}
       </div>
 
-      <div className="a0-teacher-hint">教师追问：两个人都在使用 AI，为什么面试官给他们的标签不一样？</div>
+      <div className="a0-teacher-hint">教师追问：两个人都在使用 AI，为什么拿到的标签不一样？</div>
 
       <div className="a0-next">让标签更有说服力：选择一个真实项目，补充"任务—行动—成果"</div>
     </div>
   );
 }
 
-function A00Screen({
-  module,
-  meta,
+// 开课前暖场页：大屏弹幕流 + 引导语（右上角二维码由全局 QrCorner 常驻提供）
+function DanmakuScreen({
+  thoughts,
   entered,
 }: {
-  module: ModuleDef;
-  meta: { inviteCode: string; courseName: string; createdAt: string | null; scheduledStartAt: string | null } | null;
+  thoughts: { id: string; text: string; anonymousId: string; createdAt: string }[];
   entered: number;
 }) {
-  const startAt = meta?.scheduledStartAt ? new Date(meta.scheduledStartAt) : null;
-  const target = startAt ? startAt.getTime() : meta?.createdAt ? new Date(meta.createdAt).getTime() + 3 * 60 * 1000 : null;
-  const sec = useCountdown(target);
-  const startLabel = startAt
-    ? `${startAt.getMonth() + 1}月${startAt.getDate()}日 ${String(startAt.getHours()).padStart(2, '0')}:${String(startAt.getMinutes()).padStart(2, '0')}`
-    : null;
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '70vh', gap: 24, textAlign: 'center' }}>
-      <div style={{ fontSize: 30, color: 'var(--blue)', letterSpacing: 2 }}>{meta?.courseName || '课堂'}</div>
-      <div style={{ fontSize: 56, fontWeight: 800, lineHeight: 1.25, maxWidth: 1100 }}>
-        如果明天参加面试，<br />HR问你“你会怎样使用AI？”
+    <div className="dm-screen">
+      <div className="dm-head">
+        <div className="dm-stats">
+          <span>已进入 <b>{entered}</b> 人</span>
+          <span>想法 <b>{thoughts.length}</b> 条</span>
+        </div>
       </div>
-      <div style={{ fontSize: 24, color: '#cbd5e1', marginTop: 4 }}>你的回答，能让面试官记住你吗？</div>
-      <div style={{ marginTop: 8, padding: '14px 28px', border: '1px solid var(--yellow)', borderRadius: 12, background: 'rgba(250,204,21,0.08)' }}>
-        <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--yellow)' }}>AI面试官即将上线</div>
-        <div style={{ fontSize: 16, color: '#cbd5e1', marginTop: 6 }}>请保持手机页面开启，按真实情况回答</div>
-        {startLabel && (
-          <div style={{ fontSize: 15, color: '#94a3b8', marginTop: 8 }}>开课时间：{startLabel}</div>
+
+      <div className="dm-guide">
+        <div className="dm-guide-h">用一句话，说说你对 AI 的认知</div>
+        <div className="dm-guide-s">扫码右上角二维码进入课堂，写下你的想法，它会在这里流淌</div>
+      </div>
+
+      <div className="dm-zone">
+        {thoughts.length === 0 ? (
+          <div className="dm-empty">还没有想法，等第一句来自你 ✨</div>
+        ) : (
+          thoughts.map((t, i) => (
+            <div
+              className="dm-bubble"
+              key={t.id}
+              style={{ animationDelay: `${Math.min(i * 90, 1800)}ms` }}
+            >
+              {t.text}
+            </div>
+          ))
         )}
       </div>
-      <div style={{ display: 'flex', gap: 48, marginTop: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ color: '#94a3b8', fontSize: 15, marginBottom: 8 }}>课堂码</div>
-          <div style={{ fontSize: 40, fontWeight: 800, letterSpacing: 4, color: 'var(--green)' }}>{meta?.inviteCode || '------'}</div>
-        </div>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ color: '#94a3b8', fontSize: 15, marginBottom: 8 }}>已进入</div>
-          <div style={{ fontSize: 40, fontWeight: 800 }}>{entered}<span style={{ fontSize: 20, color: '#94a3b8' }}> 人</span></div>
-        </div>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ color: '#94a3b8', fontSize: 15, marginBottom: 8 }}>开课倒计时</div>
-          <div style={{ fontSize: 40, fontWeight: 800, color: 'var(--yellow)' }}>{sec === 0 ? '已开课' : fmtCountdown(sec)}</div>
-        </div>
-      </div>
+
+      <div className="dm-thanks">谢谢你的想法，它们正在大屏上流动</div>
     </div>
   );
 }
 
-// 右下角常驻扫码二维码：所有关卡都显示，学生扫后进入课堂；点击放大，点遮罩收起
-function QrCorner({ qr, visible }: { qr: { dataUrl: string; joinUrl: string } | null; visible: boolean }) {
+// 右上角常驻扫码二维码：所有关卡都显示，学生扫后进入课堂；点击放大，点遮罩收起
+function QrCorner({ qr, meta, visible }: { qr: { dataUrl: string; joinUrl: string } | null; meta: { inviteCode: string; courseName: string; createdAt: string | null; scheduledStartAt: string | null } | null; visible: boolean }) {
   const [zoom, setZoom] = useState(false);
   if (!visible) return null;
   return (
     <>
       <button
         onClick={() => setZoom(true)}
-        style={{ position: 'fixed', right: 28, bottom: 28, background: '#0f172a', border: '2px solid var(--blue)', borderRadius: 14, padding: 10, cursor: 'pointer', boxShadow: '0 6px 24px rgba(0,0,0,0.4)', zIndex: 40 }}
+        style={{ position: 'fixed', right: 28, top: 84, background: '#0f172a', border: '2px solid var(--blue)', borderRadius: 14, padding: 10, cursor: 'pointer', boxShadow: '0 6px 24px rgba(0,0,0,0.4)', zIndex: 40 }}
         aria-label="扫码进入课堂"
       >
         {qr?.dataUrl ? (
-          <img src={qr.dataUrl} alt="扫码进入课堂" width={120} height={120} />
+          <img src={qr.dataUrl} alt="扫码进入课堂" width={110} height={110} />
         ) : (
-          <div style={{ width: 120, height: 120, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}>二维码…</div>
+          <div style={{ width: 110, height: 110, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}>二维码…</div>
         )}
         <div style={{ color: 'var(--blue)', fontSize: 13, marginTop: 6 }}>扫码进入</div>
       </button>
@@ -1450,12 +1502,12 @@ function QrCorner({ qr, visible }: { qr: { dataUrl: string; joinUrl: string } | 
         >
           <div style={{ background: '#fff', padding: 20, borderRadius: 16 }}>
             {qr?.dataUrl ? (
-              <img src={qr.dataUrl} alt="扫码进入课堂" width={360} height={360} />
+              <img src={qr.dataUrl} alt="扫码进入课堂" width={320} height={320} />
             ) : (
-              <div style={{ width: 360, height: 360, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#333' }}>二维码加载中…</div>
+              <div style={{ width: 320, height: 320, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#333' }}>二维码加载中…</div>
             )}
           </div>
-          <div style={{ color: '#e2e8f0', marginTop: 16, fontSize: 15 }}>手机扫码进入课堂 · 点击任意处关闭</div>
+          <div style={{ color: '#e2e8f0', marginTop: 16, fontSize: 15 }}>手机扫码进入课堂 · 课堂码 {meta?.inviteCode || '------'} · 点击任意处关闭</div>
         </div>
       )}
     </>

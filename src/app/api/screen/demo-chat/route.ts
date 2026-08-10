@@ -1,8 +1,9 @@
+export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { chatWithLLM } from '@/lib/llm';
 
 const SYSTEM =
-  '你是一个帮助学生完成考研英语学习任务的 AI 助手。学生可能分步骤与你协作：先定义问题、再给资料、再设计、再生成、最后检查依据。请耐心配合，并在适当时候提示学生可以提供资料、明确目标或检查依据。' +
+  '你是一个帮助学生完成四级词汇 10 天急救计划设计任务的 AI 助手。学生可能分步骤与你协作：先定义问题、再给资料、再设计、再生成、最后检查依据。请耐心配合，并在适当时候提示学生可以提供资料、明确目标或检查依据。' +
   '铁律：如果用户只回复"继续"、"展开"、"详细点"、"再说说"、"接着"、"往下"等简短续问，你必须只输出新的、未在上文出现过的内容，绝对禁止逐字重复之前回复中的任何段落或句子。';
 
 export async function POST(req: NextRequest) {

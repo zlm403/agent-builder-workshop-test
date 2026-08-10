@@ -587,7 +587,7 @@ export default function StudentFinale({ locked = false }: { locked?: boolean }) 
                 ))}
               </div>
             )}
-            <div style={{ row: 'flex', gap: 10, flexWrap: 'wrap' as never, marginTop: 'auto', paddingTop: 18, display: 'flex' }}>
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' as never, marginTop: 'auto', paddingTop: 18 }}>
               <button
                 style={{ ...btnStyle, opacity: specialists.length > hireIdx ? 1 : 0.4 }}
                 disabled={specialists.length <= hireIdx}
@@ -623,7 +623,7 @@ export default function StudentFinale({ locked = false }: { locked?: boolean }) 
                 ⚠ 发现重复工作：3 名专业员工都在重复接待客户，专业时间正在被浪费。
               </div>
             )}
-            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' as never, marginTop: 'auto', paddingTop: 18, display: 'flex' }}>
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' as never, marginTop: 'auto', paddingTop: 18 }}>
               {showDupWarn && (
                 <button style={{ ...btnStyle, background: cssVars.yellow, color: '#3a2c00' }} onClick={goDupToRecep}>
                   把重复工作交给一名公共员工
@@ -672,7 +672,7 @@ export default function StudentFinale({ locked = false }: { locked?: boolean }) 
                 ))}
               </div>
             )}
-            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' as never, marginTop: 'auto', paddingTop: 18, display: 'flex' }}>
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' as never, marginTop: 'auto', paddingTop: 18 }}>
               <button style={{ ...btnStyle, opacity: recepPicked ? 1 : 0.4 }} disabled={!recepPicked} onClick={confirmRecep}>
                 确认入职 →
               </button>
@@ -713,7 +713,7 @@ export default function StudentFinale({ locked = false }: { locked?: boolean }) 
                 </div>
               </div>
             )}
-            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' as never, marginTop: 'auto', paddingTop: 18, display: 'flex' }}>
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' as never, marginTop: 'auto', paddingTop: 18 }}>
               {showGmBa && (
                 <button style={btnStyle} onClick={gmOpen}>
                   接受优化，正式开业 🎉
@@ -758,7 +758,7 @@ export default function StudentFinale({ locked = false }: { locked?: boolean }) 
                   }}
                   placeholder="例如：预算300元，想给喜欢摄影的朋友买生日礼物"
                 />
-                <div style={{ display: 'flex', gap: 10, marginTop: 10, display: 'flex' }}>
+                <div style={{ display: 'flex', gap: 10, marginTop: 10 }}>
                   <button style={btnStyle} onClick={startOpenChat}>发送需求</button>
                 </div>
               </>
@@ -906,7 +906,7 @@ export default function StudentFinale({ locked = false }: { locked?: boolean }) 
               <div style={{ color: cssVars.yellow, fontWeight: 700, marginBottom: 10 }}>
                 🎮 自由体验时间（再玩几单，或换家公司）
               </div>
-              <div style={{ display: 'flex', justifyContent: 'center', gap: 10, display: 'flex' }}>
+              <div style={{ display: 'flex', justifyContent: 'center', gap: 10 }}>
                 <button style={btnStyle} onClick={continueSame}>↻ 继续聊这家公司</button>
                 <button style={{ ...btnStyle, background: 'transparent', border: `1px solid ${cssVars.line}`, color: cssVars.txt }} onClick={playAnother}>
                   🏢 换一家公司玩

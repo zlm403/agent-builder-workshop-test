@@ -1,0 +1,17 @@
+node_modules
+.next
+*.log
+*.err
+*.tsbuildinfo
+.env
+.env.deploy
+.env.local
+_a0*.html
+_*.html
+_get_session.cjs
+*.cjs
+*.bat
+{const
+docs
+README.md
+*.md

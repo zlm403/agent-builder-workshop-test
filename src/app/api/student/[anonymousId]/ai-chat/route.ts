@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { chatWithLLM, LLMError } from '@/lib/llm';
@@ -5,12 +6,12 @@ import { publish } from '@/lib/realtime';
 import { getTemplate } from '@/lib/courseConfig';
 import type { A01OperationData, A01Turn } from '@/lib/analytics';
 
-const MATERIAL_KW = ['资料', '材料', '小林', '阅读', '原文', '根据', '依据'];
+const MATERIAL_KW = ['资料', '材料', '词库', '词汇', '四级', '400 词', '单词', '根据', '依据'];
 const VERIFY_KW = ['依据', '核对', '检查', '验证', '原文找', '能否在原文', '出处'];
 const MODIFY_KW = ['修改', '调整', '重新', '改一下', '优化', '更正'];
 
 // 中性 SYSTEM：只按学生要求回应，不主动教方法、不给标准提示词、不报评分标准。
-const SYSTEM = `你是英语教学设计助手。学生正在用 AI 完成一次真实的英语阅读训练设计任务。
+const SYSTEM = `你是英语学习设计助手。学生正在用 AI 完成一次真实的四级词汇 10 天急救计划设计任务。
 
 请严格按照学生提出的要求来回应，做到：
 1. 不主动拆解任务、不主动追问学习对象或薄弱点；

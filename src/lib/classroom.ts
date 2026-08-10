@@ -68,7 +68,14 @@ export async function startClassroom(sessionId: string) {
   const first = modules[0]?.id ?? null;
   const session = await prisma.classSession.update({
     where: { id: sessionId },
-    data: { status: 'active', currentModuleId: first, startedAt: new Date(), moduleStartedAt: new Date() },
+    data: {
+      status: 'active',
+      currentModuleId: first,
+      startedAt: new Date(),
+      moduleStartedAt: new Date(),
+      // 首模块（A0）进入「开场故事」态：大屏展示图文、学生端等待、教师端翻页
+      moduleSubState: first === 'A0_SCREENING' ? 'story:1' : null,
+    },
   });
   await audit(sessionId, 'teacher', 'classroom:start');
   publish(sessionId, { type: 'module:advanced', payload: { moduleId: first } });
@@ -81,10 +88,19 @@ export async function advanceClassroom(sessionId: string) {
   if (!session) throw new Error('SESSION_NOT_FOUND');
   const tpl = await ensureTemplate();
   const modules = getModules(tpl);
+  const curMod = findModule(tpl, session.currentModuleId ?? '');
+  // A0 开场故事：点「下一环节」= 结束故事、正式进入测评（仍在 A0_SCREENING，只清 subState）
+  const curState = session.moduleSubState ?? null;
+  if (curMod?.id === 'A0_SCREENING' && typeof curState === 'string' && curState.startsWith('story')) {
+    await writeModuleSubState(sessionId, null);
+    await audit(sessionId, 'teacher', 'module:substate', undefined, { subState: null });
+    publish(sessionId, { type: 'module:substate', payload: { subState: null } });
+    await emitProgress(sessionId);
+    return session;
+  }
   const idx = getModuleIndex(tpl, session.currentModuleId ?? '');
   const next = modules[idx + 1]?.id ?? session.currentModuleId;
   const nextMod = findModule(tpl, next);
-  const curMod = findModule(tpl, session.currentModuleId ?? '');
   if (nextMod?.type === 'finale') {
     await enterFinale(sessionId);
   } else if (curMod?.type === 'finale') {
@@ -118,6 +134,7 @@ export async function jumpClassroom(sessionId: string, targetModuleId: string) {
     where: { id: sessionId },
     data: { currentModuleId: targetModuleId, moduleStartedAt: new Date() },
   });
+  await writeModuleSubState(sessionId, targetModuleId === 'A0_SCREENING' ? 'story:1' : null);
   await audit(sessionId, 'teacher', 'module:jump', targetModuleId);
   publish(sessionId, { type: 'module:advanced', payload: { moduleId: targetModuleId } });
   await emitProgress(sessionId);
@@ -129,26 +146,29 @@ export async function resetClassroom(_sessionId: string) {
   const session = await prisma.classSession.findUnique({ where: { id: _sessionId } });
   if (!session) throw new Error('SESSION_NOT_FOUND');
 
-  // 按外键依赖顺序清理明细数据（含学生回答）
-  await prisma.moduleProgress.deleteMany({ where: { sessionId: _sessionId } });
-  const parts = await prisma.participant.findMany({ where: { sessionId: _sessionId }, select: { id: true } });
-  if (parts.length) {
-    await prisma.a0Screening.deleteMany({ where: { participantId: { in: parts.map((p) => p.id) } } });
-    await prisma.consentRecord.deleteMany({ where: { participantId: { in: parts.map((p) => p.id) } } });
-  }
-  await prisma.participant.deleteMany({ where: { sessionId: _sessionId } });
-  await prisma.classInvitation.deleteMany({ where: { sessionId: _sessionId } });
+  // 按外键依赖顺序清理明细数据（含学生回答），事务包裹保证中途失败不留半删数据（P0-2）
+  const updated = await prisma.$transaction(async (tx) => {
+    await tx.moduleProgress.deleteMany({ where: { sessionId: _sessionId } });
+    const parts = await tx.participant.findMany({ where: { sessionId: _sessionId }, select: { id: true } });
+    if (parts.length) {
+      await tx.a0Screening.deleteMany({ where: { participantId: { in: parts.map((p) => p.id) } } });
+      await tx.entryThought.deleteMany({ where: { participantId: { in: parts.map((p) => p.id) } } });
+      await tx.consentRecord.deleteMany({ where: { participantId: { in: parts.map((p) => p.id) } } });
+    }
+    await tx.participant.deleteMany({ where: { sessionId: _sessionId } });
+    await tx.classInvitation.deleteMany({ where: { sessionId: _sessionId } });
 
-  const updated = await prisma.classSession.update({
-    where: { id: _sessionId },
-    data: {
-      status: 'pending',
-      currentModuleId: null,
-      moduleLocked: false,
-      moduleStartedAt: null,
-      startedAt: null,
-      endedAt: null,
-    },
+    return tx.classSession.update({
+      where: { id: _sessionId },
+      data: {
+        status: 'pending',
+        currentModuleId: null,
+        moduleLocked: false,
+        moduleStartedAt: null,
+        startedAt: null,
+        endedAt: null,
+      },
+    });
   });
   await writeModuleSubState(_sessionId, null);
 
@@ -166,22 +186,24 @@ export async function endClassroom(sessionId: string) {
   const session = await prisma.classSession.findUnique({ where: { id: sessionId } });
   if (!session) throw new Error('SESSION_NOT_FOUND');
 
-  // 释放学生：按依赖顺序清理明细数据（consentRecord 随 participant 级联）
-  await prisma.moduleProgress.deleteMany({ where: { sessionId } });
-  const parts = await prisma.participant.findMany({ where: { sessionId }, select: { id: true } });
-  if (parts.length) {
-    await prisma.consentRecord.deleteMany({ where: { participantId: { in: parts.map((p) => p.id) } } });
-  }
-  await prisma.participant.deleteMany({ where: { sessionId } });
+  // 释放学生：按依赖顺序清理明细数据（consentRecord 随 participant 级联），事务包裹（P0-2）
+  const updated = await prisma.$transaction(async (tx) => {
+    await tx.moduleProgress.deleteMany({ where: { sessionId } });
+    const parts = await tx.participant.findMany({ where: { sessionId }, select: { id: true } });
+    if (parts.length) {
+      await tx.consentRecord.deleteMany({ where: { participantId: { in: parts.map((p) => p.id) } } });
+    }
+    await tx.participant.deleteMany({ where: { sessionId } });
 
-  const updated = await prisma.classSession.update({
-    where: { id: sessionId },
-    data: {
-      status: 'closed',
-      moduleLocked: true,
-      endedAt: new Date(),
-      moduleStartedAt: null,
-    },
+    return tx.classSession.update({
+      where: { id: sessionId },
+      data: {
+        status: 'closed',
+        moduleLocked: true,
+        endedAt: new Date(),
+        moduleStartedAt: null,
+      },
+    });
   });
 
   await audit(sessionId, 'teacher', 'classroom:close');
@@ -256,10 +278,16 @@ export async function joinClassroom(
   });
 
   if (invitation) {
-    await prisma.classInvitation.update({
-      where: { id: invitation.id },
+    // 原子占用邀请码：仅当仍为未使用状态时才置为已用，防止并发两个学生同码都通过检查（P0-3）
+    const claimed = await prisma.classInvitation.updateMany({
+      where: { id: invitation.id, used: false },
       data: { used: true, usedByParticipantId: participant.id },
     });
+    if (claimed.count === 0) {
+      // 竞态：已被他人占用，回滚刚创建的参与者，避免产生孤立的 participant 记录
+      await prisma.participant.delete({ where: { id: participant.id } });
+      throw new Error('INVITATION_USED');
+    }
   }
 
   if (consentPrivacy) {
@@ -382,7 +410,7 @@ export async function submitModule(anonymousId: string, moduleId: string, data: 
   return { status: 'submitted', nextActions: ['wait_for_teacher'] };
 }
 
-// ---------- A0 环节：AI 面试（一个主问题 + 一次针对性追问） ----------
+// ---------- A0 环节：AI 标签（一个主问题 + 一次针对性追问） ----------
 
 export async function submitScreening(anonymousId: string, answer: string) {
   const p = await prisma.participant.findUnique({ where: { anonymousId } });

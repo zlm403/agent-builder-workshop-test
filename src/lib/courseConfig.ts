@@ -321,7 +321,7 @@ const MATERIALS = [
 // ---------------------------------------------------------------------------
 const TEMPLATE: CourseTemplateData = {
   version: COURSE_VERSION,
-  name: 'AI 使用诊断课堂',
+  name: 'AI 互动体验课',
   // 第一关：学生作为 AI 使用者
   modules: [
     {
@@ -330,7 +330,7 @@ const TEMPLATE: CourseTemplateData = {
       title: '课堂准备：身份确认',
       durationSeconds: 300,
       teacherContent: {
-        headline: '欢迎来到 AI 使用诊断课堂',
+        headline: '欢迎来到 AI 互动体验课',
         subline: '请让学生扫码加入，并确认身份类型',
         bullets: [
           '学生端：输入昵称即可加入，无需注册',
@@ -340,7 +340,7 @@ const TEMPLATE: CourseTemplateData = {
         revealOrder: ['join', 'identity', 'start'],
       },
       studentTask: {
-        prompt: '请输入你的昵称加入课堂。',
+        prompt: '你平时是怎么用 AI 的',
         joinHints: [
           '可以用真实姓名，也可以用昵称',
           '身份用于课堂统计，不影响任何个人结果',
@@ -348,82 +348,79 @@ const TEMPLATE: CourseTemplateData = {
       },
       screenContent: {
         phase: 'screening',
-        headline: 'AI 使用诊断课堂',
-        subline: '扫码加入，开始今天的诊断',
+        headline: 'AI 互动体验课',
+        subline: '扫码加入，开始今天的体验',
         bullets: ['确认你的身份', '等待教师开始'],
         sideNote: '今天的课堂会记录你对 AI 的使用方式，用于课后反馈。',
+        // 开场故事：教师端翻页，大屏只展示
+        storySteps: [
+          { id: 's1', image: '/story/A0-1.jpg', caption: '那是我的当年' },
+          { id: 's2', image: '/story/A0-2.jpg', caption: '今天，AI 无处不在' },
+        ],
       },
     },
     {
       id: 'A01_BASELINE',
       type: 'ai_task',
-      title: 'A01 中性基线：请用 AI 完成一次英语训练',
+      title: '请使用 AI 完成一次英语训练计划',
       durationSeconds: 600,
       teacherContent: {
-        headline: 'A01 中性基线',
+        headline: '请使用 AI 完成一次英语训练计划',
         subline: '让学生用日常习惯的方式使用 AI 完成一次英语训练',
         bullets: [
           '不要给任何方法指导，只看学生原本怎么用',
           '用于对比后续“被辅导后”的变化',
           '大屏会实时显示完成进度',
         ],
-        // 原始 BASELINE_TASK 内容（initial 91d97ea；e698b9f 重写时丢失→任务区/资料区空白）
         prompt:
-          '请使用 AI，为准备考研的小林制定一轮英语阅读训练方案。你可以自由决定怎样向 AI 说明任务、是否使用给定资料、分几步完成、是否检查 AI 的结果。按你平时真实使用 AI 的方式完成即可。',
+          '请使用 AI，为一名距四级考试还剩 10 天、还有 400 个核心词汇没记住的学员，制定一份 10 天急救训练计划。你可以自由决定怎样向 AI 说明任务、是否使用给定资料、分几步完成、是否检查 AI 的结果。按你平时真实使用 AI 的方式完成即可。',
         requirements: [
-          '找出小林最主要的学习问题',
-          '基于提供的材料设计一次约 30 分钟的训练',
-          '让 AI 生成一道测试题',
-          '检查 AI 给出的内容是否符合材料',
+          '找出学员最根本的问题：为什么 400 词背了就忘、容易混',
+          '基于 400 词库设计一份 10 天急救计划，每天不超过 3 小时',
+          '让 AI 给出复习机制与自测节点',
+          '检查 AI 的计划是否真的能在考场“认得出、选得对、写得对”',
           '提交你最终认可的结果',
         ],
         materials: [
           {
             id: 'profile',
-            title: '学生情况：小林',
+            title: '学员情况',
             kind: 'student_profile',
-            body: '大学三年级，准备参加考研。\n英语阅读平均每篇错 3 题。\n每天可训练时间约 30 分钟。',
+            body: '距大学英语四级考试还有 10 天。\n还有 400 个核心词汇没记住（背了就忘、形近词易混）。\n每天最多可投入英语学习 3 小时（建议约 40 分钟啃新词，其余做复习 + 自测 + 错词回炉）。',
           },
           {
-            id: 'issues',
-            title: '小林近期三个主要问题',
+            id: 'vocab',
+            title: '四级词汇 400 词库（10 天 × 40 词）',
+            kind: 'vocab_bank',
+            body: '完整 400 词词库，按 Day 1–10 分组，每天 40 词，含音标、释义、例句/搭配。\n\n点击「查看词库」浏览全部 10 天词表；也可以把词库内容引用进对话框交给 AI。',
+          },
+          {
+            id: 'selfcheck',
+            title: '10 天自测节点',
             kind: 'recent_issues',
-            body: '1. 长难句理解困难；\n2. 容易用自己的常识代替原文；\n3. 做完题只看答案，不分析错误原因。',
-          },
-          {
-            id: 'reading',
-            title: '阅读材料（来源：模拟考研英语真题节选）',
-            kind: 'reading_material',
-            body:
-              'The shift toward remote work has changed how teams measure productivity. ' +
-              'A 2021 study found that output rose in the first months, but long-term ' +
-              'collaboration suffered as informal knowledge sharing declined. Researchers ' +
-              'warn that companies may be optimizing for visible tasks while ignoring the ' +
-              'slow loss of shared context.\n\n' +
-              '词汇提示：productivity 生产力；informal knowledge sharing 非正式知识共享；' +
-              'shared context 共同语境；optimizing 优化。',
+            body: '第 5 天自测：抽 Day 1–5 任意 50 词，遮住释义自认；错词进入「错词回炉」加练。\n第 10 天自测：全 400 词随机抽 100 词认读 + 选 20 词拼写；达标即「搞定」。\n错词回炉法：当天错词当天重过一遍，并排入第 7、第 10 天复测。',
           },
         ],
         taskArea: {
-          targetUser: '准备考研的小林',
-          goal: '改善英语阅读训练',
-          available: '阅读文章、错题情况、学习时间',
-          finalDeliverable: '一份可执行训练 + 一道测试题',
+          targetUser: '距四级考试只剩 10 天的学员',
+          goal: '10 天搞定 400 个核心词汇',
+          available: '400 词库、每天 3 小时、自测节点',
+          finalDeliverable: '一份可执行的 10 天急救训练计划',
         },
         revealOrder: ['task', 'observe'],
       },
       studentTask: {
-        prompt: '请用任意 AI 工具，为自己设计一次 20 分钟英语阅读训练。',
+        prompt: '请用任意 AI 工具，为距四级考试只剩 10 天、还有 400 个核心词没记住的学员，设计一份 10 天急救训练计划。',
         details: [
           '可以用你习惯的任意 AI（如对话助手、写作工具等）',
-          '目标是：适合自己的英语阅读训练安排',
-          '完成后把你的安排发到下方对话框。',
+          '目标是：10 天搞定 400 个核心词汇，考场能认、能选、能写对',
+          '完成后把你的计划发到下方对话框。',
         ],
-        submitLabel: '提交我的训练安排',
+        submitLabel: '提交我的训练计划',
       },
       screenContent: {
         phase: 'baseline',
-        headline: 'A01 中性基线',
+        headline: '请使用 AI 完成一次英语训练计划',
         subline: '你平时怎么用 AI，就怎么用',
         showProgress: true,
         progressLabel: '已完成基线任务',
@@ -432,7 +429,7 @@ const TEMPLATE: CourseTemplateData = {
     {
       id: 'A02_MIRROR',
       type: 'class_mirror',
-      title: 'A02 镜像讲解：你的使用方式被看见了',
+      title: '镜像讲解：你的使用方式被看见了',
       durationSeconds: 600,
       teacherContent: {
         headline: '刚才，全班是怎样使用 AI 的？',
@@ -452,19 +449,19 @@ const TEMPLATE: CourseTemplateData = {
         ],
         // 第2屏：四个要素（图形化，icon+问句+做对/没做对对比）
         fourElements: [
-          { name: '对象', icon: '👤', q: '你让 AI 为谁服务？', bad: '模糊："帮我做个学习计划"', good: '具体："为准备考研的小林"' },
-          { name: '任务', icon: '🎯', q: '你希望 AI 完成什么？', bad: '无法检验："做个英语计划"', good: '可检验："设计30分钟训练+测试题"' },
-          { name: '过程', icon: '🔁', q: '你和 AI 怎样对话？', bad: '一次要全部答案', good: '分步：先诊断→再设计→再出题' },
-          { name: '检验', icon: '✓', q: '你怎么知道结果合格？', bad: '直接采纳 AI 输出', good: '逐项核对，能找到出处' },
+          { name: '对象', icon: '👤', q: '你让 AI 为谁服务？', bad: '模糊："帮我做个学习计划"', good: '具体："为一名距四级还剩 10 天、400 词没记住的学员"' },
+          { name: '任务', icon: '🎯', q: '你希望 AI 完成什么？', bad: '无法检验："做个背单词计划"', good: '可检验："设计 10 天急救计划+每天复习机制+自测节点"' },
+          { name: '过程', icon: '🔁', q: '你和 AI 怎样对话？', bad: '一次要全部答案', good: '分步：先诊断问题→再设计计划→再排复习与自测' },
+          { name: '检验', icon: '✓', q: '你怎么知道结果合格？', bad: '直接采纳 AI 输出', good: '逐项核对：计划是否在 10 天内可执行、能否考场用得上' },
         ],
         // 第3屏：话术范本（每个要素"你可以这么说"）
         scripts: [
-          { elem: '对象', icon: '👤', what: '说清对象是谁、什么情况、什么约束——让 AI 知道为谁做。', say: '我需要为准备考研的小林设计训练——他大三，英语阅读平均每篇错 3 题，每天可训练 30 分钟。' },
-          { elem: '任务', icon: '🎯', what: '说清要完成什么、交付什么——让结果可检验。', say: '请基于我给的材料，设计一次约 30 分钟的阅读训练，并生成一道测试题。' },
-          { elem: '过程', icon: '🔁', what: '说清分几步、先做什么后做什么——不要一次要全部答案。', say: '请分三步：先判断小林最主要的问题；再基于材料设计训练；最后出测试题。每步等我确认后再继续。' },
-          { elem: '检验', icon: '✓', what: '说清怎么验收、依据在哪——让 AI 给出处，你能核对。', say: '每一步请说明针对小林的哪个问题；测试题要能在原文找到依据，并指出在哪一段。' },
+          { elem: '对象', icon: '👤', what: '说清对象是谁、什么情况、什么约束——让 AI 知道为谁做。', say: '我需要为一名学员设计四级词汇急救计划——他距考试只剩 10 天，还有 400 个核心词没记住，每天最多学 3 小时。' },
+          { elem: '任务', icon: '🎯', what: '说清要完成什么、交付什么——让结果可检验。', say: '请基于我给的 400 词库，设计一份 10 天急救计划：每天做什么、怎么复习、哪天自测，并说明怎么验证掌握。' },
+          { elem: '过程', icon: '🔁', what: '说清分几步、先做什么后做什么——不要一次要全部答案。', say: '请分三步：先分析他背了就忘、形近词易混的原因；再按 400 词库设计每天 40 词的安排；最后给出复习与自测机制。每步等我确认后再继续。' },
+          { elem: '检验', icon: '✓', what: '说清怎么验收、依据在哪——让 AI 给出处，你能核对。', say: '每一步请说明针对哪类词的什么问题；自测节点要能落到具体天数，且每天时间不超过 3 小时。' },
         ],
-        nextCue: '接下来 · 第二轮（A03）：用同一个 AI、同一个任务，按这四步重新做一次，看看结果有什么不同。',
+        nextCue: '接下来 · 第二轮：用同一个 AI、同一个任务，按这四步重新做一次，看看结果有什么不同。',
         revealOrder: ['mirror', 'four-elements', 'scripts'],
       },
       studentTask: {
@@ -474,7 +471,7 @@ const TEMPLATE: CourseTemplateData = {
       },
       screenContent: {
         phase: 'mirror',
-        headline: 'A02 镜像讲解',
+        headline: '镜像讲解：你的使用方式被看见了',
         subline: '你刚才的 AI 使用方式，被这样看见',
         fourElements: [
           { key: '对象', label: '服务对象', desc: '你让 AI 为谁服务？' },
@@ -487,32 +484,32 @@ const TEMPLATE: CourseTemplateData = {
     {
       id: 'A03_REDO',
       type: 'ai_task',
-      title: 'A03 第二轮：用同一个 AI 重新设计训练',
+      title: '第二轮：用同一个 AI 重新设计训练',
       durationSeconds: 600,
       teacherContent: {
-        headline: 'A03 第二轮：重新设计同一个任务',
+        headline: '第二轮：重新设计同一个任务',
         subline: '同一个 AI，不换工具，用同一个任务再做一次。',
         bullets: [
           '学生先想清楚对象、任务、过程、检验，再组织输入',
           '教师可在讲解后“暂停锁定”学生端',
           '揭晓后大屏展示前后变化对比',
         ],
-        prompt: '不更换 AI。请在第一轮基础上，让这次训练更适合真实的学习者。',
+        prompt: '不更换 AI。请在第一轮基础上，让这份 10 天急救计划更适合真实的四级备考学员。',
         // 第一轮原文（A01），学生屏任务区同时显示，让学生看到"同一任务"再改
         originalPrompt:
-          '请使用 AI，为准备考研的小林制定一轮英语阅读训练方案。你可以自由决定怎样向 AI 说明任务、是否使用给定资料、分几步完成、是否检查 AI 的结果。按你平时真实使用 AI 的方式完成即可。',
+          '请使用 AI，为一名距四级考试还剩 10 天、还有 400 个核心词汇没记住的学员，制定一份 10 天急救训练计划。你可以自由决定怎样向 AI 说明任务、是否使用给定资料、分几步完成、是否检查 AI 的结果。按你平时真实使用 AI 的方式完成即可。',
         revealOrder: ['brief', 'pause', 'reveal'],
-        // 资料与 A01 一致（同一训练场景：小林的 3 份资料，不是考研题型规范）
+        // 资料与 A01 一致（同一训练场景：四级词汇急救，3 份资料）
         materials: [
-          { id: 'profile', title: '学生情况：小林', kind: 'student_profile', body: '大学三年级，准备参加考研。\n英语阅读平均每篇错 3 题。\n每天可训练时间约 30 分钟。' },
-          { id: 'issues', title: '小林近期三个主要问题', kind: 'recent_issues', body: '1. 长难句理解困难；\n2. 容易用自己的常识代替原文；\n3. 做完题只看答案，不分析错误原因。' },
-          { id: 'reading', title: '阅读材料（来源：模拟考研英语真题节选）', kind: 'reading_material', body: 'The shift toward remote work has changed how teams measure productivity. A 2021 study found that output rose in the first months, but long-term collaboration suffered as informal knowledge sharing declined. Researchers warn that companies may be optimizing for visible tasks while ignoring the slow loss of shared context.\n\n词汇提示：productivity 生产力；informal knowledge sharing 非正式知识共享；shared context 共同语境；optimizing 优化。' },
+          { id: 'profile', title: '学员情况', kind: 'student_profile', body: '距大学英语四级考试还有 10 天。\n还有 400 个核心词汇没记住（背了就忘、形近词易混）。\n每天最多可投入英语学习 3 小时（建议约 40 分钟啃新词，其余做复习 + 自测 + 错词回炉）。' },
+          { id: 'vocab', title: '四级词汇 400 词库（10 天 × 40 词）', kind: 'vocab_bank', body: '完整 400 词词库，按 Day 1–10 分组，每天 40 词，含音标、释义、例句/搭配。\n\n点击「查看词库」浏览全部 10 天词表；也可以把词库内容引用进对话框交给 AI。' },
+          { id: 'selfcheck', title: '10 天自测节点', kind: 'recent_issues', body: '第 5 天自测：抽 Day 1–5 任意 50 词，遮住释义自认；错词进入「错词回炉」加练。\n第 10 天自测：全 400 词随机抽 100 词认读 + 选 20 词拼写；达标即「搞定」。\n错词回炉法：当天错词当天重过一遍，并排入第 7、第 10 天复测。' },
         ],
         operationHint:
           '讲解完四要素后，点击「暂停锁定」停止学生端输入；准备好后再「揭晓」对比。',
       },
       studentTask: {
-        prompt: '不更换 AI。请在第一轮基础上，让这次训练更适合真实的学习者。',
+        prompt: '不更换 AI。请在第一轮基础上，让这份 10 天急救计划更适合真实的四级备考学员。',
         details: [
           '先想清楚：为谁、做什么、怎么做、怎么检验',
           '把你的新安排发到对话框',
@@ -522,13 +519,13 @@ const TEMPLATE: CourseTemplateData = {
       },
       screenContent: {
         phase: 'redo',
-        headline: 'A03 第二轮',
+        headline: '第二轮',
         subline: '同一个 AI，重新设计一次',
         teacherMaterialsLabel: '本轮参考资料',
         materials: [
-          { id: 'profile', title: '学生情况：小林', kind: 'student_profile', body: '大学三年级，准备参加考研。\n英语阅读平均每篇错 3 题。\n每天可训练时间约 30 分钟。' },
-          { id: 'issues', title: '小林近期三个主要问题', kind: 'recent_issues', body: '1. 长难句理解困难；\n2. 容易用自己的常识代替原文；\n3. 做完题只看答案，不分析错误原因。' },
-          { id: 'reading', title: '阅读材料（来源：模拟考研英语真题节选）', kind: 'reading_material', body: 'The shift toward remote work has changed how teams measure productivity. A 2021 study found that output rose in the first months, but long-term collaboration suffered as informal knowledge sharing declined. Researchers warn that companies may be optimizing for visible tasks while ignoring the slow loss of shared context.\n\n词汇提示：productivity 生产力；informal knowledge sharing 非正式知识共享；shared context 共同语境；optimizing 优化。' },
+          { id: 'profile', title: '学员情况', kind: 'student_profile', body: '距大学英语四级考试还有 10 天。\n还有 400 个核心词汇没记住（背了就忘、形近词易混）。\n每天最多可投入英语学习 3 小时（建议约 40 分钟啃新词，其余做复习 + 自测 + 错词回炉）。' },
+          { id: 'vocab', title: '四级词汇 400 词库（10 天 × 40 词）', kind: 'vocab_bank', body: '完整 400 词词库，按 Day 1–10 分组，每天 40 词，含音标、释义、例句/搭配。\n\n点击「查看词库」浏览全部 10 天词表；也可以把词库内容引用进对话框交给 AI。' },
+          { id: 'selfcheck', title: '10 天自测节点', kind: 'recent_issues', body: '第 5 天自测：抽 Day 1–5 任意 50 词，遮住释义自认；错词进入「错词回炉」加练。\n第 10 天自测：全 400 词随机抽 100 词认读 + 选 20 词拼写；达标即「搞定」。\n错词回炉法：当天错词当天重过一遍，并排入第 7、第 10 天复测。' },
         ],
       },
     },
@@ -594,7 +591,7 @@ const TEMPLATE: CourseTemplateData = {
     {
       id: 'A04_KNOWLEDGE',
       type: 'knowledge_select',
-      title: 'A04 选择知识库：从 10 份资料中选 4 份核心知识',
+      title: '选择知识库：从 10 份资料中选 4 份核心知识',
       durationSeconds: 240,
       teacherContent: {
         headline: '知识库不是越多越好，关键是选得合适',
@@ -615,7 +612,7 @@ const TEMPLATE: CourseTemplateData = {
         progressNote: '第一次选择过程中不要显示“最多人选择了哪份资料”。',
       },
       studentTask: {
-        prompt: '为“考研英语个性化训练助手”选择 4 份核心资料。',
+        prompt: '为“英语个性化学习助手”选择 4 份核心资料。',
         details: [
           '下面有 8 份资料，本轮只能选择 4 份',
           '资料多不等于知识库质量高',
@@ -649,7 +646,7 @@ const TEMPLATE: CourseTemplateData = {
     {
       id: 'A05_SKILL',
       type: 'skill_build',
-      title: 'A05 编写 Skill：了解—判断—执行—反馈',
+      title: '编写 Skill：了解—判断—执行—反馈',
       durationSeconds: 420,
       teacherContent: {
         headline: 'Skill：AI 面对不同的人应该怎么做？',
@@ -692,7 +689,7 @@ const TEMPLATE: CourseTemplateData = {
     {
       id: 'A06_TRY',
       type: 'assistant_try',
-      title: 'A06 运行·检查·修改·提交',
+      title: '运行·检查·修改·提交',
       durationSeconds: 1200,
       teacherContent: {
         headline: '用两个不同的人测试你的助手',
@@ -822,7 +819,7 @@ const TEMPLATE: CourseTemplateData = {
     {
       id: 'A07_FINALE',
       type: 'finale',
-      title: 'A07 · 一人公司（多 Agent 协同）',
+      title: '一人公司（多 Agent 协同）',
       durationSeconds: 1800,
       teacherContent: {
         headline: '用你设计的 AI 助手解决真实问题',
@@ -839,7 +836,7 @@ const TEMPLATE: CourseTemplateData = {
     {
       id: 'A08_WRAP',
       type: 'wrap_up',
-      title: 'A08 · 你想做什么？',
+      title: '你想做什么？',
       durationSeconds: 600,
       teacherContent: {
         headline: '你已经会了 AI，接下来做什么？',
@@ -847,7 +844,7 @@ const TEMPLATE: CourseTemplateData = {
         bullets: [
           '大屏讲解：一路走来的能力成长线，停在「你想做什么？」',
           '学生端不放任何内容，全部注意力回到大屏',
-          '等下一期 A09 推送完整内容',
+          '等下一期推送完整内容',
         ],
       },
       studentTask: {},
@@ -855,7 +852,7 @@ const TEMPLATE: CourseTemplateData = {
         slides: [
           {
             h: '你的 AI 标签是什么？',
-            p: '一开始，面试官问你会不会用 AI。你的回答，能让别人记住你吗？',
+            p: '一开始，我们让你给自己贴一张 AI 标签。你的真实用法，能给别人留下什么印象？',
           },
           {
             h: '你能自己用吗？',
@@ -886,32 +883,49 @@ export function getTemplate(): CourseTemplateData {
 
 // 自愈式：确保 CourseTemplate 存在且为最新（旧模板会被更新，避免手动清库）。
 // 返回数据库行，供 classroom.ts 读取 id / title / version / modules。
+// 模块级缓存：避免每次调用都 findFirst+update 打 DB（被 classroom.ts 几乎所有操作高频调用，P0-14）。
+// 注意：缓存命中时也必须校验数据库里模板仍存在（P0 修复：模板被删/库被清后，
+// 缓存仍指向旧 id 会导致 ClassSession 外键失败，表现为“创建课堂失败”）。
+let _templateCache: { version: string; row: TemplateRow } | null = null;
+
 export async function ensureTemplate(
   _version = 'A',
-): Promise<{ id: string; name: string; version: string; modules: unknown }> {
-  const existing = await prisma.courseTemplate.findFirst();
-  if (!existing) {
-    return prisma.courseTemplate.create({
-      data: {
-        name: TEMPLATE.name,
-        version: COURSE_VERSION,
-        modules: TEMPLATE as object, // 存储完整模板对象，getModules 需要访问 .modules 属性
-      },
-    });
+): Promise<TemplateRow> {
+  if (_templateCache && _templateCache.version === COURSE_VERSION) {
+    const cached = await prisma.courseTemplate.findUnique({
+      where: { id: _templateCache.row.id },
+      select: { id: true },
+    }).catch(() => null);
+    if (cached) {
+      return _templateCache.row;
+    }
+    // 缓存中的模板已被删除，清空缓存走重建逻辑
+    _templateCache = null;
   }
-  return prisma.courseTemplate.update({
-    where: { id: existing.id },
-    data: {
-      name: TEMPLATE.name,
-      version: COURSE_VERSION,
-      modules: TEMPLATE as object, // 存储完整模板对象
-    },
-  });
+  const existing = await prisma.courseTemplate.findFirst();
+  const row: TemplateRow = !existing
+    ? await prisma.courseTemplate.create({
+        data: {
+          name: TEMPLATE.name,
+          version: COURSE_VERSION,
+          modules: TEMPLATE as object, // 存储完整模板对象，getModules 需要访问 .modules 属性
+        },
+      })
+    : await prisma.courseTemplate.update({
+        where: { id: existing.id },
+        data: {
+          name: TEMPLATE.name,
+          version: COURSE_VERSION,
+          modules: TEMPLATE as object, // 存储完整模板对象
+        },
+      });
+  _templateCache = { version: COURSE_VERSION, row };
+  return row;
 }
 
 // ===== 模块查询辅助（供 classroom.ts 使用）=====
 // CourseTemplate.modules 字段本身存的就是 CourseTemplateData 对象
-type TemplateRow = { modules: unknown };
+type TemplateRow = { id: string; name: string; version: string; modules: unknown };
 
 function asData(tpl: TemplateRow): CourseTemplateData {
   return tpl.modules as unknown as CourseTemplateData;

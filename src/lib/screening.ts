@@ -1,5 +1,5 @@
-// AI 面试判定引擎（确定性规则版，离线演示稳定）。
-// 设计：一个主问题 + 一次 AI 针对性追问，最后给一张“当前 AI 标签”反馈卡。
+// AI 标签判定引擎（确定性规则版，离线演示稳定）。
+// 设计：一个主问题 + 一次针对性追问，最后给一张“当前 AI 标签”反馈卡。
 // 后续接入真实 LLM 时，只需替换 judgeAnswer / buildFollowup / refineJudgment 的内部实现，
 // 对外接口（ScreeningJudgment / ScreeningAnalytics）保持不变。
 
@@ -8,9 +8,9 @@ import { prisma } from './db';
 export type AiLabel = 'tool_user' | 'task_solver' | 'app_creator';
 
 export const LABEL_TEXT: Record<AiLabel, string> = {
-  tool_user: 'AI工具体验者',
-  task_solver: 'AI任务解决者',
-  app_creator: 'AI应用创造者',
+  tool_user: 'AI 路人',
+  task_solver: 'AI 搭子',
+  app_creator: 'AI 合伙人',
 };
 
 export interface FollowupQuestion {
@@ -21,8 +21,8 @@ export interface FollowupQuestion {
 
 export interface FeedbackCard {
   label: AiLabel;
-  heard: string; // 面试官听到了
-  notHeard: string; // 面试官还没听到
+  heard: string; // 我们看到了
+  notHeard: string; // 还没看到
   strengthen: string; // 让标签更有说服力
   isComplete: boolean; // 本轮回答是否较完整
 }
@@ -85,7 +85,7 @@ function detect(answer: string) {
   return { hasTools, hasTask, hasResult, hasAction };
 }
 
-// 是否已构成“应用创造者”信号：亲自动手 + 任务，或明确做出可交付/可复用之物
+// 是否已构成“合伙人”信号：亲自动手 + 任务，或明确做出可交付/可复用之物
 function appSignal(d: { hasTask: boolean; hasResult: boolean; hasAction: boolean }, text: string): boolean {
   if (d.hasAction && d.hasTask) return true;
   return /搭建|系统|部署|上线|发布|可复用|自动化|流程|别人(用|能)|用户(用|使)|交付|开源|上线/.test(text.toLowerCase());
@@ -167,24 +167,24 @@ export function buildFeedback(d: {
   hasAction: boolean;
 }): FeedbackCard {
   const heardParts: string[] = [];
-  if (d.hasTools) heardParts.push('使用过 AI 工具');
-  if (d.hasTask) heardParts.push('说明过一个使用场景');
-  if (d.hasResult) heardParts.push('提到过产生的成果');
-  if (d.hasAction) heardParts.push('描述了你的关键动作');
-  const heard = heardParts.length ? heardParts.join('，') : '接触过 AI';
+  if (d.hasTools) heardParts.push('你和 AI 打过照面，用过它的工具');
+  if (d.hasTask) heardParts.push('你们一起办过具体的事');
+  if (d.hasResult) heardParts.push('办完还有了成果');
+  if (d.hasAction) heardParts.push('而且里面有你的关键动作');
+  const heard = heardParts.length ? heardParts.join('；') : '你和 AI 还只是打了个照面';
 
   const missParts: string[] = [];
-  if (!d.hasTask) missParts.push('你解决了什么问题');
-  if (!d.hasResult) missParts.push('以及产生了什么结果');
-  if (!d.hasAction && d.label !== 'app_creator') missParts.push('你亲自动手的关键动作');
+  if (!d.hasTask) missParts.push('你们一起做过什么事');
+  if (!d.hasResult) missParts.push('做成了什么结果');
+  if (!d.hasAction && d.label !== 'app_creator') missParts.push('你在其中亲自做了什么');
   const notHeard = missParts.length ? missParts.join('，') : '';
 
   const strengthen =
     d.label === 'app_creator'
-      ? '把这套可复用的方法沉淀成模板，让更多人能直接套用。'
+      ? '把你们共创的方法沉淀成一套可复用的东西，让更多人也能搭上这段关系。'
       : d.label === 'task_solver'
-      ? '补充真实用户、使用次数或效率变化，让这段经历可以直接进入简历。'
-      : '选择一个真实项目，补充「任务—行动—成果」。';
+      ? '再多说一点你们来来回回的细节——从第一次开口，到你们怎么一起把事办成。'
+      : '挑一件你们一起做过的小事，说说你让它干了什么、它给了你什么。';
 
   return {
     label: d.label,
