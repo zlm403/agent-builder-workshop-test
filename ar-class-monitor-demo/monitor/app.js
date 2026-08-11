@@ -1,7 +1,7 @@
 /* ============ 老师监控看板（服务端数据版） ============
    数据源: GET /api/events?since= 增量轮询（主），localStorage 兼容（次）
    功能:
-   1. 按课程筛选（全部/预备/第一课/第二课/综合课）
+   1. 按项目筛选（全部/项目一·接金币游戏/项目二·心情电量/项目三·内心戏）
    2. 推送课堂任务（带课程标记，POST /api/collect + localStorage 槽）
    3. 实时看每位学生的对话数据（顷悟 Agent）+ 作品数据（作品埋点）
    4. 选中学生 → 穿透分析: 原话 vs AI 结构化理解 + Agent 对话 + 作品轨迹 */
@@ -12,7 +12,7 @@ const EVENT_KEY = 'ar_class_monitor_events';
 const TASK_EVENT_KEY = 'ar_class_monitor_task';
 const MAX_EVENTS = 8000;
 
-const COURSE_NAME = { pre: '🗨 预备课', 1: '🎮 第一课', 2: '🛠 第二课', 3: '🤖 综合课', 4: '🤖 综合课' };
+const COURSE_NAME = { pre: '🗨 预备课', 1: '🎮 项目一·接金币游戏', 2: '🔋 项目二·心情电量', 4: '🤖 项目三·内心戏' };
 
 let events = [];
 let lastTs = 0;

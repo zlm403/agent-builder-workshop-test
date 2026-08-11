@@ -52,7 +52,7 @@ header .sub{color:var(--sub);font-size:13px}
 <div class="grid3">
   <!-- 左：四课进度 -->
   <div class="card">
-    <h2>今日课程进度 <span class="tag" id="turnN">0</span></h2>
+    <h2>三项目进度 <span class="tag" id="turnN">0</span></h2>
     <div class="prog" id="prog"></div>
     <div class="legend">
       <span><b style="color:var(--green)">✅</b>已确认</span><span><b style="color:var(--blue)">📋</b>已识别</span>
@@ -65,7 +65,7 @@ header .sub{color:var(--sub);font-size:13px}
   <div class="card">
     <div class="prism-head">
       <span class="dot" id="prismDot">🔄</span>
-      <h2 style="margin:0">班级理解棱镜填充 <span class="tag" id="prismTask">预备课</span></h2>
+      <h2 style="margin:0">班级理解棱镜填充 <span class="tag" id="prismTask">项目一</span></h2>
     </div>
     <div class="g10" id="g10"></div>
     <p style="font-size:12px;color:var(--sub);margin:10px 0 0">颜色 = 全班该维度「最常见状态」。橙色描边 = 全班普遍没立住的维度，是课堂要一起补的。</p>
@@ -84,8 +84,8 @@ header .sub{color:var(--sub);font-size:13px}
 <script>
 const $ = s => document.querySelector(s);
 const API = '/api/class';
-const TASK_SEQ = ['pre', 't1', 't2', 't3'];
-const TASK_NAMES = { pre: '预备课 · 表达', t1: '第一课 · 游戏', t2: '第二课 · 工具', t3: '下午 · AI 应用' };
+const TASK_SEQ = ['t1', 't2', 't3'];
+const TASK_NAMES = { t1: '项目一 · 接金币游戏', t2: '项目二 · 心情电量', t3: '项目三 · 内心戏' };
 const STATE_ORDER = ['ok', 'rec', 'guess', 'clarify', 'empty', 'conflict'];
 const SYM = { ok: '✅', rec: '📋', guess: '🟡', clarify: '△', empty: '⬜', conflict: '🔴' };
 
