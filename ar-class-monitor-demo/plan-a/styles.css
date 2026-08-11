@@ -1,0 +1,50 @@
+/* 方案A · 顷悟 AI 应用版学生端 */
+:root{
+  --bg:#070b16; --panel:#0e1730; --panel2:#13203f; --line:#26324d;
+  --txt:#e8eefc; --sub:#9fb0d0; --blue:#38bdf8; --green:#22c55e; --purple:#a78bfa; --pink:#f472b6; --orange:#fb923c;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;background:radial-gradient(1200px 600px at 50% -10%,#14223f,#070b16 60%);color:var(--txt);min-height:100vh;padding:22px 26px 50px}
+.app{max-width:920px;margin:0 auto}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+header h1{font-size:19px;font-weight:800}
+header h1 em{font-style:normal;font-size:11px;color:var(--blue);border:1px solid rgba(56,189,248,.45);background:rgba(56,189,248,.1);padding:3px 9px;border-radius:999px;margin-left:8px;vertical-align:3px}
+.head-right{display:flex;gap:9px;align-items:center;flex-wrap:wrap}
+.sid{background:var(--panel2);border:1px solid var(--line);border-radius:9px;color:var(--txt);padding:8px 12px;font-size:13px;width:150px;outline:none}
+.sid:focus{border-color:var(--blue)}
+.login-btn{background:transparent;border:1px solid var(--purple);color:var(--purple);border-radius:9px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer}
+.login-btn.on{color:var(--green);border-color:var(--green)}
+
+.steps{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+.step{font-size:12px;font-weight:700;color:var(--sub);background:var(--panel);border:1px solid var(--line);padding:7px 13px;border-radius:999px}
+.step.on{color:#04263a;background:var(--blue);border-color:var(--blue)}
+
+.pane{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px 20px;animation:pop .35s ease}
+@keyframes pop{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.pane h2{font-size:15px;margin-bottom:13px;color:var(--txt)}
+#idea{width:100%;min-height:110px;background:var(--panel2);border:1px solid var(--line);border-radius:12px;color:var(--txt);padding:12px 14px;font-size:15px;line-height:1.7;font-family:inherit;resize:vertical;outline:none}
+#idea:focus{border-color:var(--blue)}
+.row{display:flex;align-items:center;gap:12px;margin-top:13px;flex-wrap:wrap}
+.hint{font-size:12px;color:var(--sub)}
+button.primary{background:var(--blue);color:#04263a;border:none;border-radius:10px;padding:10px 18px;font-weight:800;font-size:14px;cursor:pointer}
+button.primary:hover{filter:brightness(1.1)}
+button.ghost{background:transparent;border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:10px 16px;font-weight:700;font-size:13px;cursor:pointer}
+button.ghost:hover{border-color:var(--purple);color:var(--purple)}
+button:disabled{opacity:.4;cursor:not-allowed}
+
+.box.ai{background:var(--panel2);border:1px solid var(--purple);border-radius:12px;padding:14px 16px;font-size:14px;line-height:1.7;margin-bottom:14px;white-space:pre-wrap}
+.box.ai .dim,.dim{color:var(--sub);font-style:italic}
+.checker .ch{font-size:12px;color:var(--sub);margin-bottom:9px}
+.ck{display:flex;justify-content:space-between;align-items:center;background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:8px 13px;margin-bottom:6px;font-size:13px}
+.ck b.bad{color:var(--orange);font-weight:800}
+.ck b.ok{color:var(--green);font-weight:800}
+
+.fields .fld{display:flex;gap:9px;align-items:flex-start;background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:9px 12px;margin-bottom:7px;font-size:13px}
+.fields .fld .k{color:var(--blue);font-weight:800;min-width:52px;padding-top:7px}
+.fields .fld input{flex:1;background:transparent;border:none;border-bottom:1px dashed var(--line);color:var(--txt);font-size:13px;padding:6px 4px;outline:none;font-family:inherit}
+.fields .fld input:focus{border-bottom-color:var(--blue)}
+.fields .fld input::placeholder{color:var(--sub)}
+
+.done{margin-top:15px;background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.5);border-radius:12px;padding:14px 16px;font-size:14px;line-height:1.8}
+.done b{color:var(--green)}
+.tip{margin-top:13px;font-size:11px;color:var(--sub);text-align:center}

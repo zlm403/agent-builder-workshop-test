@@ -1,0 +1,120 @@
+/* 课堂工作台 · 学生端（暗色 · 与教师端统一） */
+:root{
+  --bg:#070b16; --panel:#0e1730; --panel2:#13203f; --line:#26324d;
+  --txt:#e8eefc; --sub:#9fb0d0; --blue:#38bdf8; --green:#22c55e; --purple:#a78bfa; --pink:#f472b6; --orange:#fb923c;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+  background: radial-gradient(1200px 600px at 50% -10%, #14223f, #070b16 60%);
+  color: var(--txt);
+  min-height: 100vh;
+  padding: 22px 26px 60px;
+}
+.app { max-width: 960px; margin: 0 auto; }
+
+header {
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 12px; margin-bottom: 18px;
+}
+header h1 { font-size: 22px; font-weight: 800; }
+header h1 em {
+  font-style: normal; font-size: 12px; font-weight: 700;
+  color: var(--pink); border: 1px solid rgba(244,114,182,.45); background: rgba(244,114,182,.1);
+  padding: 3px 10px; border-radius: 999px; margin-left: 8px;
+}
+.sid {
+  padding: 9px 13px; border: 1px solid var(--line); border-radius: 10px;
+  font-size: 14px; outline: none; background: var(--panel2); color: var(--txt); width: 210px;
+}
+.sid:focus { border-color: var(--blue); }
+.sid::placeholder { color: var(--sub); }
+
+/* 课程切换 */
+.courses { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+.course {
+  padding: 9px 16px; border: 1px solid var(--line); border-radius: 12px;
+  background: var(--panel); color: var(--sub); font-size: 14px; cursor: pointer;
+  transition: all .15s ease;
+}
+.course:hover { border-color: var(--blue); color: var(--txt); }
+.course.on { background: var(--purple); border-color: var(--purple); color: #0b0622; font-weight: 700; }
+
+/* 面板 */
+.pane {
+  background: var(--panel); border: 1px solid var(--line); border-radius: 16px;
+  padding: 18px 20px; margin-bottom: 16px;
+}
+.pane-title { font-size: 16px; font-weight: 800; margin-bottom: 12px; }
+.dim { color: var(--sub); font-weight: 400; font-size: 13px; }
+.row { display: flex; align-items: center; gap: 12px; margin-top: 12px; flex-wrap: wrap; }
+.hint { color: var(--sub); font-size: 13px; }
+
+/* 任务卡 */
+.task-empty { padding: 26px 10px; text-align: center; color: var(--sub); font-size: 15px; line-height: 1.9; }
+.task-meta {
+  font-size: 12px; color: var(--blue); background: rgba(56,189,248,.12);
+  border: 1px solid rgba(56,189,248,.25); padding: 4px 10px; border-radius: 8px; display: inline-block; margin-bottom: 8px;
+}
+.task-title { font-size: 19px; font-weight: 700; margin-bottom: 6px; }
+.task-desc { color: var(--txt); line-height: 1.8; margin-bottom: 6px; }
+.task-goal, .task-steps { font-size: 13px; color: var(--sub); line-height: 1.7; margin-top: 4px; }
+
+/* 按钮 */
+.primary {
+  padding: 10px 22px; border: none; border-radius: 10px; background: var(--blue);
+  color: #04263a; font-size: 14px; font-weight: 800; cursor: pointer; transition: all .15s ease;
+}
+.primary:hover:not(:disabled) { filter: brightness(1.1); }
+.primary:disabled { opacity: .45; cursor: not-allowed; }
+
+/* 引导 */
+.guide { list-style: none; counter-reset: g; }
+.guide li {
+  display: flex; gap: 10px; align-items: flex-start; padding: 9px 0;
+  border-bottom: 1px dashed var(--line); font-size: 14px; line-height: 1.7; color: var(--txt);
+}
+.guide li:last-child { border-bottom: none; }
+.guide li b { flex: 0 0 20px; color: var(--blue); }
+
+/* 作品运行区 */
+.workbox { min-height: 120px; }
+.work-empty { padding: 30px 10px; text-align: center; color: var(--sub); font-size: 14px; line-height: 2; }
+.workframe {
+  width: 100%; height: 520px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel2);
+}
+
+/* 我的理解棱镜（学生端自我显影） */
+.mirror-empty { padding: 22px 10px; text-align: center; color: var(--sub); font-size: 14px; line-height: 2; }
+.mirror-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(128px, 1fr)); gap: 9px; }
+.mcell {
+  border: 1px solid var(--line); border-radius: 11px; padding: 9px 11px;
+  background: var(--panel2); position: relative;
+}
+.mcell .mn { font-size: 11px; color: var(--sub); font-weight: 700; }
+.mcell .mv { font-size: 12.5px; margin-top: 3px; font-weight: 700; color: var(--txt); line-height: 1.5; }
+.mcell .ms { font-size: 11px; font-weight: 700; margin-top: 4px; }
+.mcell .ms.ok { color: var(--green); } .mcell .ms.rec { color: var(--blue); } .mcell .ms.guess { color: #eab308; }
+.mcell .ms.clarify { color: var(--orange); } .mcell .ms.empty { color: var(--sub); } .mcell .ms.conflict { color: var(--pink); }
+.mcell.gap { border-color: var(--orange); box-shadow: 0 0 0 1px var(--orange) inset; background: rgba(251,146,60,.06); }
+.mcell.gap .mn { color: var(--orange); }
+.mirror-readback {
+  margin-top: 12px; padding: 12px 14px; border-radius: 12px; background: rgba(167,139,250,.12);
+  border: 1px solid rgba(167,139,250,.3);
+  font-size: 13.5px; line-height: 1.9; color: var(--txt); white-space: pre-line;
+}
+.mirror-gap {
+  margin-top: 12px; padding: 11px 14px; border-radius: 12px; background: rgba(251,146,60,.1);
+  border: 1px solid rgba(251,146,60,.3);
+  font-size: 13.5px; line-height: 1.8; color: #fda4af;
+}
+.mirror-score {
+  display: inline-block; margin-top: 10px; font-size: 12px; font-weight: 700;
+  color: var(--blue); background: rgba(56,189,248,.1); border: 1px solid rgba(56,189,248,.3);
+  padding: 4px 12px; border-radius: 20px;
+}
+
+.tip {
+  font-size: 12px; color: var(--sub); text-align: center; line-height: 1.9; padding: 8px;
+}
+.tip b { color: var(--blue); }

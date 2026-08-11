@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>表达梳理台 · 预备课作品</title>
+<meta http-equiv="Content-Security-Policy"
+      content="default-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' https://www.qingwuai.com https://qingwuai.com; connect-src 'self' https://www.qingwuai.com https://qingwuai.com; img-src 'self' data: https: http:; style-src 'self' 'unsafe-inline'; frame-src https://www.qingwuai.com https://qingwuai.com;">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="app">
+
+  <header>
+    <h1>🎯 表达梳理台 <em>预备课作品</em></h1>
+    <div class="sub">教学点：对象与目标 —— 从模糊想法到清晰表达</div>
+    <button id="loginBtn" class="login-btn" type="button">未登录 · 点击登录</button>
+  </header>
+
+  <!-- 步骤条 -->
+  <div class="steps">
+    <div class="step on" data-step="1"><b>1</b> 说出想法</div>
+    <div class="step" data-step="2"><b>2</b> AI 梳理</div>
+    <div class="step" data-step="3"><b>3</b> 确认修正</div>
+  </div>
+
+  <!-- 第 1 步：表达想法 -->
+  <section id="step1" class="panel">
+    <div class="card">
+      <h2>🗣 用大白话说出你的想法</h2>
+      <p class="dim">不用想清楚再说，先把脑子里模糊的想法倒出来。AI 会帮你把它梳理成"对象 + 目标 + 怎么做"。</p>
+      <textarea id="ideaInput" placeholder="例：我想做个东西，让背单词没那么痛苦……"></textarea>
+      <div class="row-right">
+        <button id="btnExpress" class="primary" type="button">🤖 让 AI 帮我梳理</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 第 2 步：AI 梳理 -->
+  <section id="step2" class="panel" hidden>
+    <div class="card">
+      <h2>🔍 AI 梳理结果</h2>
+      <div id="analyzeBox" class="thinking">思考中...</div>
+      <div class="row-right">
+        <button id="btnGoConfirm" class="primary" type="button">➡ 我觉得清楚了，去确认</button>
+        <button id="btnRework" type="button">🔄 换个说法再梳理</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 第 3 步：确认修正 -->
+  <section id="step3" class="panel" hidden>
+    <div class="card">
+      <h2>✏️ 确认与修正</h2>
+      <p class="dim">AI 按「对象 / 目标 / 怎么做 / 难点」拆好了。看看哪些对、哪些不对，改一改再让 AI 润色成最终版本。</p>
+      <div id="confirmForm"></div>
+      <div class="row-right">
+        <button id="btnPolish" class="primary" type="button">✨ 润色成清晰表达</button>
+      </div>
+    </div>
+    <div class="card" id="finalCard" hidden>
+      <h2>📄 最终表达</h2>
+      <div id="finalText" class="final-text"></div>
+      <div class="row-right">
+        <button id="btnCopy" type="button">📋 复制</button>
+        <button id="btnRestart" type="button">🔁 重新开始</button>
+      </div>
+    </div>
+  </section>
+
+  <div class="tip">本应用使用顷悟平台 AI，每次调用按用量扣您账户余额；你在本页的所有操作会自动同步给老师。</div>
+</div>
+
+<script>
+  window.QINGWU_APP_ID = '<<APP_ID>>';
+</script>
+<script src="https://www.qingwuai.com/sdk/qingwu-sdk.v1.js"></script>
+<script src="../lib/track.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

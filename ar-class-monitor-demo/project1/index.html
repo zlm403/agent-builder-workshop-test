@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>项目一 · 让 AI 听懂你的想法 · 学生端</title>
+<!-- v1.7.6: CSP 硬编码生产网关域 -->
+<meta http-equiv="Content-Security-Policy"
+      content="default-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' https://www.qingwuai.com https://qingwuai.com; connect-src 'self' https://www.qingwuai.com https://qingwuai.com; img-src 'self' data: https: http:; style-src 'self' 'unsafe-inline'; frame-src https://www.qingwuai.com https://qingwuai.com;">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="app">
+
+  <header>
+    <h1 id="appTitle">🎯 项目一 · 让 AI 听懂你的想法 <em class="tagA">顷悟 AI 应用</em></h1>
+    <div class="head-right">
+      <input id="sid" class="sid" placeholder="学号/姓名（老师能看到）" maxlength="20">
+      <!-- 顷悟铁律: 登录按钮必须始终可见可点 -->
+      <button id="loginBtn" class="login-btn" type="button">未登录 · 点击登录</button>
+    </div>
+  </header>
+
+  <!-- 三标签页 -->
+  <nav class="tabs">
+    <button class="tab on" data-tab="board" type="button">📋 项目看板</button>
+    <button class="tab" data-tab="exec" type="button">🛠 执行面板</button>
+    <button class="tab" data-tab="xray" type="button">🔍 数据穿透</button>
+  </nav>
+
+  <!-- ============ Tab1 项目看板：接收老师推送的任务 ============ -->
+  <section class="pane" id="tab-board">
+    <div class="taskcard" id="taskCard">
+      <div class="task-empty">⏳ 等待老师下发任务…<br><span class="dim">老师端推送后，这里会自动出现这一步要做什么。</span></div>
+    </div>
+    <div class="row">
+      <button id="btnTaskOk" class="primary" disabled>✓ 收到，开始执行</button>
+      <span class="hint" id="taskHint">点「收到」后老师能看到你已开始</span>
+    </div>
+  </section>
+
+  <!-- ============ Tab2 执行面板 ============ -->
+  <section class="pane" id="tab-exec" hidden>
+    <div class="mode-switch">
+      <button class="mode on" data-mode="web" type="button">🖥 网页执行（引导式）</button>
+      <button class="mode" data-mode="agent" type="button">🤖 顷悟 Agent 执行（自由对话）</button>
+    </div>
+
+    <!-- 模式A：网页执行（引导四步） -->
+    <div id="mode-web">
+      <div class="steps">
+        <div class="step on" data-step="1">① 写下想法</div>
+        <div class="step" data-step="2">② AI 翻译</div>
+        <div class="step" data-step="3">③ 补全空缺</div>
+        <div class="step" data-step="4">④ AI 回读</div>
+      </div>
+
+      <section class="subpane" id="pane1">
+        <h2>你要造一个「帮大学生学习的 AI」——先写下你的想法，别想结构。</h2>
+        <textarea id="idea" placeholder="例：我想做一个能帮大学生学习的 AI，最好有用一点…"></textarea>
+        <div class="row">
+          <button id="btn1" class="primary">▶ 提交给 AI</button>
+          <span class="hint">不用写得很清楚，写砸了正好</span>
+        </div>
+      </section>
+
+      <section class="subpane" id="pane2" hidden>
+        <h2>AI 生成的第一版 + 它到底听懂了什么？</h2>
+        <div class="box ai" id="genBox"><span class="dim">（等待生成…）</span></div>
+        <div class="checker">
+          <div class="ch">理解检查器 —— 哪些还是空的？</div>
+          <div class="ck" data-k="对象"><span>对象（谁来用）</span><b class="bad">空</b></div>
+          <div class="ck" data-k="问题"><span>问题（卡在哪）</span><b class="bad">空</b></div>
+          <div class="ck" data-k="目标"><span>目标（做到啥）</span><b class="bad">空</b></div>
+          <div class="ck" data-k="限制"><span>限制（别做什么）</span><b class="bad">空</b></div>
+          <div class="ck" data-k="场景"><span>场景（啥时候用）</span><b class="bad">空</b></div>
+          <div class="ck" data-k="标准"><span>标准（咋算好）</span><b class="bad">空</b></div>
+        </div>
+        <div class="row">
+          <button id="btn2" class="primary">🔁 让 AI 帮我翻译（先给最核心的 3 栏）</button>
+          <span class="hint">AI 不是不知道怎么做，是不知道你想做什么</span>
+        </div>
+      </section>
+
+      <section class="subpane" id="pane3" hidden>
+        <h2>AI 翻译出来了，剩下的空缺你来补（或让 AI 继续问）。</h2>
+        <div class="fields" id="fields"></div>
+        <div class="row">
+          <button id="btn3" class="primary">✍️ 都填好了，进行下一步</button>
+          <button id="btn3b" class="ghost">🤖 让 AI 继续追问</button>
+        </div>
+      </section>
+
+      <section class="subpane" id="pane4" hidden>
+        <h2>最后一步：让 AI 把「它理解的内容」念出来，你核对。</h2>
+        <div class="box ai" id="readbackBox"><span class="dim">（等待回读…）</span></div>
+        <div class="row">
+          <button id="btn4" class="primary">✓ 确认无误</button>
+          <button id="btn4b" class="ghost">↩ 不对，回去改</button>
+        </div>
+        <div class="done" id="doneBox" hidden>
+          🎉 完成！你的「AI 创造第一原则卡」已到手：<br>
+          <b>模糊 → 翻译 → 发现空缺 → 补 → 回读 → 创造</b>
+          <br><span class="dim">切到「数据穿透」标签，看看 AI 到底听到了什么。</span>
+        </div>
+      </section>
+    </div>
+
+    <!-- 模式B：顷悟 Agent 执行（自由对话，对话自动同步到监控） -->
+    <div id="mode-agent" hidden>
+      <div class="agent-intro">
+        <p>🗨 这一步你直接在 <b>顷悟 Agent 对话框</b> 里和 AI 自由对话，达成任务目标。</p>
+        <p class="dim">真实环境：顷悟项目里埋的 skill 会把你的每一轮对话自动同步到老师服务器，无需你额外操作。<br>
+        下方是演示通道，模拟「Agent 对话框 → 监控服务器」的数据流，让你看到同步效果。</p>
+      </div>
+      <div class="agent-chat" id="agentChat">
+        <div class="dim">（通道已就绪，等待第一轮对话…）</div>
+      </div>
+      <div class="agent-input">
+        <input id="agentInput" placeholder="在顷悟 Agent 里输入…（此演示模拟该对话并自动上报）" maxlength="300">
+        <button id="btnAgent" class="primary">发送</button>
+      </div>
+      <div class="sync-line" id="agentSync"><span class="dot ok"></span> 同步通道正常 · 已上报 <b id="agentCount">0</b> 轮对话到监控</div>
+    </div>
+  </section>
+
+  <!-- ============ Tab3 数据穿透看板 ============ -->
+  <section class="pane" id="tab-xray" hidden>
+    <h2>🔍 你以为的 vs 大模型听到的</h2>
+    <div class="xray-note dim">你说的话、AI 的理解、你的补全——全部实时同步给老师，老师也会做分析。</div>
+
+    <div class="xray-compare">
+      <div class="xc-col">
+        <div class="xc-title">你说了什么（原话）</div>
+        <div class="xc-body" id="xrIdea"><span class="dim">（先在执行面板提交想法）</span></div>
+      </div>
+      <div class="xc-arrow">➜</div>
+      <div class="xc-col">
+        <div class="xc-title">AI 听到的结构化理解</div>
+        <div class="xc-body" id="xrFields">
+          <div class="ck" data-k="对象"><span>对象</span><b class="bad">空</b></div>
+          <div class="ck" data-k="问题"><span>问题</span><b class="bad">空</b></div>
+          <div class="ck" data-k="目标"><span>目标</span><b class="bad">空</b></div>
+          <div class="ck" data-k="限制"><span>限制</span><b class="bad">空</b></div>
+          <div class="ck" data-k="场景"><span>场景</span><b class="bad">空</b></div>
+          <div class="ck" data-k="标准"><span>标准</span><b class="bad">空</b></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="gap-box" id="gapBox" hidden>
+      <b>⚠️ 你以为是"说清楚了"，AI 实际还缺这些：</b>
+      <div id="gapList" class="gap-list"></div>
+    </div>
+
+    <div class="agent-log-box" id="agentLogBox" hidden>
+      <b>🤖 顷悟 Agent 自由对话（已同步）</b>
+      <div id="agentLog" class="agent-log"></div>
+    </div>
+
+    <div class="row">
+      <button id="btnAnalyze" class="primary">🧠 生成 AI 复盘点评</button>
+      <span class="hint">点评会同步给老师</span>
+    </div>
+    <div class="box ai" id="analyzeBox" hidden><span class="dim">（点击生成…）</span></div>
+  </section>
+
+  <div class="tip">本应用使用顷悟平台 AI，每次调用按用量扣您的账户余额（演示环境若未登录将用内置模拟回复）。你在本页的所有操作与顷悟 Agent 对话都会自动同步到老师端。</div>
+</div>
+
+<script>
+  window.QINGWU_APP_ID = '<<APP_ID>>';
+</script>
+<script src="https://www.qingwuai.com/sdk/qingwu-sdk.v1.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

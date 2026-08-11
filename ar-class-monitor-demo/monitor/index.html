@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>老师监控看板 · 课堂实况</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>📡 课堂监控看板 <em>老师端</em></h1>
+    <div class="head-right">
+      <span class="chip" id="liveChip">● 实时监控中</span>
+      <button id="clearBtn" class="ghost">清空记录</button>
+    </div>
+  </header>
+
+  <!-- 课程筛选 -->
+  <div class="coursebar">
+    <span class="c-label">课程：</span>
+    <button class="cbtn on" data-course="all" type="button">全部</button>
+    <button class="cbtn" data-course="pre" type="button">🗨 预备课</button>
+    <button class="cbtn" data-course="1" type="button">🎮 第一课 · 游戏</button>
+    <button class="cbtn" data-course="2" type="button">🛠 第二课 · 工具</button>
+    <button class="cbtn" data-course="4" type="button">🤖 综合课 · AI 应用</button>
+  </div>
+
+  <!-- 任务推送 -->
+  <div class="pushcard">
+    <div class="pushhead">📨 推送课堂任务 <span class="dim" id="pushCourseTag">（推送给当前选中的课程）</span></div>
+    <div class="pushgrid">
+      <input id="tNo" class="tno" placeholder="任务编号，如：任务一" maxlength="12">
+      <input id="tTitle" placeholder="任务标题，如：造一个帮大学生学习的 AI" maxlength="60">
+    </div>
+    <textarea id="tDesc" rows="2" placeholder="任务说明：这一步要做什么（学生一看就懂）"></textarea>
+    <div class="pushgrid">
+      <input id="tGoal" placeholder="🎯 目标（可选）" maxlength="80">
+      <input id="tSteps" placeholder="📌 步骤提示（可选，用换行分隔）" maxlength="200">
+    </div>
+    <div class="row">
+      <button id="btnPush" class="primary">📨 推送给全班</button>
+      <span class="hint" id="pushHint">推送后对应课程学生端会自动收到</span>
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><b id="stEvents">0</b><span>事件总数</span></div>
+    <div class="stat"><b id="stStudents">0</b><span>学生人数</span></div>
+    <div class="stat"><b id="stFinish">0</b><span>已完成</span></div>
+    <div class="stat"><b id="stAgent">0</b><span>Agent 对话轮</span></div>
+    <div class="stat"><b id="stWork">0</b><span>作品数据</span></div>
+  </div>
+
+  <!-- 班级理解棱镜（一核多表：每课各穿各自的维度表） -->
+  <div class="prismbar">
+    <div class="prismhead">🔍 班级理解棱镜 <span class="dim" id="prismInfo">（先选课程，看这一课全班哪里没立住）</span></div>
+    <div id="prismGrid" class="prism-grid"><div class="empty">选择上方课程后查看班级棱镜</div></div>
+    <div class="prism-foot">每格显示全班该维度「最常见状态」：✅已确认 · 📋已识别 · 🟡推测 · △待澄清 · ⬜空缺 · 🔴冲突。橙色描边 = 全班普遍没立住的维度（课堂要一起补的）。</div>
+  </div>
+
+  <div class="toolbar">
+    <span class="f-label">来源筛选：</span>
+    <button class="fbtn on" data-filter="all" type="button">全部</button>
+    <button class="fbtn" data-filter="web" type="button">🖥 作品/网页</button>
+    <button class="fbtn" data-filter="agent" type="button">🤖 顷悟 Agent</button>
+    <button class="fbtn" data-filter="task" type="button">📨 任务</button>
+  </div>
+
+  <div class="cols">
+    <div class="col">
+      <div class="colh">👥 学生列表 <span class="dim">（点击看轨迹+穿透分析）</span></div>
+      <div id="studentList" class="list"><div class="empty">等待学生进入…</div></div>
+    </div>
+    <div class="col">
+      <div class="colh">🕒 事件时间线 <span class="dim" id="tlInfo"></span></div>
+      <div id="timeline" class="list"><div class="empty">暂无事件</div></div>
+    </div>
+  </div>
+
+  <div class="xray" id="xrayPanel" hidden>
+    <div class="xray-head">🔍 穿透分析 <span class="dim" id="xraySid"></span></div>
+    <div class="xray-cols">
+      <div class="xc-box">
+        <div class="xc-t">学员原话</div>
+        <div id="xIdea" class="xc-body dim">（暂无）</div>
+      </div>
+      <div class="xc-box">
+        <div class="xc-t">AI 听到的结构化理解</div>
+        <div id="xFields" class="xc-body">（暂无）</div>
+      </div>
+      <div class="xc-box">
+        <div class="xc-t">Agent 自由对话</div>
+        <div id="xAgent" class="xc-body dim">（暂无）</div>
+      </div>
+      <div class="xc-box">
+        <div class="xc-t">🎮 作品使用轨迹</div>
+        <div id="xWork" class="xc-body dim">（暂无）</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="../lib/analyze.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

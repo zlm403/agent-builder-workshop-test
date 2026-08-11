@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>校园活动方案生成器 · 第二课作品</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="app">
+
+  <header>
+    <h1>🛠 校园活动方案生成器 <em>第二课作品</em></h1>
+    <div class="sub">教学点：流程与规则 —— 收集输入 → 检查信息 → 拆解步骤 → 设置规则 → 规范输出 → 测试异常</div>
+  </header>
+
+  <nav class="tabs">
+    <button class="tab on" data-panel="make" type="button">📝 生成方案</button>
+    <button class="tab" data-panel="test" type="button">🧪 异常测试</button>
+    <button class="tab" data-panel="rules" type="button">📏 我的规则</button>
+  </nav>
+
+  <!-- 生成方案 -->
+  <section id="make" class="panel">
+    <div class="card">
+      <h2>📝 告诉我活动信息，我生成完整方案</h2>
+      <div class="form">
+        <label>活动主题 <b class="req">*</b>
+          <input id="fTheme" placeholder="例：迎新晚会 / 校园运动会" maxlength="30">
+        </label>
+        <label>活动日期 <b class="req">*</b>
+          <input id="fDate" placeholder="例：2026-09-20" maxlength="20">
+        </label>
+        <label>参与人数 <b class="req">*</b> <span class="dim">（数字）</span>
+          <input id="fPeople" placeholder="例：300" maxlength="6" inputmode="numeric">
+        </label>
+        <label>场地 <b class="req">*</b>
+          <select id="fVenue"></select>
+        </label>
+        <label>预算（元） <b class="req">*</b> <span class="dim">（数字）</span>
+          <input id="fBudget" placeholder="例：10000" maxlength="9" inputmode="numeric">
+        </label>
+        <label>时长
+          <select id="fDuration">
+            <option value="半天">半天</option>
+            <option value="一天" selected>一天</option>
+            <option value="两天">两天</option>
+          </select>
+        </label>
+      </div>
+      <div class="row">
+        <button id="btnGen" class="primary">⚙️ 生成方案</button>
+        <span class="hint">信息不全 / 不合规则时，它会先检查再追问</span>
+      </div>
+      <div id="checkBox" class="check-box" hidden></div>
+      <div id="planBox" class="plan-box" hidden>
+        <div class="plan-head">
+          <h3 id="planTitle"></h3>
+          <button id="btnCopy" class="ghost">📋 复制方案</button>
+        </div>
+        <div id="planBody" class="plan-body"></div>
+        <div class="plan-warns" id="planWarns"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 异常测试 -->
+  <section id="test" class="panel" hidden>
+    <div class="card">
+      <h2>🧪 异常测试：看系统怎么接住"坏输入"</h2>
+      <p class="dim">好的服务不止会回答，还要能处理异常。试试下面这些情况：</p>
+      <div class="test-cases" id="testCases"></div>
+      <div id="testOut" class="bt-result" hidden></div>
+    </div>
+  </section>
+
+  <!-- 规则 -->
+  <section id="rules" class="panel" hidden>
+    <div class="card">
+      <h2>📏 我的规则</h2>
+      <p class="dim" id="rulesIntro"></p>
+      <div class="rules-list" id="rulesList"></div>
+      <div class="hint-line dim">✏️ 编辑 <code>config.js</code>：场地容量、人均预算、方案环节模板——这就是「设置规则」。</div>
+    </div>
+  </section>
+
+</div>
+<script src="../lib/track.js"></script>
+<script src="config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

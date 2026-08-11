@@ -1,0 +1,73 @@
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;
+  background: linear-gradient(150deg, #eef7ff 0%, #f5f0ff 100%);
+  color: #1f2430; min-height: 100vh; padding: 22px;
+}
+.app { max-width: 680px; margin: 0 auto; }
+header h1 { font-size: 24px; }
+header h1 em { font-style: normal; font-size: 12px; color: #e8590c; background: #ffe8d9; padding: 3px 10px; border-radius: 20px; margin-left: 6px; }
+.sub { font-size: 13px; color: #8a90a3; margin-top: 4px; }
+
+/* tabs */
+.tabs { display: flex; gap: 8px; margin: 16px 0 12px; }
+.tab { padding: 9px 16px; border: 1.5px solid #d5d9e6; border-radius: 12px; background: #fff; color: #444; font-size: 14px; cursor: pointer; }
+.tab.on { background: #e8590c; border-color: #e8590c; color: #fff; font-weight: 700; }
+
+/* cards */
+.card { background: #fff; border-radius: 16px; padding: 20px; box-shadow: 0 4px 18px rgba(31,36,48,.06); }
+.center { text-align: center; }
+.card h2 { font-size: 18px; margin-bottom: 8px; }
+.dim { color: #8a90a3; font-size: 13px; line-height: 1.8; }
+.card p { margin-bottom: 8px; }
+.card b { color: #e8590c; }
+
+/* quiz */
+.quiz-top { display: flex; justify-content: space-between; margin-bottom: 14px; }
+.chip { font-size: 12px; font-weight: 700; background: #f1f3f8; padding: 4px 12px; border-radius: 20px; }
+.chip.score { background: #fff3e8; color: #e8590c; }
+.quiz-q { font-size: 17px; font-weight: 700; margin-bottom: 14px; line-height: 1.6; }
+.quiz-options { display: grid; gap: 9px; }
+.opt { text-align: left; padding: 12px 14px; border: 1.5px solid #d5d9e6; border-radius: 12px; background: #fbfbfd; font-size: 14px; cursor: pointer; color: #1f2430; }
+.opt:hover:not(:disabled) { border-color: #e8590c; background: #fff6f0; }
+.opt:disabled { opacity: .75; cursor: default; }
+.opt.right { border-color: #22c55e; background: #f0fdf4; font-weight: 700; }
+.opt.wrong { border-color: #ef4444; background: #fef2f2; }
+
+.quiz-feedback { margin-top: 14px; padding: 12px 14px; border-radius: 12px; font-size: 14px; font-weight: 700; }
+.quiz-feedback.ok { background: #f0fdf4; color: #15803d; }
+.quiz-feedback.bad { background: #fef2f2; color: #b91c1c; }
+.basis { margin-top: 8px; font-size: 13px; font-weight: 400; color: #57534e; background: #fafafa; padding: 8px 10px; border-radius: 8px; line-height: 1.6; }
+.bt-result .basis { margin-top: 8px; }
+
+/* buttons */
+.primary { margin-top: 14px; padding: 11px 26px; border: none; border-radius: 12px; background: #e8590c; color: #fff; font-size: 14px; font-weight: 700; cursor: pointer; }
+.primary:hover { filter: brightness(1.08); }
+
+/* result */
+.score-big { font-size: 40px; font-weight: 900; color: #e8590c; margin: 10px 0 4px; }
+
+/* boundary test */
+.row { display: flex; gap: 10px; margin-top: 12px; }
+.row input { flex: 1; padding: 11px 13px; border: 1.5px solid #d5d9e6; border-radius: 12px; font-size: 14px; outline: none; }
+.row input:focus { border-color: #e8590c; }
+.row .primary { margin-top: 0; }
+.bt-result { margin-top: 14px; padding: 14px; border-radius: 12px; }
+.bt-result.in { background: #f0fdf4; border: 1px solid #bbf7d0; }
+.bt-result.out { background: #fef2f2; border: 1px solid #fecaca; }
+.bt-result.mid { background: #fffbeb; border: 1px solid #fde68a; }
+.bt-title { font-weight: 800; font-size: 15px; margin-bottom: 6px; }
+.bt-result.in .bt-title { color: #15803d; }
+.bt-result.out .bt-title { color: #b91c1c; }
+.bt-result.mid .bt-title { color: #a16207; }
+.bt-body { font-size: 14px; line-height: 1.7; margin-bottom: 6px; }
+.hint-line { margin-top: 12px; font-size: 12px; line-height: 1.8; }
+.hint-line code { background: #f1f3f8; padding: 2px 6px; border-radius: 6px; }
+
+/* data library */
+.data-head { display: flex; justify-content: space-between; align-items: center; }
+.data-list { margin-top: 12px; display: grid; gap: 10px; }
+.d-item { border: 1px solid #e6e8f0; border-radius: 12px; padding: 12px 14px; background: #fbfbfd; }
+.d-q { font-weight: 700; font-size: 14px; margin-bottom: 6px; }
+.d-opts { font-size: 13px; color: #57534e; margin-bottom: 6px; }
+.d-basis { font-size: 12.5px; color: #8a90a3; background: #fff; padding: 6px 10px; border-radius: 8px; }

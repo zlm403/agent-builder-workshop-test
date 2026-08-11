@@ -1,0 +1,236 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+AR 教学监控 · 数据服务（数据基座 P1）
+
+职责：
+  1. 静态文件服务（替代 python -m http.server，现有页面零改动可访问）
+  2. POST /api/collect  接收事件 { ts, sid, event, payload }（或数组），追加到 agent-live/events.jsonl
+  3. GET  /api/events   返回事件 JSON 数组，支持 ?since= 增量拉取、?sid= 过滤
+  4. CORS 全开（学员作品可能跑在顷悟域名 / 局域网其它端口，需要跨域上报）
+
+用法：
+  python server.py [port]        # 默认 8099，绑定 0.0.0.0（局域网可访问）
+
+数据文件：
+  agent-live/events.jsonl        # 与 agent-conversation-log skill 同一数据源，单文件统一
+"""
+import json
+import os
+import sys
+import time
+from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
+from urllib.parse import urlparse, parse_qs
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DATA_FILE = os.path.join(BASE_DIR, 'agent-live', 'events.jsonl')
+
+
+def ensure_data_file():
+    os.makedirs(os.path.dirname(DATA_FILE), exist_ok=True)
+    if not os.path.exists(DATA_FILE):
+        with open(DATA_FILE, 'w', encoding='utf-8') as f:
+            f.write('')
+
+
+def load_events():
+    """读全量事件（坏行跳过，保证服务不因脏数据挂掉）"""
+    ensure_data_file()
+    out = []
+    try:
+        with open(DATA_FILE, 'r', encoding='utf-8') as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    e = json.loads(line)
+                    if isinstance(e, dict) and 'event' in e:
+                        out.append(e)
+                except Exception:
+                    pass
+    except Exception:
+        pass
+    return out
+
+
+PAGE_COURSE = {
+    'warmup': '0', 'lesson1-game': '1', 'lesson2-tool': '2',
+    'agent-team': '4', 'student-workbench': None,
+}
+
+# 与 lib/analyze.js pickText/taskIdOf 保持一致（服务端只提取原文与课标，穿透判定在前端做）
+TEXT_KEYS = ['idea', 'question', 'desc', 'goal', 'text']
+COURSE_TASK = {'0': 'pre', '1': 't1', '2': 't2', '4': 't3'}
+
+
+def pick_text(payload):
+    if not isinstance(payload, dict):
+        return None
+    for k in TEXT_KEYS:
+        v = payload.get(k)
+        if v and str(v).strip():
+            return str(v).strip()
+    return None
+
+
+def task_id_of(payload):
+    if not isinstance(payload, dict):
+        return None
+    t = payload.get('task')
+    if t in ('pre', 't1', 't2', 't3'):
+        return t
+    return COURSE_TASK.get(str(payload.get('course') or ''))
+
+
+def class_aggregate(events):
+    """班级聚合：学生状态 + 每课事件轨迹（供 monitor/bigscreen 展示）。
+
+    返回结构：
+      students: {sid: {name, lastTask, lastText, turns, ts}}      —— 学生总览（任意课最近输入）
+      byTask:   {pre/t1/t2/t3: {sid: {events: [{event,payload}...最近在前], ts}}}
+                                                              —— 每任务×每学生完整作品轨迹
+      taskTurn: {pre/t1/t2/t3: 事件数}
+      totalTurns: 总事件数
+    说明：棱镜穿透判定（每课各自的维度表）由前端 lib/analyze.js gridFor(task, events)
+    对 byTask 里每个学生的轨迹跑，服务端不重复实现判定逻辑。
+    """
+    students = {}
+    by_task = {'pre': {}, 't1': {}, 't2': {}, 't3': {}}
+    task_turn = {'pre': 0, 't1': 0, 't2': 0, 't3': 0}
+    for e in events:
+        sid = e.get('sid') or 'anonymous'
+        payload = e.get('payload') or {}
+        task = task_id_of(payload)
+        if task:
+            task_turn[task] = task_turn.get(task, 0) + 1
+        s = students.setdefault(sid, {'name': sid, 'lastTask': None, 'lastText': None, 'turns': 0, 'ts': 0})
+        s['turns'] += 1
+        ts = e.get('ts', 0)
+        text = pick_text(payload)
+        if text:
+            s['lastText'] = text
+            s['lastTask'] = task or s['lastTask']
+            s['ts'] = ts
+        if task:
+            bt = by_task[task].setdefault(sid, {'events': [], 'ts': 0})
+            bt['events'].append({'event': e.get('event'), 'payload': payload})
+            bt['ts'] = max(bt['ts'], ts)
+    for task in by_task:
+        for sid in by_task[task]:
+            evs = by_task[task][sid]['events']
+            evs.reverse()                     # 最近在前
+            by_task[task][sid]['events'] = evs[:200]
+    return {'students': students, 'byTask': by_task, 'taskTurn': task_turn, 'totalTurns': len(events)}
+
+
+def normalize_course(e):
+    """老数据可能没带 course：从 payload.page 推断课标，保证按课聚合可用。"""
+    p = e.get('payload') or {}
+    if not isinstance(p, dict):
+        return e
+    if p.get('course'):
+        return e
+    page = p.get('page')
+    if page in PAGE_COURSE and PAGE_COURSE[page]:
+        p['course'] = PAGE_COURSE[page]
+    return e
+
+
+def append_events(items):
+    """追加事件，返回成功条数"""
+    ensure_data_file()
+    n = 0
+    with open(DATA_FILE, 'a', encoding='utf-8') as f:
+        for e in items:
+            if not isinstance(e, dict) or 'event' not in e:
+                continue
+            e.setdefault('ts', int(time.time() * 1000))
+            e.setdefault('sid', 'anonymous')
+            e.setdefault('payload', {})
+            normalize_course(e)
+            f.write(json.dumps(e, ensure_ascii=False) + '\n')
+            n += 1
+    return n
+
+
+class Handler(SimpleHTTPRequestHandler):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, directory=BASE_DIR, **kwargs)
+
+    # ---------- CORS ----------
+    def _cors(self):
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
+
+    def _json(self, code, obj):
+        body = json.dumps(obj, ensure_ascii=False).encode('utf-8')
+        self.send_response(code)
+        self.send_header('Content-Type', 'application/json; charset=utf-8')
+        self.send_header('Content-Length', str(len(body)))
+        self._cors()
+        self.end_headers()
+        self.wfile.write(body)
+
+    def do_OPTIONS(self):
+        self.send_response(204)
+        self._cors()
+        self.end_headers()
+
+    # ---------- 路由 ----------
+    def do_GET(self):
+        parsed = urlparse(self.path)
+        if parsed.path == '/api/events':
+            q = parse_qs(parsed.query)
+            try:
+                since = float(q.get('since', ['0'])[0])
+            except ValueError:
+                since = 0
+            sidf = q.get('sid', [None])[0]
+            events = [e for e in load_events() if e.get('ts', 0) > since]
+            if sidf:
+                events = [e for e in events if e.get('sid') == sidf]
+            self._json(200, events)
+            return
+        if parsed.path == '/api/class':
+            agg = class_aggregate(load_events())
+            self._json(200, agg)
+            return
+        super().do_GET()
+
+    def do_POST(self):
+        parsed = urlparse(self.path)
+        if parsed.path == '/api/collect':
+            try:
+                length = int(self.headers.get('Content-Length', 0))
+                raw = self.rfile.read(length) if length else b''
+                if not raw:
+                    self._json(400, {'ok': False, 'error': 'empty body'})
+                    return
+                data = json.loads(raw.decode('utf-8'))
+                items = data if isinstance(data, list) else [data]
+                if not isinstance(items[0], dict) or 'event' not in items[0]:
+                    self._json(400, {'ok': False, 'error': 'item must contain event field'})
+                    return
+                n = append_events(items)
+                self._json(200, {'ok': True, 'count': n})
+            except Exception as ex:
+                self._json(400, {'ok': False, 'error': str(ex)})
+            return
+        self._json(404, {'ok': False, 'error': 'not found'})
+
+    def log_message(self, fmt, *args):
+        print('[%s] %s' % (time.strftime('%H:%M:%S'), fmt % args))
+
+
+if __name__ == '__main__':
+    port = int(sys.argv[1]) if len(sys.argv) > 1 else 8099
+    server = ThreadingHTTPServer(('0.0.0.0', port), Handler)
+    print('AR Monitor Data Service  ->  http://0.0.0.0:%d' % port)
+    print('data file: %s' % DATA_FILE)
+    print('API: POST /api/collect | GET /api/events?since=...')
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        pass

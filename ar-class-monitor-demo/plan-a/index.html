@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>方案A · 顷悟 AI 应用版 · 学生端</title>
+<!-- v1.7.6: CSP 硬编码生产网关域 -->
+<meta http-equiv="Content-Security-Policy"
+      content="default-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' https://www.qingwuai.com https://qingwuai.com; connect-src 'self' https://www.qingwuai.com https://qingwuai.com; img-src 'self' data: https: http:; style-src 'self' 'unsafe-inline'; frame-src https://www.qingwuai.com https://qingwuai.com;">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1 id="appTitle">🎓 让 AI 听懂你的想法 · 学生端 <em class="tagA">方案A · 顷悟 AI 应用</em></h1>
+    <div class="head-right">
+      <input id="sid" class="sid" placeholder="学号/姓名（老师能看到）" maxlength="20">
+      <!-- 顷悟铁律: 登录按钮必须始终可见可点 -->
+      <button id="loginBtn" class="login-btn" type="button">未登录 · 点击登录</button>
+    </div>
+  </header>
+
+  <!-- 四步走 -->
+  <div class="steps">
+    <div class="step on" data-step="1">① 写下想法</div>
+    <div class="step" data-step="2">② AI 翻译</div>
+    <div class="step" data-step="3">③ 补全空缺</div>
+    <div class="step" data-step="4">④ AI 回读</div>
+  </div>
+
+  <!-- 第1步: 写下想法 -->
+  <section class="pane" id="pane1">
+    <h2>你要造一个「帮大学生学习的 AI」——先写下你的想法，别想结构。</h2>
+    <textarea id="idea" placeholder="例：我想做一个能帮大学生学习的 AI，最好有用一点…"></textarea>
+    <div class="row">
+      <button id="btn1" class="primary">▶ 提交给 AI</button>
+      <span class="hint">不用写得很清楚，写砸了正好</span>
+    </div>
+  </section>
+
+  <!-- 第2步: AI 翻译 + 理解检查器 -->
+  <section class="pane" id="pane2" hidden>
+    <h2>AI 生成的第一版 + 它到底听懂了什么？</h2>
+    <div class="box ai" id="genBox"><span class="dim">（等待生成…）</span></div>
+    <div class="checker">
+      <div class="ch">理解检查器 —— 哪些还是空的？</div>
+      <div class="ck" data-k="对象"><span>对象（谁来用）</span><b class="bad">空</b></div>
+      <div class="ck" data-k="问题"><span>问题（卡在哪）</span><b class="bad">空</b></div>
+      <div class="ck" data-k="目标"><span>目标（做到啥）</span><b class="bad">空</b></div>
+      <div class="ck" data-k="限制"><span>限制（别做什么）</span><b class="bad">空</b></div>
+      <div class="ck" data-k="场景"><span>场景（啥时候用）</span><b class="bad">空</b></div>
+      <div class="ck" data-k="标准"><span>标准（咋算好）</span><b class="bad">空</b></div>
+    </div>
+    <div class="row">
+      <button id="btn2" class="primary">🔁 让 AI 帮我翻译（先给最核心的 3 栏）</button>
+      <span class="hint">AI 不是不知道怎么做，是不知道你想做什么</span>
+    </div>
+  </section>
+
+  <!-- 第3步: 补全空缺 -->
+  <section class="pane" id="pane3" hidden>
+    <h2>AI 翻译出来了，剩下的空缺你来补（或让 AI 继续问）。</h2>
+    <div class="fields" id="fields"></div>
+    <div class="row">
+      <button id="btn3" class="primary">✍️ 都填好了，进行下一步</button>
+      <button id="btn3b" class="ghost">🤖 让 AI 继续追问</button>
+    </div>
+  </section>
+
+  <!-- 第4步: AI 回读 -->
+  <section class="pane" id="pane4" hidden>
+    <h2>最后一步：让 AI 把「它理解的内容」念出来，你核对。</h2>
+    <div class="box ai" id="readbackBox"><span class="dim">（等待回读…）</span></div>
+    <div class="row">
+      <button id="btn4" class="primary">✓ 确认无误</button>
+      <button id="btn4b" class="ghost">↩ 不对，回去改</button>
+    </div>
+    <div class="done" id="doneBox" hidden>
+      🎉 完成！你的「AI 创造第一原则卡」已到手：<br>
+      <b>模糊 → 翻译 → 发现空缺 → 补 → 回读 → 创造</b>
+    </div>
+  </section>
+
+  <div class="tip">本应用使用顷悟平台 AI，每次调用按用量扣您的账户余额（演示环境若未登录将用内置模拟回复）</div>
+</div>
+
+<script>
+  window.QINGWU_APP_ID = '<<APP_ID>>';
+</script>
+<script src="https://www.qingwuai.com/sdk/qingwu-sdk.v1.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

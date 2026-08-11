@@ -1,0 +1,26 @@
+# ===== 项目构建/运行时产物 =====
+node_modules/
+.next/
+out/
+build/
+dist/
+
+# ===== 敏感配置（含真实密钥，绝不提交）=====
+.env
+.env.local
+.env.deploy
+.env.*.local
+
+# ===== TypeScript 增量缓存 =====
+*.tsbuildinfo
+
+# ===== 系统文件 =====
+.DS_Store
+Thumbs.db
+*.log
+
+# ===== 其它非代码目录（不纳入本次课程代码仓库）=====
+/ai-dreamlab/
+
+# ===== 根目录重复的 prisma schema（标准位置为 prisma/schema.prisma）=====
+/schema.prisma

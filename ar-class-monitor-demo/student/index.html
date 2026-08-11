@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>课堂工作台 · 学生端</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="app">
+
+  <header>
+    <h1>🎯 课堂工作台 <em>学生端</em></h1>
+    <div class="head-right">
+      <input id="sid" class="sid" placeholder="学号/姓名（老师能看到）" maxlength="20">
+    </div>
+  </header>
+
+  <!-- 课程切换 -->
+  <nav class="courses" id="courseNav">
+    <button class="course on" data-course="pre" type="button">🗨 预备课</button>
+    <button class="course" data-course="1" type="button">🎮 第一课 · 游戏</button>
+    <button class="course" data-course="2" type="button">🛠 第二课 · 工具</button>
+    <button class="course" data-course="4" type="button">🤖 综合课 · AI 应用</button>
+  </nav>
+
+  <!-- 任务看板 -->
+  <section class="pane">
+    <div class="pane-title">📋 任务看板 <span class="dim" id="taskCourseTag"></span></div>
+    <div class="taskcard" id="taskCard">
+      <div class="task-empty">⏳ 等待老师下发任务…<br><span class="dim">老师端推送后，这里会自动出现这一步要做什么。</span></div>
+    </div>
+    <div class="row">
+      <button id="btnTaskOk" class="primary" disabled>✓ 收到，开始执行</button>
+      <span class="hint" id="taskHint">点「收到」后老师能看到你已开始</span>
+    </div>
+  </section>
+
+  <!-- 本课引导 -->
+  <section class="pane">
+    <div class="pane-title">🧭 本课引导 <span class="dim" id="guideCourse"></span></div>
+    <ol class="guide" id="guideList"></ol>
+  </section>
+
+  <!-- 我的理解棱镜（学生端自我显影） -->
+  <section class="pane">
+    <div class="pane-title">🔍 我的理解棱镜 <span class="dim" id="mirrorCourse"></span></div>
+    <div id="mirrorBody">
+      <div class="mirror-empty">📝 你在这课留下的每一步，都会在这里显影成「理解棱镜」——<br><span class="dim">哪格是绿的（已确认），哪格还是空的（缺口），让你亲眼看到自己哪里没说清、没做完。</span></div>
+    </div>
+  </section>
+
+  <!-- 作品运行容器 -->
+  <section class="pane">
+    <div class="pane-title">🎮 作品运行区 <span class="dim">（你做的作品在这里跑，使用数据自动上报给老师）</span></div>
+    <div id="workBox" class="workbox">
+      <div class="work-empty" id="workEmpty">📦 作品尚未生成…<br><span class="dim">按上面引导完成创作后，作品会自动出现在这里。</span></div>
+    </div>
+  </section>
+
+  <div class="tip">🗨 与 AI 的对话请到 <b>顷悟 APP</b> 打开本课应用进行；这里只运行你的作品。你在本页的所有操作都会自动同步到老师端。</div>
+</div>
+
+<script src="../lib/track.js"></script>
+<script src="../lib/analyze.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

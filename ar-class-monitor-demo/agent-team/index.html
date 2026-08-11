@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>多员工应用工坊 · 下午综合课作品</title>
+<meta http-equiv="Content-Security-Policy"
+      content="default-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' https://www.qingwuai.com https://qingwuai.com; connect-src 'self' https://www.qingwuai.com https://qingwuai.com; img-src 'self' data: https: http:; style-src 'self' 'unsafe-inline'; frame-src https://www.qingwuai.com https://qingwuai.com;">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="app">
+
+  <header>
+    <h1>🤖 多员工应用工坊 <em>下午综合课作品</em></h1>
+    <div class="sub">教学点：能力与工具 —— 从单个员工到能力系统：拆目标 → 分员工 → 选工具 → 设计交接 → 测试发布</div>
+    <button id="loginBtn" class="login-btn" type="button">未登录 · 点击登录</button>
+  </header>
+
+  <!-- 步骤条 -->
+  <div class="steps">
+    <div class="step on" data-step="1"><b>1</b> 目标</div>
+    <div class="step" data-step="2"><b>2</b> 拆能力</div>
+    <div class="step" data-step="3"><b>3</b> 配员工</div>
+    <div class="step" data-step="4"><b>4</b> 交接</div>
+    <div class="step" data-step="5"><b>5</b> 测试发布</div>
+  </div>
+
+  <!-- 第 1 步：目标 -->
+  <section id="step1" class="panel">
+    <div class="card">
+      <h2>🎯 输入一个目标</h2>
+      <p class="dim">想想"一个 AI 应用能帮我完成什么服务"？把这个目标写下来，AI 会帮你拆成一组能力，每个能力配一个 AI 员工。</p>
+      <textarea id="goalInput" placeholder="例：办一场校园迎新晚会 / 做一个班级二手书交换平台 / 组织一次周末郊游"></textarea>
+      <div class="row-right">
+        <button id="btnBreak" class="primary" type="button">🧩 拆解能力</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 第 2 步：拆能力 -->
+  <section id="step2" class="panel" hidden>
+    <div class="card">
+      <h2>🧩 能力清单（AI 从目标拆出来的）</h2>
+      <div id="abilityBox" class="thinking">正在拆解能力...</div>
+      <div class="row-right">
+        <button id="btnToStaff" class="primary" type="button">➡ 为每个能力配员工</button>
+        <button id="btnReworkGoal" type="button">🔄 换个目标</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 第 3 步：配员工 -->
+  <section id="step3" class="panel" hidden>
+    <div class="card">
+      <h2>👥 员工配置 <span class="dim">（每个能力一个 AI 员工，可改名、改职责、勾选工具）</span></h2>
+      <div id="staffList"></div>
+      <div class="row-right">
+        <button id="btnToHandoff" class="primary" type="button">➡ 设计交接</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 第 4 步：交接 -->
+  <section id="step4" class="panel" hidden>
+    <div class="card">
+      <h2>🔗 交接链 <span class="dim">（谁做完交给谁？可上下调整顺序）</span></h2>
+      <div id="handoffBox" class="thinking">正在设计交接链...</div>
+      <div id="handoffList"></div>
+      <div class="row-right">
+        <button id="btnToTest" class="primary" type="button">➡ 测试并发布</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 第 5 步：测试发布 -->
+  <section id="step5" class="panel" hidden>
+    <div class="card">
+      <h2>🧪 测试员工</h2>
+      <p class="dim">点一个员工，像真实用户一样向它提问，看它能不能接住你的需求。这是上线前最重要的测试。</p>
+      <div id="staffTabs"></div>
+      <div id="chatBox" class="chat-box">
+        <div class="msg assistant"><div class="bubble">选择一个员工开始测试对话吧。</div></div>
+      </div>
+      <div class="input-row">
+        <input id="chatInput" placeholder="向这个员工提问...">
+        <button id="btnSend" type="button">发送</button>
+      </div>
+    </div>
+    <div class="card" id="publishCard" hidden>
+      <h2>🚀 发布：团队说明书</h2>
+      <div id="publishText" class="final-text"></div>
+      <div class="row-right">
+        <button id="btnCopy" type="button">📋 复制</button>
+        <button id="btnRestart" type="button">🔁 重新做一个</button>
+      </div>
+    </div>
+    <div class="row-right">
+      <button id="btnPublish" class="primary" type="button">🚀 生成团队说明书</button>
+    </div>
+  </section>
+
+  <div class="tip">本应用使用顷悟平台 AI，每次调用按用量扣您账户余额；你在本页的所有操作会自动同步给老师。</div>
+</div>
+
+<script>
+  window.QINGWU_APP_ID = '<<APP_ID>>';
+</script>
+<script src="https://www.qingwuai.com/sdk/qingwu-sdk.v1.js"></script>
+<script src="../lib/track.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

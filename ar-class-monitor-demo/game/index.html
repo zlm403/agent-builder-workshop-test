@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>答疑闯关 · 第一课作品</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="app">
+
+  <header>
+    <h1>🎮 答疑闯关 <em>第一课作品</em></h1>
+    <div class="sub">教学点：资料与边界 —— 每个回答都要有依据，资料外的问题要拒绝</div>
+  </header>
+
+  <nav class="tabs">
+    <button class="tab on" data-panel="play" type="button">🎮 闯关答题</button>
+    <button class="tab" data-panel="boundary" type="button">🔍 边界测试</button>
+    <button class="tab" data-panel="data" type="button">📚 我的资料库</button>
+  </nav>
+
+  <!-- 闯关 -->
+  <section id="play" class="panel">
+    <div id="playReady" class="card center">
+      <h2>准备好了吗？</h2>
+      <p class="dim">随机抽 <b>5</b> 题闯关。答对得 20 分，答错会给你看<b>回答依据</b>——AI 不是乱答，是照资料答。</p>
+      <button id="btnStart" class="primary">▶ 开始闯关</button>
+    </div>
+    <div id="playQuiz" class="card" hidden>
+      <div class="quiz-top">
+        <span id="qProgress" class="chip">第 1 / 5 题</span>
+        <span id="qScore" class="chip score">0 分</span>
+      </div>
+      <div class="quiz-q" id="qText">题目</div>
+      <div class="quiz-options" id="qOptions"></div>
+      <div class="quiz-feedback" id="qFeedback" hidden></div>
+      <button id="btnNext" class="primary" hidden>下一题 ▶</button>
+    </div>
+    <div id="playResult" class="card center" hidden>
+      <h2 id="resultTitle">🎉 通关！</h2>
+      <p class="score-big" id="resultScore">100 分</p>
+      <p class="dim" id="resultDetail"></p>
+      <button id="btnAgain" class="primary">🔁 再来一局</button>
+    </div>
+  </section>
+
+  <!-- 边界测试 -->
+  <section id="boundary" class="panel" hidden>
+    <div class="card">
+      <h2>🔍 边界测试：这个问题在我的资料范围内吗？</h2>
+      <p class="dim">AI 只回答资料内的问题。输入一个问题，看它会被回答还是被拒绝——这就是「资料与边界」。</p>
+      <div class="row">
+        <input id="btInput" placeholder="例：Python 的 print 是干嘛的？  或：明天天气怎么样？" maxlength="100">
+        <button id="btnTest" class="primary">测试</button>
+      </div>
+      <div id="btResult" class="bt-result" hidden></div>
+      <div class="hint-line dim">💡 提示：资料内问题（含资料关键词）→ 给出答案+依据；资料外问题 → 拒绝回答。</div>
+    </div>
+  </section>
+
+  <!-- 资料库 -->
+  <section id="data" class="panel" hidden>
+    <div class="card">
+      <div class="data-head">
+        <h2>📚 我的资料库</h2>
+        <span class="chip" id="dataCount">6 题</span>
+      </div>
+      <p class="dim" id="dataIntro"></p>
+      <div class="data-list" id="dataList"></div>
+      <div class="hint-line dim">✏️ 编辑 <code>data.js</code> 里的 <code>scope</code> 和 <code>questions</code>，就是整理你的课程资料。</div>
+    </div>
+  </section>
+
+</div>
+<script src="../lib/track.js"></script>
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

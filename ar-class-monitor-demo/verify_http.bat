@@ -1,0 +1,2 @@
+@echo off
+powershell -NoProfile -Command "$urls = @('http://localhost:8099/warmup/','http://localhost:8099/agent-team/','http://localhost:8099/game/','http://localhost:8099/tool/','http://localhost:8099/student/','http://localhost:8099/monitor/','http://localhost:8099/docs/4-apps-config.md','http://localhost:8099/api/events?since=0'); foreach($u in $urls){ try { $r = Invoke-WebRequest -Uri $u -UseBasicParsing -TimeoutSec 5; Write-Output ($u + ' -> ' + $r.StatusCode + ' len=' + $r.Content.Length) } catch { Write-Output ($u + ' -> ERR ' + $_.Exception.Message) } }"

@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>班级·隐形壳 — 大屏端</title>
+<style>
+:root{--bg:#070b16;--panel:#0e1730;--panel2:#13203f;--line:#26324d;--txt:#e8eefc;--sub:#9fb0d0;--green:#22c55e;--blue:#38bdf8;--purple:#a78bfa;--amber:#eab308;--orange:#fb923c;--gray:#94a3b8;--pink:#f472b6;--red:#ef4444}
+*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,'Segoe UI',Roboto,'Microsoft YaHei',sans-serif;background:var(--bg);color:var(--txt);font-size:15px}
+header{padding:16px 26px;display:flex;align-items:baseline;gap:16px;border-bottom:1px solid var(--line);background:linear-gradient(90deg,#14223f,#070b16)}
+header .logo{font-size:24px;font-weight:800;letter-spacing:2px}
+header .logo b{color:var(--red)}
+header .sub{color:var(--sub);font-size:13px}
+.grid3{display:grid;grid-template-columns:1.1fr 1.5fr 1fr;gap:16px;padding:20px 26px;min-height:calc(100vh - 90px)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px}
+.card h2{margin:0 0 12px;font-size:16px;display:flex;align-items:center;gap:8px}
+.card h2 .tag{font-size:12px;padding:2px 9px;border-radius:7px;background:var(--panel2);border:1px solid var(--line);color:#cbd5e1;font-weight:500}
+/* 左：步骤进度 */
+.prog{display:flex;flex-direction:column;gap:10px}
+.pstep{display:flex;align-items:center;gap:10px}
+.pstep .n{width:32px;height:32px;border-radius:50%;background:var(--panel2);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--sub);flex-shrink:0}
+.pstep.on .n{background:var(--red);color:#fff;border-color:var(--red)}
+.pstep .t{font-size:14px}.pstep .l{font-size:12px;color:var(--sub)}
+/* 中：班级棱镜（自动轮播） */
+.prism-head{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.prism-head .dot{font-size:20px;color:var(--sub)}
+.g10{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.gc{border:1px solid var(--line);border-radius:11px;padding:10px;background:var(--panel2)}
+.gc .gn{font-size:12px;color:var(--sub)}
+.gc .gv{font-size:14px;margin-top:3px;color:#fff;font-weight:600}
+.gc .gs{margin-top:3px;font-size:13px;font-weight:700}
+.gs.ok{color:var(--green)}.gs.rec{color:var(--blue)}.gs.guess{color:var(--amber)}.gs.clarify{color:var(--orange)}.gs.empty{color:var(--gray)}.gs.conflict{color:var(--pink)}
+.gc.gap{border-color:var(--orange);box-shadow:0 0 0 1px var(--orange) inset}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--sub);margin-top:10px}
+/* 右：匿名学生墙 */
+.wall{display:flex;flex-direction:column;gap:9px;max-height:72vh;overflow:auto}
+.stu{display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:11px;padding:9px 12px;background:var(--panel2)}
+.stu .av{width:30px;height:30px;border-radius:50%;background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0}
+.stu .meta{font-size:12px;color:var(--sub);line-height:1.5}
+.stu .ring{margin-left:auto;width:44px;height:44px;flex-shrink:0}
+.foot{padding:0 26px 18px;color:var(--sub);font-size:12px}
+.anon{color:#3b6ea8;font-size:11px;margin-left:6px}
+</style>
+</head>
+<body>
+<header>
+  <span class="logo">班级·<b>隐形壳</b></span>
+  <span class="sub">大屏投影（只读 · 匿名化）· 班级理解棱镜填充 + 匿名学生墙</span>
+</header>
+
+<div class="grid3">
+  <!-- 左：四课进度 -->
+  <div class="card">
+    <h2>今日课程进度 <span class="tag" id="turnN">0</span></h2>
+    <div class="prog" id="prog"></div>
+    <div class="legend">
+      <span><b style="color:var(--green)">✅</b>已确认</span><span><b style="color:var(--blue)">📋</b>已识别</span>
+      <span><b style="color:var(--amber)">🟡</b>推测</span><span><b style="color:var(--orange)">△</b>待澄清</span>
+      <span><b style="color:var(--gray)">⬜</b>空缺</span><span><b style="color:var(--pink)">🔴</b>冲突</span>
+    </div>
+  </div>
+
+  <!-- 中：班级理解棱镜（自动轮播） -->
+  <div class="card">
+    <div class="prism-head">
+      <span class="dot" id="prismDot">🔄</span>
+      <h2 style="margin:0">班级理解棱镜填充 <span class="tag" id="prismTask">预备课</span></h2>
+    </div>
+    <div class="g10" id="g10"></div>
+    <p style="font-size:12px;color:var(--sub);margin:10px 0 0">颜色 = 全班该维度「最常见状态」。橙色描边 = 全班普遍没立住的维度，是课堂要一起补的。</p>
+  </div>
+
+  <!-- 右：匿名学生墙 -->
+  <div class="card">
+    <h2>匿名学生墙 <span class="tag" id="stuN">0</span></h2>
+    <div class="wall" id="wall"></div>
+  </div>
+</div>
+
+<div class="foot" id="foot">连接中…</div>
+
+<script src="../lib/analyze.js"></script>
+<script>
+const $ = s => document.querySelector(s);
+const API = '/api/class';
+const TASK_SEQ = ['pre', 't1', 't2', 't3'];
+const TASK_NAMES = { pre: '预备课 · 表达', t1: '第一课 · 游戏', t2: '第二课 · 工具', t3: '下午 · AI 应用' };
+const STATE_ORDER = ['ok', 'rec', 'guess', 'clarify', 'empty', 'conflict'];
+const SYM = { ok: '✅', rec: '📋', guess: '🟡', clarify: '△', empty: '⬜', conflict: '🔴' };
+
+let agg = null;          // 最近一次 /api/class
+let prismIdx = 0;        // 轮播到第几课
+
+async function refresh() {
+  try {
+    const r = await fetch(API, { cache: 'no-store' });
+    if (r.ok) agg = await r.json();
+  } catch (e) { return; }
+  renderProg();
+  renderWall();
+  renderPrism();
+  $('#foot').textContent = '轻物·显影副本 → 本仓大屏端 · 数据每 4 秒刷新 · 匿名化（不显示学号姓名）· 总轮次 ' + (agg ? agg.totalTurns : 0);
+}
+
+function renderProg() {
+  $('#turnN').textContent = agg.totalTurns;
+  const prog = $('#prog');
+  prog.innerHTML = '';
+  TASK_SEQ.forEach((tid, i) => {
+    const n = agg.taskTurn ? (agg.taskTurn[tid] || 0) : 0;
+    const el = document.createElement('div');
+    el.className = 'pstep' + (n > 0 ? ' on' : '');
+    el.innerHTML = `<div class="n">${i + 1}</div><div><div class="t">${TASK_NAMES[tid]}</div><div class="l">${n > 0 ? '已有 ' + n + ' 轮操作' : '尚未开始'}</div></div>`;
+    prog.appendChild(el);
+  });
+}
+
+function renderPrism() {
+  if (!agg || !agg.byTask) { $('#g10').innerHTML = '<div style="color:var(--sub)">等待数据…</div>'; return; }
+  const task = TASK_SEQ[prismIdx % TASK_SEQ.length];
+  $('#prismTask').textContent = TASK_NAMES[task];
+  $('#prismDot').textContent = ['🔄', '🔍'][Math.floor(prismIdx / TASK_SEQ.length) % 2];
+
+  // 班级聚合：每格全班最常见状态 + 是否普遍没立住
+  const bt = agg.byTask[task] || {};
+  const sids = Object.keys(bt);
+  const g10 = $('#g10');
+  if (!sids.length) { g10.innerHTML = '<div style="color:var(--sub)">该课暂无学生数据</div>'; return; }
+
+  // 每个学生在该课的格子
+  const perStu = {};
+  sids.forEach(sid => {
+    const traj = (bt[sid].events || []).map(e => ({ event: e.event, payload: e.payload }));
+    perStu[sid] = window.Analyzer ? window.Analyzer.clarityFor(task, traj) : null;
+  });
+
+  const nCells = window.Analyzer ? window.Analyzer.CELLS_BY_TASK[task].length : 10;
+  g10.innerHTML = '';
+  for (let i = 1; i <= nCells; i++) {
+    const cnt = {};
+    STATE_ORDER.forEach(k => cnt[k] = 0);
+    sids.forEach(sid => {
+      const g = perStu[sid];
+      if (!g) return;
+      const c = g.grid.find(x => x.i === i);
+      if (c) cnt[c.state] = (cnt[c.state] || 0) + 1;
+    });
+    let best = 'empty', bv = -1;
+    STATE_ORDER.forEach(k => { if ((cnt[k] || 0) > bv) { bv = cnt[k] || 0; best = k; } });
+    const miss = (cnt.guess || 0) + (cnt.clarify || 0) + (cnt.empty || 0) + (cnt.conflict || 0)
+      > (cnt.ok || 0) + (cnt.rec || 0);
+    const cellName = window.Analyzer ? window.Analyzer.CELLS_BY_TASK[task][i - 1].name : '维度' + i;
+    const el = document.createElement('div');
+    el.className = 'gc' + (miss ? ' gap' : '');
+    el.innerHTML = `<div class="gn">${i}. ${cellName}</div><div class="gv">${SYM[best]}</div><div class="gs ${best}">${SYM[best]} ${best}</div>`;
+    g10.appendChild(el);
+  }
+}
+
+function renderWall() {
+  const wall = $('#wall');
+  if (!agg || !agg.byTask) { wall.innerHTML = '<div style="color:var(--sub)">等待学生上线…</div>'; return; }
+  // 匿名学生墙：从 byTask 取有作品轨迹的学生（排除对话记录者如"老大"）
+  const seen = new Set();
+  const rows = [];
+  TASK_SEQ.forEach(task => {
+    const bt = agg.byTask[task] || {};
+    Object.keys(bt).forEach(sid => {
+      if (seen.has(sid)) return;
+      seen.add(sid);
+      // 该生最近有数据的课
+      let bestTask = task, bestTs = bt[sid].ts || 0;
+      TASK_SEQ.forEach(t2 => {
+        const b2 = (agg.byTask[t2] || {})[sid];
+        if (b2 && (b2.ts || 0) > bestTs) { bestTask = t2; bestTs = b2.ts; }
+      });
+      const traj = ((agg.byTask[bestTask] || {})[sid] || { events: [] }).events
+        .map(e => ({ event: e.event, payload: e.payload }));
+      const r = window.Analyzer ? window.Analyzer.clarityFor(bestTask, traj) : null;
+      const pct = r ? r.score : 0;
+      const gap = r ? r.gapCount : 0;
+      rows.push({ sid, bestTask, pct, gap });
+    });
+  });
+  $('#stuN').textContent = rows.length;
+  if (!rows.length) { wall.innerHTML = '<div style="color:var(--sub)">暂无学生上线</div>'; return; }
+
+  wall.innerHTML = rows.map(row => {
+    const pct = row.pct;
+    const col = pct >= 60 ? 'var(--green)' : pct >= 35 ? 'var(--amber)' : 'var(--orange)';
+    const av = esc(row.sid.slice(0, 1).toUpperCase());   // 匿名：只显示首字符
+    return `<div class="stu">
+      <div class="av">${av}</div>
+      <div class="meta">${TASK_NAMES[row.bestTask]}<br>缺口 ${row.gap} 个</div>
+      <svg class="ring" viewBox="0 0 36 36">
+        <circle cx="18" cy="18" r="15.5" fill="none" stroke="var(--line)" stroke-width="4"/>
+        <circle cx="18" cy="18" r="15.5" fill="none" stroke="${col}" stroke-width="4"
+          stroke-dasharray="${pct * 0.97} 97" stroke-linecap="round" transform="rotate(-90 18 18)"/>
+        <text x="18" y="22" text-anchor="middle" fill="#fff" font-size="10">${pct}</text>
+      </svg>
+    </div>`;
+  }).join('');
+}
+
+function esc(s) { return (s || '').replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c])); }
+
+refresh();
+setInterval(refresh, 4000);
+setInterval(() => { prismIdx++; renderPrism(); }, 8000);   // 每 8 秒自动轮播一课
+</script>
+</body>
+</html>
