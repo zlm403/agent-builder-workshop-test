@@ -282,63 +282,77 @@ $('btnAsk').addEventListener('click', sendAsk);
 $('askInput').addEventListener('keydown', e => { if (e.key === 'Enter') sendAsk(); });
 setInterval(refreshChat, 4000);   // 轮询老师回复
 
-/* ---------- 我的理解棱镜（学生端自我显影） ---------- */
-const MIRROR_TASK = { pre: 'pre', 1: 't1', 2: 't2', 3: 't3', 4: 't3' };
-const MIRROR_NAME = { pre: '语言棱镜 · 想法说清楚没', t1: '边界棱镜 · 依据在不在资料内', t2: '规则棱镜 · 流程与规则立没立', t3: '系统棱镜 · 能力系统成没成' };
+/* ---------- 我的学习水位（6 大知识点：水满 = 学得好） ---------- */
+// 6 大知识点（对应 正式课知识点分类表）
+const WATER_ITEMS = [
+  { key: 'speak',  name: '把话说清楚', icon: '🗣️', desc: '跟 AI 提要求、把想法说清楚', signals: ['student_ask', 'agent_dialog_req'] },
+  { key: 'plan',   name: '知道下一步', icon: '🧭', desc: '知道项目现在到哪、下一步做什么', signals: ['task_view', 'page_loaded'] },
+  { key: 'tools',  name: '会用手里的工具', icon: '🛠️', desc: '打开、运行、预览、跑作品', signals: ['page_loaded', 'game_start', 'tool_submit'] },
+  { key: 'fix',    name: '做错了会修', icon: '🔧', desc: '发现问题、说清楚、让 AI 改', signals: ['student_ask', 'agent_dialog_req', 'readback_reject'] },
+  { key: 'save',   name: '怕弄丢会存档', icon: '💾', desc: '重要东西先存好、不慌', signals: ['finish', 'task_view'] },
+  { key: 'memory', name: '记得住接得上', icon: '🔗', desc: '前面说的后面还记得、续得上', signals: ['agent_dialog_req', 'agent_dialog_resp'] },
+];
 
-let mirrorTimer = null;
 async function renderMirror(){
   const sid = (localStorage.getItem('ar_class_monitor_sid') || '').trim();
   const body = $('mirrorBody');
-  const task = MIRROR_TASK[course] || null;
-  $('mirrorCourse').textContent = task ? '—— ' + COURSES[course].icon + ' ' + COURSES[course].name + '（' + MIRROR_NAME[task] + '）' : '';
   if (!sid) {
-    body.innerHTML = '<div class="mirror-empty">🪪 先在右上角填上学号/姓名，你的每一步就会在这里显影成理解棱镜。</div>';
+    body.innerHTML = '<div class="mirror-empty">🪪 先在上方签到，你的学习水位就会在这里亮起来。</div>';
     return;
   }
-  if (!task) return;
+  $('mirrorCourse').textContent = '（6 块知识，水满了就说明这块学会了）';
 
+  // 拉取该生的行为事件
   let evs = [];
   try {
     const r = await fetch('/api/events?since=0', { cache: 'no-store' });
     if (r.ok) evs = await r.json();
   } catch(e){}
-  evs = evs.filter(e => e.sid === sid && Analyzer.taskIdOf(e.payload) === task);
-  const traj = evs.map(e => ({ event: e.event, payload: e.payload }));
+  evs = evs.filter(e => e.sid === sid);
+  const eventNames = new Set(evs.map(e => e.event));
 
-  if (!traj.length) {
-    body.innerHTML = '<div class="mirror-empty">📝 你在这课还没有留下记录——去顷悟 APP 开工吧，<br><span class="dim">每做一步，这边的棱镜就会亮起一格。</span></div>';
+  if (!evs.length) {
+    body.innerHTML = '<div class="mirror-empty">📝 你还没有留下记录——去顷悟 APP 开工吧，<br><span class="dim">你每做一步，这里的水位就会涨一点。</span></div>';
     return;
   }
 
-  const r = Analyzer.clarityFor(task, traj);
-  const cellsHtml = r.grid.map(c => {
-    const st = Analyzer.STATE[c.state];
-    const isGap = Analyzer.detectGap([c]).length > 0;
-    return `<div class="mcell ${isGap ? 'gap' : ''}">
-      <div class="mn">${c.i}. ${c.name}</div>
-      <div class="mv">${c.value ? c.value.replace(/</g,'&lt;') : '—'}</div>
-      <div class="ms ${st.cls}">${st.sym} ${st.label}</div>
+  // 每个知识点：命中信号越多水位越高（0~100）
+  const totalText = evs.reduce((n, e) => n + ((e.payload && (e.payload.text || e.payload.reply)) ? 1 : 0), 0);
+  const rows = WATER_ITEMS.map(item => {
+    let hits = item.signals.filter(s => eventNames.has(s)).length;
+    // 对话越多，"把话说清楚"水位越高
+    let pct = Math.min(100, Math.round(hits / item.signals.length * 100));
+    if (item.key === 'speak' && totalText >= 3) pct = Math.max(pct, 90);
+    if (item.key === 'memory' && totalText >= 2) pct = Math.max(pct, 70);
+    if (item.key === 'plan' && totalText >= 1) pct = Math.max(pct, 40);
+    const level = pct >= 75 ? 'high' : pct >= 40 ? 'mid' : 'low';
+    const tip = pct >= 75 ? '这块你练得不错' : pct >= 40 ? '练到一半，继续' : '这块还没怎么练';
+    return `<div class="wcell">
+      <div class="wcell-head"><span class="wn">${item.icon} ${item.name}</span><span class="wp">${pct}%</span></div>
+      <div class="wmeter ${level}"><div class="wfill" style="height:${pct}%"></div></div>
+      <div class="wtip">${tip}</div>
     </div>`;
   }).join('');
 
-  // 预备课：回读句（“模型实际听到的”）
-  let readback = '';
-  if (task === 'pre') {
-    readback = `<div class="mirror-readback">🧠 <b>AI 实际听到的：</b>\n${Analyzer.paraphrase(r.grid).replace(/</g,'&lt;')}</div>`;
-  }
+  // 底部解释：哪些学得好、哪些还要练
+  const good = WATER_ITEMS.filter(it => {
+    const hits = it.signals.filter(s => eventNames.has(s)).length;
+    return hits / it.signals.length >= 0.75;
+  }).map(it => it.name);
+  const need = WATER_ITEMS.filter(it => {
+    const hits = it.signals.filter(s => eventNames.has(s)).length;
+    return hits / it.signals.length < 0.4;
+  }).map(it => it.name);
 
-  // 缺口清单
-  const gap = Analyzer.detectGap(r.grid);
-  const gapHtml = gap.length
-    ? `<div class="mirror-gap">🔧 你还没立住：${gap.map(c => `${c.name}（${Analyzer.STATE[c.state].label}）`).join('、')}。补上这些，这课才算立住。</div>`
-    : '<div class="mirror-gap" style="background:rgba(34,197,94,.1);border-color:rgba(34,197,94,.3);color:#86efac">✅ 这课的棱镜基本立住了，继续保持！</div>';
+  const summary = [];
+  if (good.length) summary.push(`<b>学得不错：</b>${good.join('、')}`);
+  if (need.length) summary.push(`<b>还要练：</b>${need.join('、')}`);
+  if (!good.length && !need.length) summary.push('<b>还在起步</b>——多动手，水位就会涨');
 
   body.innerHTML = `
-    <div class="mirror-score">清晰度 ${r.score} / 100 · 缺口 ${r.gapCount} 个${r.clear ? ' · 已立住' : ''}</div>
-    <div style="margin-top:10px" class="mirror-grid">${cellsHtml}</div>
-    ${readback}
-    ${gapHtml}`;
+    <div class="wgrid">${rows}</div>
+    <div class="wsummary">${summary.join('<br>')}</div>
+    <div class="mirror-note dim">水位是根据你在这节课的行为自动判断的，参考用；老师那边看到的是同一份数据。</div>`;
 }
 
 /* ---------- 退出签到（只清本机身份，不清服务器课堂数据） ---------- */

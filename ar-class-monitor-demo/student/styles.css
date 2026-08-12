@@ -92,35 +92,37 @@ button.ghost:hover { background: var(--blue); color: #04263a; }
   width: 100%; height: 520px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel2);
 }
 
-/* 我的理解棱镜（学生端自我显影） */
+/* 我的学习水位（6 大知识点：水满 = 学得好） */
 .mirror-empty { padding: 22px 10px; text-align: center; color: var(--sub); font-size: 14px; line-height: 2; }
-.mirror-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(128px, 1fr)); gap: 9px; }
-.mcell {
-  border: 1px solid var(--line); border-radius: 11px; padding: 9px 11px;
-  background: var(--panel2); position: relative;
+.wgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 12px; margin-top: 6px; }
+.wcell {
+  border: 1px solid var(--line); border-radius: 12px; padding: 10px;
+  background: var(--panel2); display: flex; flex-direction: column; align-items: center;
 }
-.mcell .mn { font-size: 11px; color: var(--sub); font-weight: 700; }
-.mcell .mv { font-size: 12.5px; margin-top: 3px; font-weight: 700; color: var(--txt); line-height: 1.5; }
-.mcell .ms { font-size: 11px; font-weight: 700; margin-top: 4px; }
-.mcell .ms.ok { color: var(--green); } .mcell .ms.rec { color: var(--blue); } .mcell .ms.guess { color: #eab308; }
-.mcell .ms.clarify { color: var(--orange); } .mcell .ms.empty { color: var(--sub); } .mcell .ms.conflict { color: var(--pink); }
-.mcell.gap { border-color: var(--orange); box-shadow: 0 0 0 1px var(--orange) inset; background: rgba(251,146,60,.06); }
-.mcell.gap .mn { color: var(--orange); }
-.mirror-readback {
-  margin-top: 12px; padding: 12px 14px; border-radius: 12px; background: rgba(167,139,250,.12);
-  border: 1px solid rgba(167,139,250,.3);
-  font-size: 13.5px; line-height: 1.9; color: var(--txt); white-space: pre-line;
+.wcell-head { width: 100%; display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.wcell .wn { font-size: 11.5px; font-weight: 700; color: var(--txt); }
+.wcell .wp { font-size: 12px; font-weight: 800; }
+.wcell .wp { color: var(--sub); }
+.wmeter {
+  width: 34px; height: 92px; border-radius: 6px 6px 10px 10px;
+  border: 2px solid var(--line); background: rgba(7,11,22,.6);
+  display: flex; align-items: flex-end; overflow: hidden; padding: 2px;
 }
-.mirror-gap {
-  margin-top: 12px; padding: 11px 14px; border-radius: 12px; background: rgba(251,146,60,.1);
-  border: 1px solid rgba(251,146,60,.3);
-  font-size: 13.5px; line-height: 1.8; color: #fda4af;
+.wfill {
+  width: 100%; border-radius: 4px 4px 6px 6px;
+  background: linear-gradient(180deg, var(--blue), #0ea5e9);
+  transition: height .5s ease;
 }
-.mirror-score {
-  display: inline-block; margin-top: 10px; font-size: 12px; font-weight: 700;
-  color: var(--blue); background: rgba(56,189,248,.1); border: 1px solid rgba(56,189,248,.3);
-  padding: 4px 12px; border-radius: 20px;
+.wmeter.high .wfill { background: linear-gradient(180deg, var(--green), #16a34a); }
+.wmeter.mid .wfill { background: linear-gradient(180deg, #facc15, #eab308); }
+.wmeter.low .wfill { background: linear-gradient(180deg, var(--orange), #ea580c); }
+.wtip { font-size: 11px; color: var(--sub); margin-top: 7px; text-align: center; }
+.wsummary {
+  margin-top: 14px; padding: 12px 14px; border-radius: 12px;
+  background: rgba(56,189,248,.08); border: 1px solid rgba(56,189,248,.25);
+  font-size: 13px; line-height: 1.9; color: var(--txt);
 }
+.mirror-note { margin-top: 10px; font-size: 11.5px; color: var(--sub); }
 
 .tip {
   font-size: 12px; color: var(--sub); text-align: center; line-height: 1.9; padding: 8px;
