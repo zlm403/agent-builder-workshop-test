@@ -404,13 +404,13 @@ let screenActive = null;
 let screenBlocks = [];
 async function loadScreenBlocks(){
   try {
-    // 1) 每个已推送的课堂任务 → 一个可投内容块（id 固定，不重复）
+    // 1) 每个拆解出的课堂任务 → 一个可投内容块（id 固定，不重复）；拆出来即是大屏候选项
     try {
       const lr = await fetch('/api/lesson', { cache: 'no-store' });
       const ld = await lr.json();
       const cur = ld.currentLesson;
       const tasks = (cur && ld.lessons && ld.lessons[cur]) ? (ld.lessons[cur].tasks || []) : [];
-      tasks.filter(t => t.pushed).forEach(t => {
+      tasks.forEach(t => {
         fetch('/api/screen/save', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
