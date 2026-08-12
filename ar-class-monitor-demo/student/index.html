@@ -26,15 +26,19 @@
     <button class="course" data-course="4" type="button">🤖 项目三 · 内心戏</button>
   </nav>
 
-  <!-- 任务看板 -->
+  <!-- 任务看板（含本课引导，合二为一） -->
   <section class="pane">
     <div class="pane-title">📋 任务看板 <span class="dim" id="taskCourseTag"></span></div>
     <div class="taskcard" id="taskCard">
-      <div class="task-empty">⏳ 等待老师下发任务…<br><span class="dim">老师端推送后，这里会自动出现这一步要做什么。</span></div>
+      <div class="task-empty">🔒 还没开始<br><span class="dim">等老师推进后，这里会显示你要做什么。</span></div>
     </div>
     <div class="row">
-      <button id="btnTaskOk" class="primary" disabled>✓ 收到，开始执行</button>
-      <span class="hint" id="taskHint">点「收到」后老师能看到你已开始</span>
+      <button id="btnTaskOk" class="primary" disabled hidden>✓ 知道了，开始做</button>
+      <span class="hint" id="taskHint"></span>
+    </div>
+    <div class="guide-in-task">
+      <div class="guide-title">🧭 这节课怎么学 <span class="dim" id="guideCourse"></span></div>
+      <ol class="guide" id="guideList"></ol>
     </div>
   </section>
 
@@ -47,12 +51,6 @@
       <button id="btnAsk" class="ghost" type="button">发送</button>
     </div>
     <span class="hint" id="askHint"></span>
-  </section>
-
-  <!-- 本课引导 -->
-  <section class="pane">
-    <div class="pane-title">🧭 本课引导 <span class="dim" id="guideCourse"></span></div>
-    <ol class="guide" id="guideList"></ol>
   </section>
 
   <!-- 我的学习水位（六大知识点：水满=学得好） -->

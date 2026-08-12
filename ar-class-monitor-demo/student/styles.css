@@ -60,7 +60,7 @@ button.ghost:hover { background: var(--blue); color: #04263a; }
 .row { display: flex; align-items: center; gap: 12px; margin-top: 12px; flex-wrap: wrap; }
 .hint { color: var(--sub); font-size: 13px; }
 
-/* 任务卡 */
+/* 任务看板 */
 .task-empty { padding: 26px 10px; text-align: center; color: var(--sub); font-size: 15px; line-height: 1.9; }
 .task-meta {
   font-size: 12px; color: var(--blue); background: rgba(56,189,248,.12);
@@ -69,6 +69,8 @@ button.ghost:hover { background: var(--blue); color: #04263a; }
 .task-title { font-size: 19px; font-weight: 700; margin-bottom: 6px; }
 .task-desc { color: var(--txt); line-height: 1.8; margin-bottom: 6px; }
 .task-goal, .task-steps { font-size: 13px; color: var(--sub); line-height: 1.7; margin-top: 4px; }
+.guide-in-task { margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--line); }
+.guide-title { font-size: 13px; font-weight: 700; margin-bottom: 8px; }
 
 /* 按钮 */
 .primary {
