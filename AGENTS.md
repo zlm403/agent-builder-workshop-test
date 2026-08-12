@@ -67,7 +67,8 @@
 
 ### 数据链路（一核多表，三端共用同一算法）
 ```
-学生作品页与AI对话 ──(lib/qw-chat-fwd.js 包装 ai.chat 自动转发)──┐
+顷悟聊天面板对话 ──(qingwu-dialog-bridge.py 常驻转发桥)──────┐
+学生作品页与AI对话 ──(lib/qw-chat-fwd.js 包装 ai.chat 转发)──┤
                                                           ├─→ events.jsonl ──GET /api/class──→ 教师端 + 大屏端
 作品页操作 track() ──POST /api/collect───┘                       │
                                                           └─GET /api/events?since=──→ 学生端(自己的镜子) + 教师端(时间线)
@@ -75,7 +76,9 @@
 - 统一事件流：每行 `{ ts, sid, event, payload }`，`sid`=学员，`course`=第几课（warmup=0/game=1/tool=2/agent-team=4），`source`=来源。
 - 穿透判定统一走 `lib/analyze.js`（gridFor/detectGap/paraphrase），服务端只做字段聚合，不重复实现判定逻辑。
 - 埋点模块：`lib/track.js`，作品内一行接入；`Track.event('xxx', payload)` 上报，失败静默不打断学生。
-- **对话转发**：`lib/qw-chat-fwd.js` 包装顷悟 SDK 的 `ai.chat()`，学生发消息/AI 回复自动上报 `agent_dialog_req/resp`（含 sid + task）。学生作品页 `index.html` 引一行 `<script src="lib/qw-chat-fwd.js"></script>` 即生效，不依赖 agent 自觉。
+- **对话转发（两条通路）**：
+  1. **顷悟聊天面板**（学生跟 agent 说"做什么/怎么改"）→ `qingwu-dialog-bridge.py` 常驻转发桥，读顷悟 `memory/runtime/events.jsonl` 的 `user_message`/`assistant_done`，增量 + 去重转发到 `/api/collect`。多机部署时每台学生电脑各跑一个，`--server` 指向老师机。
+  2. **作品内对话**（用户用作品时）→ `lib/qw-chat-fwd.js` 包装 `ai.chat()`，作品页引一行 `<script src="lib/qw-chat-fwd.js"></script>` 即生效。
 
 ### 课堂场次与签到（号码即身份，v2 起）
 **核心原则**：不核对"学生是谁"，只核对他拿来的上课号在不在本场名单里。号码 = 身份。
