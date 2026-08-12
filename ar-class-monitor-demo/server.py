@@ -292,9 +292,10 @@ def load_lessons():
             d = {}
         d.setdefault('currentLesson', None)
         d.setdefault('lessons', {})
+        d.setdefault('projectUnlock', {'1': True, '2': False, '4': False})
         return d
     except Exception:
-        return {'currentLesson': None, 'lessons': {}}
+        return {'currentLesson': None, 'lessons': {}, 'projectUnlock': {'1': True, '2': False, '4': False}}
 
 
 def save_lessons(d):
@@ -491,6 +492,20 @@ class Handler(SimpleHTTPRequestHandler):
                     'tasks': data.get('tasks') or [],
                 }
                 d['currentLesson'] = lesson_name
+                if data.get('projectUnlock'):
+                    d['projectUnlock'] = data['projectUnlock']
+                save_lessons(d)
+                self._json(200, {'ok': True})
+            except Exception as ex:
+                self._json(400, {'ok': False, 'reason': str(ex)})
+            return
+        if parsed.path == '/api/lesson/unlock':
+            try:
+                length = int(self.headers.get('Content-Length', 0))
+                raw = self.rfile.read(length) if length else b''
+                data = json.loads(raw.decode('utf-8')) if raw else {}
+                d = load_lessons()
+                d['projectUnlock'] = data.get('projectUnlock') or d.get('projectUnlock') or {}
                 save_lessons(d)
                 self._json(200, {'ok': True})
             except Exception as ex:

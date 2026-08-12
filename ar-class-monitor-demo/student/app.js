@@ -116,19 +116,46 @@ function submitSid(){
 $('btnSidSubmit').addEventListener('click', submitSid);
 $('sidNo').addEventListener('keydown', e => { if (e.key === 'Enter') submitSid(); });
 
-/* ---------- 课程切换 ---------- */
+/* ---------- 课程切换（项目锁定：老师解锁才能进） ---------- */
+let projectUnlock = { '1': true, '2': false, '4': false };
+async function loadUnlock(){
+  try {
+    const r = await fetch('/api/lesson', { cache: 'no-store' });
+    if (r.ok) {
+      const d = await r.json();
+      if (d.projectUnlock) projectUnlock = d.projectUnlock;
+      renderCourse();
+    }
+  } catch(e){}
+}
 function renderCourse(){
   const c = COURSES[course];
-  document.querySelectorAll('.course').forEach(el => el.classList.toggle('on', el.dataset.course === course));
-  $('guideCourse').textContent = '—— ' + c.icon + ' ' + c.name + '（' + c.app + '）';
-  $('guideList').innerHTML = c.guide.map((g, i) =>
+  document.querySelectorAll('.course').forEach(el => {
+    const cid = el.dataset.course;
+    const unlocked = !!projectUnlock[cid];
+    el.classList.toggle('on', cid === course && unlocked);
+    el.classList.toggle('locked', !unlocked);
+    el.disabled = !unlocked;
+    el.textContent = (unlocked ? '' : '🔒 ') + (cid === '1' ? '项目一 · 接金币游戏' : cid === '2' ? '项目二 · 心情电量' : '项目三 · 内心戏');
+  });
+  if (!projectUnlock[course]) {
+    // 当前项目被锁：切回第一个解锁的
+    course = Object.keys(projectUnlock).find(k => projectUnlock[k]) || '1';
+    Track.config({ course });
+  }
+  const guide = $('guideCourse');
+  if (guide) guide.textContent = '—— ' + c.icon + ' ' + c.name + '（' + c.app + '）';
+  const gl = $('guideList');
+  if (gl) gl.innerHTML = c.guide.map((g, i) =>
     `<li><b>${i+1}.</b> ${g.replace(/</g,'&lt;')}</li>`
   ).join('');
   loadTask();
 }
 document.querySelectorAll('.course').forEach(btn => {
   btn.addEventListener('click', () => {
-    course = btn.dataset.course;
+    const cid = btn.dataset.course;
+    if (!projectUnlock[cid]) return;   // 未解锁，点不开
+    course = cid;
     Track.config({ course });
     Track.event('course_switch', { course, name: COURSES[course].name });
     renderCourse();
@@ -376,7 +403,9 @@ function bindReset(){
   renderCourse();
   loadTask();
   renderMirror();
+  loadUnlock();
   setInterval(() => { loadTask(); renderMirror(); }, 4000);
+  setInterval(loadUnlock, 5000);
   window.addEventListener('storage', loadTask);
   Track.event('page_loaded', { page: 'student-workbench', course });
 })();

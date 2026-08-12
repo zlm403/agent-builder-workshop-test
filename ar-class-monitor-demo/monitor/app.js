@@ -223,9 +223,30 @@ async function loadLesson(){
       lessonName = cur;
       lessonTasks = d.lessons[cur].tasks || [];
     }
+    renderUnlock(d.projectUnlock || {});
     renderLessonTasks();
   } catch(e){}
 }
+function renderUnlock(unlock){
+  const labels = { '1': '🎮 项目一', '2': '🔋 项目二', '4': '🤖 项目三' };
+  Object.keys(labels).forEach(k => {
+    const btn = $('up' + k);
+    if (!btn) return;
+    const on = !!unlock[k];
+    btn.textContent = (on ? '🔓 ' : '🔒 ') + labels[k];
+    btn.classList.toggle('ghost-on', on);
+  });
+}
+window.unlockProject = async function(k){
+  const d = await (await fetch('/api/lesson', { cache: 'no-store' })).json();
+  const unlock = d.projectUnlock || { '1': true, '2': false, '4': false };
+  unlock[k] = !unlock[k];
+  await fetch('/api/lesson/unlock', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ projectUnlock: unlock }),
+  }).catch(() => {});
+  renderUnlock(unlock);
+};
 function renderLessonTasks(){
   const box = $('lessonTasks');
   if (!box) return;

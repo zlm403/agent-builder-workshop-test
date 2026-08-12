@@ -47,6 +47,8 @@ button.ghost:hover { background: var(--blue); color: #04263a; }
 }
 .course:hover { border-color: var(--blue); color: var(--txt); }
 .course.on { background: var(--purple); border-color: var(--purple); color: #0b0622; font-weight: 700; }
+.course.locked { opacity: .45; cursor: not-allowed; border-style: dashed; color: var(--sub); }
+.course.locked:hover { border-color: var(--line); color: var(--sub); }
 
 /* 面板 */
 .pane {
