@@ -25,10 +25,18 @@ header h1 em {
 }
 .sid {
   padding: 9px 13px; border: 1px solid var(--line); border-radius: 10px;
-  font-size: 14px; outline: none; background: var(--panel2); color: var(--txt); width: 210px;
+  font-size: 14px; outline: none; background: var(--panel2); color: var(--txt);
 }
+.sid.sidno { width: 90px; }
+.sid.sidname { width: 140px; }
 .sid:focus { border-color: var(--blue); }
 .sid::placeholder { color: var(--sub); }
+.sid-hint { max-width: 230px; line-height: 1.5; }
+button.ghost {
+  background: transparent; border: 1px solid var(--blue); color: var(--blue);
+  border-radius: 10px; padding: 9px 16px; font-size: 14px; font-weight: 700; cursor: pointer;
+}
+button.ghost:hover { background: var(--blue); color: #04263a; }
 
 /* 课程切换 */
 .courses { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }

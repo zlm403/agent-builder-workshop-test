@@ -53,18 +53,34 @@ let course = '1';
 /* ---------- 初始化埋点 ---------- */
 Track.config({ endpoint: '/api/collect', course: course, page: 'student-workbench' });
 
-/* ---------- 学号 ---------- */
-function bindSid(){
-  const sid = localStorage.getItem('ar_class_monitor_sid') || '';
-  $('sid').value = sid;
-  if (sid) Track.config({ sid });
+/* ---------- 学号 + 昵称（规范：学号如 01，昵称如 大熊；上报后老师端显示「学号 昵称」） ---------- */
+function sidStorage(){
+  try { return JSON.parse(localStorage.getItem('ar_class_monitor_sid_info') || 'null'); } catch(e){ return null; }
 }
-$('sid').addEventListener('change', () => {
-  const v = $('sid').value.trim();
-  localStorage.setItem('ar_class_monitor_sid', v);
-  Track.config({ sid: v || undefined });
-  Track.event('sid_set', { sid: v });
-});
+function bindSid(){
+  const saved = sidStorage();
+  if (saved) {
+    $('sidNo').value = saved.no || '';
+    $('sidName').value = saved.name || '';
+    if (saved.no && saved.name) {
+      Track.config({ sid: saved.no + ' ' + saved.name });
+      $('sidHint').textContent = '✅ 已上报：' + saved.no + ' ' + saved.name;
+    }
+  }
+}
+function submitSid(){
+  const no = $('sidNo').value.trim();
+  const name = $('sidName').value.trim();
+  if (!no || !name) { $('sidHint').textContent = '⚠️ 学号和昵称都要填'; return; }
+  if (!/^\d+$/.test(no)) { $('sidHint').textContent = '⚠️ 学号只填数字（如 01）'; return; }
+  const sid = no + ' ' + name;
+  try { localStorage.setItem('ar_class_monitor_sid_info', JSON.stringify({ no, name })); } catch(e){}
+  localStorage.setItem('ar_class_monitor_sid', sid);
+  Track.config({ sid });
+  Track.event('sid_set', { sid, no, name });
+  $('sidHint').textContent = '✅ 已上报：' + sid;
+}
+$('btnSidSubmit').addEventListener('click', submitSid);
 
 /* ---------- 课程切换 ---------- */
 function renderCourse(){
