@@ -133,7 +133,7 @@ function renderConnChip(ok, err){
   }
   chip.style.display = '';
 }
-function renderAll(){ renderClassPrism(); renderStudents(); renderTimeline(); renderXray(); renderTeacherChat(); }
+function renderAll(){ renderClassPrism(); renderStudents(); renderTimeline(); renderXray(); renderConvList(); renderTeacherChat(); }
 
 /* ---------- 班级理解棱镜（一核多表：每课各穿各自的维度表） ---------- */
 function taskOfCourse(c){
@@ -272,62 +272,85 @@ function renderStudents(){
 }
 window.selectSid = function(s){
   selectedSid = (selectedSid === s) ? null : s;
-  setTargetSid(s);
+  openConv(s);   // 点学生列表同时打开该生会话
   renderAll();
 };
 
 /* ---------- 消息中心（学生提问实时进来，点消息回复即定向） ---------- */
-let targetSid = null;   // 当前回复目标（学生上课号）
-function setTargetSid(sid){
-  targetSid = sid;
-  const target = $('tReplyTarget');
+/* ---------- 消息中心（会话列表 + 聊天窗口，像微信单聊） ---------- */
+let activeConvSid = null;   // 当前打开的会话（学生上课号）
+let convRead = {};          // 每个会话已读的学生消息数（用于新消息标红）
+
+function allConvMsgs(){
+  return events
+    .filter(e => e.event === 'student_ask' || e.event === 'teacher_reply')
+    .sort((a,b) => (a.ts||0) - (b.ts||0));
+}
+function convOfSid(sid, msgs){
+  return (msgs || allConvMsgs()).filter(e => e.sid === sid);
+}
+function renderConvList(){
+  const list = $('convList');
+  const msgs = allConvMsgs();
+  if (!list) return;
+  if (!msgs.length) { list.innerHTML = '<div class="conv-empty">暂无学生消息</div>'; return; }
+  // 按学生分组，最近消息的排最上
+  const bySid = {};
+  msgs.forEach(e => (bySid[e.sid] = bySid[e.sid] || []).push(e));
+  const sids = Object.keys(bySid).sort((a,b) => (bySid[b][bySid[b].length-1].ts||0) - (bySid[a][bySid[a].length-1].ts||0));
+  list.innerHTML = sids.map(sid => {
+    const ms = bySid[sid];
+    const last = ms[ms.length-1];
+    const askCount = ms.filter(e => e.event === 'student_ask').length;
+    const read = convRead[sid] || 0;
+    const unread = askCount > read ? askCount - read : 0;
+    const lastText = (last.payload.text || '').slice(0, 18);
+    return `<div class="conv-item ${sid === activeConvSid ? 'on' : ''}" onclick="openConv('${sid}')">
+      <div class="conv-name">学生 ${sid}${unread ? '<span class="conv-unread">' + unread + '</span>' : ''}</div>
+      <div class="conv-preview">${esc(lastText)}</div>
+      <div class="conv-time">${fmt(last.ts)}</div>
+    </div>`;
+  }).join('');
+}
+window.openConv = function(sid){
+  activeConvSid = sid;
+  const msgs = convOfSid(sid);
+  convRead[sid] = msgs.filter(e => e.event === 'student_ask').length;   // 标记已读
+  const head = $('convHead');
   const input = $('tAskInput');
   const btn = $('btnTAsk');
-  if (target) target.textContent = '正在回复：学生 ' + sid + '（回车发送）';
+  if (head) head.textContent = '💬 学生 ' + sid;
   if (input) { input.disabled = false; input.focus(); }
   if (btn) btn.disabled = false;
+  renderConvList();
   renderTeacherChat();
-}
+};
 function renderTeacherChat(){
   const log = $('tchatLog');
   if (!log) return;
-  const conv = events
-    .filter(e => e.event === 'student_ask' || e.event === 'teacher_reply')
-    .sort((a,b) => (a.ts||0) - (b.ts||0));
-  if (!conv.length) {
-    log.innerHTML = '<div class="chat-empty">暂无消息，学生提问会实时出现在这里</div>';
+  if (!activeConvSid) {
+    log.innerHTML = '<div class="chat-empty">点左侧学生，查看并回复 TA 的消息</div>';
     return;
   }
-  // 按学生分组显示：每个学生的消息一组（对话形式），学生消息带「回复」按钮
-  const bySid = {};
-  conv.forEach(e => { (bySid[e.sid] = bySid[e.sid] || []).push(e); });
-  log.innerHTML = Object.keys(bySid).sort((a,b) => (bySid[b][bySid[b].length-1].ts||0) - (bySid[a][bySid[a].length-1].ts||0))
-    .map(sid => {
-      const msgs = bySid[sid];
-      const last = msgs[msgs.length-1];
-      const isTarget = sid === targetSid;
-      const inner = msgs.map(e => {
-        const isAsk = e.event === 'student_ask';
-        return `<div class="chat-msg ${isAsk ? 'stu' : 'teacher'}"><div class="bubble">${esc(e.payload.text || '')}</div></div>`;
-      }).join('');
-      return `<div class="chat-group ${isTarget ? 'on' : ''}">
-        <div class="chat-group-head">
-          <span class="chat-who">学生 ${sid}</span>
-          <span class="chat-last">${fmt(last.ts)}</span>
-          <button class="reply-btn" onclick="setTargetSid('${sid}')">回复</button>
-        </div>
-        ${inner}
-      </div>`;
-    }).join('');
+  const msgs = convOfSid(activeConvSid);
+  if (!msgs.length) {
+    log.innerHTML = '<div class="chat-empty">TA 还没有消息</div>';
+    return;
+  }
+  // 时间正序：新消息沉底
+  log.innerHTML = msgs.map(e => {
+    const isAsk = e.event === 'student_ask';
+    return `<div class="chat-msg ${isAsk ? 'stu' : 'teacher'}"><div class="bubble"><div class="chat-who">${isAsk ? '学生' : '我'}</div>${esc(e.payload.text || '')}</div></div>`;
+  }).join('');
   log.scrollTop = log.scrollHeight;
 }
 function sendTeacherReply(){
   const text = $('tAskInput').value.trim();
-  if (!text || !targetSid) return;
+  if (!text || !activeConvSid) return;
   fetch('/api/collect', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ sid: targetSid, event: 'teacher_reply', payload: { text: text } }),
+    body: JSON.stringify({ sid: activeConvSid, event: 'teacher_reply', payload: { text: text } }),
   }).catch(() => {});
   $('tAskInput').value = '';
   renderTeacherChat();

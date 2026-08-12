@@ -64,12 +64,19 @@
   </div>
 
   <div class="pushcard chatcard">
-    <div class="pushhead">💬 消息 <span class="dim" id="chatSid">（点学生消息的「回复」按钮，直接回给 TA）</span></div>
-    <div class="chat-log" id="tchatLog"><div class="chat-empty">暂无消息，学生提问会实时出现在这里</div></div>
-    <div class="row ask-row">
-      <span class="hint reply-target" id="tReplyTarget">点上面的「回复」选择要回复的学生</span>
-      <input id="tAskInput" class="ask-input" placeholder="输入回复，按回车发送…" maxlength="200" disabled>
-      <button id="btnTAsk" class="ghost" type="button" disabled>发送</button>
+    <div class="pushhead">💬 消息 <span class="dim">（点左侧会话，右侧对话记录按时间排列，回复实时到学生端）</span></div>
+    <div class="chat-wrap">
+      <div class="conv-list" id="convList">
+        <div class="conv-empty">暂无学生消息</div>
+      </div>
+      <div class="conv-window">
+        <div class="conv-head" id="convHead">选择左侧会话开始聊天</div>
+        <div class="chat-log" id="tchatLog"><div class="chat-empty">点左侧学生，查看并回复 TA 的消息</div></div>
+        <div class="row ask-row">
+          <input id="tAskInput" class="ask-input" placeholder="输入回复，按回车发送…" maxlength="200" disabled>
+          <button id="btnTAsk" class="ghost" type="button" disabled>发送</button>
+        </div>
+      </div>
     </div>
   </div>
 

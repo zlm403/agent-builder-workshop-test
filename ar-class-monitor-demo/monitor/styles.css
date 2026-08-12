@@ -130,17 +130,31 @@ button.primary:hover{filter:brightness(1.1)}
 }
 .chat-msg.stu .bubble { background: var(--panel2); border: 1px solid var(--line); border-bottom-left-radius: 3px; }
 .chat-msg.teacher .bubble { background: var(--blue); color: #04263a; border-bottom-right-radius: 3px; }
-.chat-group { border: 1px solid var(--line); border-radius: 11px; padding: 8px 10px; background: rgba(7,11,22,.35); }
-.chat-group.on { border-color: var(--blue); box-shadow: 0 0 0 1px var(--blue) inset; }
-.chat-group-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
-.chat-who { font-size: 12px; font-weight: 800; color: var(--txt); }
-.chat-last { font-size: 11px; color: var(--sub); margin-right: auto; }
-.reply-btn {
-  font-size: 11px; padding: 3px 10px; border-radius: 7px; cursor: pointer;
-  background: rgba(56,189,248,.12); border: 1px solid rgba(56,189,248,.4); color: var(--blue); font-weight: 700;
+.chat-who { font-size: 10.5px; font-weight: 700; opacity: .7; margin-bottom: 2px; }
+
+/* 会话列表 + 聊天窗口（微信单聊式） */
+.chat-wrap { display: flex; gap: 10px; }
+.conv-list {
+  flex: 0 0 220px; max-height: 320px; overflow-y: auto;
+  background: var(--panel2); border: 1px solid var(--line); border-radius: 11px; padding: 6px;
+  display: flex; flex-direction: column; gap: 4px;
 }
-.reply-btn:hover { background: var(--blue); color: #04263a; }
-.reply-target { flex: 1; color: var(--sub); font-size: 12px; }
+.conv-empty { color: var(--sub); font-size: 12px; text-align: center; padding: 30px 0; }
+.conv-item { padding: 8px 10px; border-radius: 9px; cursor: pointer; border: 1px solid transparent; }
+.conv-item:hover { background: rgba(56,189,248,.08); }
+.conv-item.on { background: rgba(56,189,248,.14); border-color: rgba(56,189,248,.35); }
+.conv-name { font-size: 12.5px; font-weight: 800; display: flex; align-items: center; gap: 6px; }
+.conv-unread {
+  background: var(--red); color: #fff; font-size: 10px; font-weight: 800;
+  border-radius: 999px; padding: 1px 6px; min-width: 16px; text-align: center;
+}
+.conv-preview { font-size: 11px; color: var(--sub); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.conv-time { font-size: 10px; color: var(--sub); margin-top: 1px; }
+.conv-window {
+  flex: 1; min-width: 0; display: flex; flex-direction: column;
+  background: var(--panel2); border: 1px solid var(--line); border-radius: 11px; padding: 8px;
+}
+.conv-head { font-size: 13px; font-weight: 800; padding: 4px 6px 8px; border-bottom: 1px solid var(--line); margin-bottom: 8px; }
 .ask-input {
   flex: 1; min-width: 220px; background: var(--panel2); border: 1px solid var(--line);
   border-radius: 10px; color: var(--txt); padding: 9px 12px; font-size: 13.5px; outline: none;
