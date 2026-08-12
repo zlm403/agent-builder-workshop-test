@@ -124,7 +124,9 @@ async function load(){
   } catch(e){ errMsg = String(e && e.message ? e.message : e); }
   mergeInto(loadLocal());   // 兼容老师本机 localStorage 事件
   window.__diag_events = events.length;
-  renderAll();
+  try { renderAll(); } catch(e) {
+    window.__diag_error = 'renderAll: ' + (e && e.message ? e.message : e) + ' @' + (e && e.stack ? (e.stack.split('\n')[1] || '') : '');
+  }
   renderConnChip(ok, errMsg);
 }
 function renderConnChip(ok, err){
@@ -155,10 +157,10 @@ function taskOfCourse(c){
 const STATE_ORDER = ['ok', 'rec', 'guess', 'clarify', 'empty', 'conflict'];
 function renderClassPrism(){
   const task = taskOfCourse(courseFilter);
-  const grid = $('#prismGrid');
+  const grid = $('prismGrid');
   if (!task) {
     grid.innerHTML = '<div class="empty">选择上方课程后查看班级棱镜</div>';
-    $('#prismInfo').textContent = '（先选课程，看这一课全班哪里没立住）';
+    $('prismInfo').textContent = '（先选课程，看这一课全班哪里没立住）';
     return;
   }
   const matched = events.filter(e => taskIdOf(e.payload) === task && e.sid !== 'teacher');
@@ -168,7 +170,7 @@ function renderClassPrism(){
     perStu[e.sid].push({ event: e.event, payload: e.payload });
   });
   const sids = Object.keys(perStu);
-  $('#prismInfo').textContent = COURSE_NAME[courseFilter] + ' · ' + sids.length + ' 名学生参与';
+  $('prismInfo').textContent = COURSE_NAME[courseFilter] + ' · ' + sids.length + ' 名学生参与';
   if (!sids.length) { grid.innerHTML = '<div class="empty">该课暂无学生数据</div>'; return; }
 
   const cells = Analyzer.CELLS_BY_TASK[task];
