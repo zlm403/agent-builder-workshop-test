@@ -36,15 +36,17 @@
       <button id="btnTaskOk" class="primary" disabled>✓ 收到，开始执行</button>
       <span class="hint" id="taskHint">点「收到」后老师能看到你已开始</span>
     </div>
-    <div class="askbox">
-      <div class="ask-title">💬 有问题？和老师聊 <span class="dim">（你的问题会发给老师，老师回复会显示在这里）</span></div>
-      <div class="chat-log" id="chatLog"><div class="chat-empty">还没有消息，遇到问题就发一条吧</div></div>
-      <div class="row ask-row">
-        <input id="askInput" class="ask-input" placeholder="遇到问题打出来，比如：AI 不按我说的做…" maxlength="200">
-        <button id="btnAsk" class="ghost" type="button">发送</button>
-      </div>
-      <span class="hint" id="askHint"></span>
+  </section>
+
+  <!-- 和老师聊（独立消息框，老师回复实时显示） -->
+  <section class="pane" id="chatPane">
+    <div class="pane-title">💬 和老师聊 <span class="dim" id="chatTitle">（有问题直接说，老师回复会出现在这里）</span></div>
+    <div class="chat-log" id="chatLog"><div class="chat-empty">还没有消息，遇到问题就发一条吧</div></div>
+    <div class="row ask-row">
+      <input id="askInput" class="ask-input" placeholder="遇到问题打出来，比如：AI 不按我说的做…" maxlength="200">
+      <button id="btnAsk" class="ghost" type="button">发送</button>
     </div>
+    <span class="hint" id="askHint"></span>
   </section>
 
   <!-- 本课引导 -->

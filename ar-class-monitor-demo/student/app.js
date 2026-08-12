@@ -65,6 +65,7 @@ function applySid(sid){
   $('sidHint').textContent = '✅ 已签到：' + sid + '（本机记住，重开免签）';
   $('sidNo').disabled = true;
   $('btnSidSubmit').disabled = true;
+  refreshChat();   // 签到后立即加载与老师的对话
 }
 function bindSid(){
   const saved = sidStorage();
@@ -223,6 +224,7 @@ $('btnTaskOk').addEventListener('click', () => {
 
 /* ---------- 和老师聊天（学生提问 → 老师回复，双向对话） ---------- */
 let chatMsgs = [];   // {role:'me'|'teacher', text, ts}
+let chatSeenCount = 0;   // 已读消息数（用于新消息提醒）
 function mySid(){
   return (localStorage.getItem('ar_class_monitor_sid') || '').trim();
 }
@@ -245,11 +247,23 @@ async function refreshChat(){
     const all = await r.json();
     // 我的消息：我发的 student_ask + 老师回我的 teacher_reply（sid=我的号）
     const mine = all.filter(e => e.sid === sid && (e.event === 'student_ask' || e.event === 'teacher_reply'));
-    chatMsgs = mine.sort((a,b) => (a.ts||0) - (b.ts||0)).map(e => ({
+    const msgs = mine.sort((a,b) => (a.ts||0) - (b.ts||0)).map(e => ({
       role: e.event === 'student_ask' ? 'me' : 'teacher',
       text: e.payload.text || '',
       ts: e.ts,
     }));
+    // 新老师消息提醒：老师消息数变多了，且不是自己刚发的
+    const teacherCount = msgs.filter(m => m.role === 'teacher').length;
+    const hadTeacher = chatMsgs.some(m => m.role === 'teacher');
+    if (teacherCount > chatSeenCount) {
+      const title = $('chatTitle');
+      if (title && hadTeacher) {
+        title.textContent = '💬 和老师聊 — 🔔 老师回复了你！';
+        setTimeout(() => { title.textContent = '（有问题直接说，老师回复会出现在这里）'; }, 5000);
+      }
+    }
+    chatSeenCount = teacherCount;
+    chatMsgs = msgs;
     renderChat();
   } catch(e){}
 }
