@@ -143,7 +143,6 @@ function taskOfCourse(c){
   if (c === '4') return 't3';
   return null;
 }
-const GAP_STATES = ['guess', 'clarify', 'empty', 'conflict'];
 const STATE_ORDER = ['ok', 'rec', 'guess', 'clarify', 'empty', 'conflict'];
 function renderClassPrism(){
   const task = taskOfCourse(courseFilter);
