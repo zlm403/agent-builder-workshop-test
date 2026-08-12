@@ -50,22 +50,15 @@
     </div>
   </div>
 
-  <!-- 任务推送 -->
+  <!-- 课堂任务（课程框架） -->
   <div class="pushcard">
-    <div class="pushhead">📨 推送课堂任务 <span class="dim" id="pushCourseTag">（推送给当前选中的课程）</span></div>
-    <div class="pushgrid">
-      <input id="tNo" class="tno" placeholder="任务编号，如：任务一" maxlength="12">
-      <input id="tTitle" placeholder="任务标题，如：造一个帮大学生学习的 AI" maxlength="60">
-    </div>
-    <textarea id="tDesc" rows="2" placeholder="任务说明：这一步要做什么（学生一看就懂）"></textarea>
-    <div class="pushgrid">
-      <input id="tGoal" placeholder="🎯 目标（可选）" maxlength="80">
-      <input id="tSteps" placeholder="📌 步骤提示（可选，用换行分隔）" maxlength="200">
-    </div>
+    <div class="pushhead">📋 课堂任务 <span class="dim" id="pushCourseTag">（粘贴一节课内容，AI 拆解成任务；逐个推送+锁定）</span></div>
     <div class="row">
-      <button id="btnPush" class="primary">📨 推送给全班</button>
-      <span class="hint" id="pushHint">推送后对应课程学生端会自动收到</span>
+      <textarea id="lessonText" class="lesson-input" rows="3" placeholder="粘贴本节课的课程内容/教案（一节课一节课来）…"></textarea>
+      <button id="btnSplit" class="primary">🤖 AI 拆解任务</button>
     </div>
+    <div class="hint" id="splitHint"></div>
+    <div id="lessonTasks" class="lesson-tasks"></div>
   </div>
 
   <div class="pushcard chatcard">

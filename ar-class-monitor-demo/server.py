@@ -19,6 +19,7 @@ import json
 import os
 import sys
 import time
+import urllib.request
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse, parse_qs
 
@@ -27,6 +28,8 @@ DATA_FILE = os.path.join(BASE_DIR, 'agent-live', 'events.jsonl')
 SESSION_FILE = os.path.join(BASE_DIR, 'agent-live', 'sessions.json')
 IDENTITY_FILE = os.path.join(BASE_DIR, 'agent-live', 'identity.json')
 WATER_FILE = os.path.join(BASE_DIR, 'agent-live', 'water.json')
+LESSON_FILE = os.path.join(BASE_DIR, 'agent-live', 'lessons.json')
+KEY_FILE = os.path.join(BASE_DIR, '.deepseek_key')
 
 
 def ensure_data_file():
@@ -267,6 +270,102 @@ def load_identity():
     return d
 
 
+# ============================================================
+# 课堂任务框架（一节课=一个课程，含 N 个任务；每个任务有 推送/解锁 状态）
+#   lessons.json: {"currentLesson":"课1", "lessons":{"课1":{"title":"...","tasks":[
+#       {"no":"任务1","title":"...","steps":"...","points":"...","pushed":bool,"unlocked":bool}
+#   ]}}}
+# ============================================================
+def ensure_lesson_file():
+    os.makedirs(os.path.dirname(LESSON_FILE), exist_ok=True)
+    if not os.path.exists(LESSON_FILE):
+        with open(LESSON_FILE, 'w', encoding='utf-8') as f:
+            f.write(json.dumps({'currentLesson': None, 'lessons': {}}, ensure_ascii=False))
+
+
+def load_lessons():
+    ensure_lesson_file()
+    try:
+        with open(LESSON_FILE, 'r', encoding='utf-8') as f:
+            d = json.load(f)
+        if not isinstance(d, dict):
+            d = {}
+        d.setdefault('currentLesson', None)
+        d.setdefault('lessons', {})
+        return d
+    except Exception:
+        return {'currentLesson': None, 'lessons': {}}
+
+
+def save_lessons(d):
+    ensure_lesson_file()
+    tmp = LESSON_FILE + '.tmp'
+    with open(tmp, 'w', encoding='utf-8') as f:
+        json.dump(d, f, ensure_ascii=False)
+    os.replace(tmp, LESSON_FILE)
+
+
+def load_api_key():
+    key = os.environ.get('DEEPSEEK_API_KEY', '')
+    if not key:
+        try:
+            with open(KEY_FILE, 'r', encoding='utf-8') as f:
+                key = f.read().strip()
+        except Exception:
+            pass
+    return key
+
+
+def ai_split_tasks(text):
+    """调 DeepSeek 把课程内容拆成课堂任务列表。失败抛异常。"""
+    api_key = load_api_key()
+    if not api_key:
+        raise RuntimeError('未配置 API key')
+    prompt = (
+        '你是课堂任务拆解助手。下面是一节课的教学内容。'
+        '请把它拆解成清晰的"课堂任务"列表，每个任务学生要能看懂这一步做什么。\n'
+        '要求：\n'
+        '1. 按上课顺序拆，任务数按内容自然分（一般 2-6 个）。\n'
+        '2. 每个任务包含四个字段：no(如"任务一")、title(一句话任务标题)、steps(这一步具体怎么做，用换行分条)、points(这一步要教/要注意的知识点或注意点，用换行分条)。\n'
+        '3. 用 JSON 数组输出，不要多余文字：\n'
+        '[{"no":"任务一","title":"...","steps":"...\\n...","points":"...\\n..."}]\n\n'
+        '教学内容如下：\n%s' % text
+    )
+    body = json.dumps({
+        'model': 'deepseek-chat',
+        'messages': [{'role': 'user', 'content': prompt}],
+        'temperature': 0.4,
+        'max_tokens': 2000,
+    }, ensure_ascii=False).encode('utf-8')
+    req = urllib.request.Request('https://api.deepseek.com/chat/completions', data=body, method='POST', headers={
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + api_key,
+    })
+    with urllib.request.urlopen(req, timeout=40) as r:
+        resp = json.loads(r.read().decode('utf-8'))
+    content = resp['choices'][0]['message']['content'].strip()
+    # 提取 JSON（去掉可能的 markdown 围栏）
+    if '[' in content:
+        content = content[content.index('['):]
+        if ']' in content:
+            content = content[:content.rindex(']') + 1]
+    tasks = json.loads(content)
+    if not isinstance(tasks, list):
+        raise RuntimeError('AI 返回格式不对')
+    # 规范化字段
+    out = []
+    for i, t in enumerate(tasks, 1):
+        out.append({
+            'no': t.get('no') or ('任务%d' % i),
+            'title': t.get('title') or '任务',
+            'steps': t.get('steps') or '',
+            'points': t.get('points') or '',
+            'pushed': False,
+            'unlocked': False,
+        })
+    return out
+
+
 class Handler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=BASE_DIR, **kwargs)
@@ -326,6 +425,9 @@ class Handler(SimpleHTTPRequestHandler):
             except Exception:
                 self._json(200, {'updated': 0, 'students': {}})
             return
+        if parsed.path == '/api/lesson':
+            self._json(200, load_lessons())
+            return
         if parsed.path == '/api/class':
             agg = class_aggregate(load_events())
             self._json(200, agg)
@@ -357,6 +459,40 @@ class Handler(SimpleHTTPRequestHandler):
                     return
                 save_identity(sid)
                 self._json(200, {'ok': True, 'sid': sid})
+            except Exception as ex:
+                self._json(400, {'ok': False, 'reason': str(ex)})
+            return
+        if parsed.path == '/api/split-task':
+            try:
+                length = int(self.headers.get('Content-Length', 0))
+                raw = self.rfile.read(length) if length else b''
+                data = json.loads(raw.decode('utf-8')) if raw else {}
+                text = (data.get('text') or '').strip()
+                if not text:
+                    self._json(400, {'ok': False, 'reason': '内容为空'})
+                    return
+                tasks = ai_split_tasks(text)
+                self._json(200, {'ok': True, 'tasks': tasks})
+            except Exception as ex:
+                self._json(400, {'ok': False, 'reason': str(ex)})
+            return
+        if parsed.path == '/api/lesson/save':
+            try:
+                length = int(self.headers.get('Content-Length', 0))
+                raw = self.rfile.read(length) if length else b''
+                data = json.loads(raw.decode('utf-8')) if raw else {}
+                lesson_name = (data.get('name') or '').strip()
+                if not lesson_name:
+                    self._json(400, {'ok': False, 'reason': '课程名称为空'})
+                    return
+                d = load_lessons()
+                d['lessons'][lesson_name] = {
+                    'title': lesson_name,
+                    'tasks': data.get('tasks') or [],
+                }
+                d['currentLesson'] = lesson_name
+                save_lessons(d)
+                self._json(200, {'ok': True})
             except Exception as ex:
                 self._json(400, {'ok': False, 'reason': str(ex)})
             return

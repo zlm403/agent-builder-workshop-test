@@ -187,34 +187,120 @@ function renderClassPrism(){
   }).join('');
 }
 
-/* ---------- 任务推送（带课程标记） ---------- */
-$('btnPush').addEventListener('click', () => {
-  const title = $('tTitle').value.trim();
-  if (!title) { alert('先填任务标题'); return; }
-  const course = (courseFilter === 'all') ? '' : courseFilter;
-  const payload = {
-    _ts: Date.now(),
-    course,
-    task_no: $('tNo').value.trim() || '任务',
-    title,
-    desc: $('tDesc').value.trim(),
-    goal: $('tGoal').value.trim(),
-    steps: $('tSteps').value.trim(),
+/* ---------- 课堂任务框架（课程 = 一节课，含 N 个任务，逐个推送+锁定） ---------- */
+let lessonTasks = [];   // 当前课程的拆解任务 [{no,title,steps,points,pushed,unlocked}]
+let lessonName = '';    // 当前课程名
+
+async function loadLesson(){
+  try {
+    const r = await fetch('/api/lesson', { cache: 'no-store' });
+    const d = await r.json();
+    const cur = d.currentLesson;
+    if (cur && d.lessons && d.lessons[cur]) {
+      lessonName = cur;
+      lessonTasks = d.lessons[cur].tasks || [];
+    }
+    renderLessonTasks();
+  } catch(e){}
+}
+function renderLessonTasks(){
+  const box = $('lessonTasks');
+  if (!box) return;
+  if (!lessonTasks.length) {
+    box.innerHTML = '<div class="lesson-empty">还没有任务——粘贴课程内容，点「AI 拆解任务」生成</div>';
+    return;
+  }
+  box.innerHTML = lessonTasks.map((t, i) => `
+    <div class="ltask">
+      <div class="ltask-head">
+        <span class="ltask-no">${t.no}</span>
+        <span class="ltask-title">${esc(t.title)}</span>
+        ${t.pushed
+          ? '<span class="ltask-state pushed">✅ 已推送</span>'
+          : '<button class="ghost ghost-mini" onclick="pushTask(' + i + ')">推送</button>'}
+        <button class="ghost ghost-mini" onclick="editTask(' + i + ')">✏️改</button>
+      </div>
+      ${t.steps ? `<div class="ltask-body"><b>步骤：</b>${esc(t.steps).replace(/\n/g,'<br>')}</div>` : ''}
+      ${t.points ? `<div class="ltask-body"><b>注意：</b>${esc(t.points).replace(/\n/g,'<br>')}</div>` : ''}
+    </div>`).join('');
+}
+window.pushTask = function(i){
+  const t = lessonTasks[i];
+  if (!t) return;
+  // 推送：广播 task_push 事件 + 标记 pushed
+  const rec = {
+    ts: Date.now(), sid: 'teacher', course: '', event: 'task_push',
+    payload: { _ts: Date.now(), course: '', task_no: t.no, title: t.title, steps: t.steps, points: t.points, unlocked: t.unlocked || false }
   };
-  const rec = { ts: Date.now(), sid: 'teacher', course, event: 'task_push', payload };
-  // 独立槽：学生端秒读最新任务（带课程）
   try { localStorage.setItem(TASK_EVENT_KEY, JSON.stringify(rec)); } catch(e){}
-  // 事件流：本地 + 服务端
   try {
     const arr = JSON.parse(localStorage.getItem(EVENT_KEY) || '[]');
-    arr.push(rec);
-    localStorage.setItem(EVENT_KEY, JSON.stringify(arr));
+    arr.push(rec); localStorage.setItem(EVENT_KEY, JSON.stringify(arr));
   } catch(e){}
   fetch(COLLECT, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(rec) }).catch(() => {});
-  const target = course ? COURSE_NAME[course] : '全部课程';
-  $('pushHint').textContent = `✅ 已推送给「${target}」：「${payload.task_no} · ${title}」`;
-  setTimeout(() => { $('pushHint').textContent = '推送后对应课程学生端会自动收到'; }, 6000);
+  lessonTasks[i].pushed = true;
+  saveLesson();
+  renderLessonTasks();
+};
+window.editTask = function(i){
+  const t = lessonTasks[i];
+  if (!t) return;
+  const html = `
+    <div class="wmodal">
+      <div class="wmodal-box editbox">
+        <div class="wmodal-head"><span>编辑 ${t.no}</span><span class="wmodal-close" onclick="this.closest('.wmodal').remove()">✕</span></div>
+        <div class="edit-field"><label>任务标题</label><input id="eTitle" value="${esc(t.title)}"></div>
+        <div class="edit-field"><label>步骤（每行一条）</label><textarea id="eSteps" rows="4">${esc(t.steps)}</textarea></div>
+        <div class="edit-field"><label>知识点/注意点（每行一条）</label><textarea id="ePoints" rows="3">${esc(t.points)}</textarea></div>
+        <div class="row"><button class="primary" onclick="saveEdit(${i})">✓ 确定</button></div>
+      </div>
+    </div>`;
+  const wrap = document.createElement('div');
+  wrap.innerHTML = html;
+  document.body.appendChild(wrap.firstChild);
+};
+window.saveEdit = function(i){
+  const t = lessonTasks[i];
+  const title = document.getElementById('eTitle').value.trim();
+  const steps = document.getElementById('eSteps').value.trim();
+  const points = document.getElementById('ePoints').value.trim();
+  if (!title) return;
+  t.title = title; t.steps = steps; t.points = points;
+  document.querySelector('.wmodal') && document.querySelector('.wmodal').remove();
+  saveLesson();
+  renderLessonTasks();
+};
+function saveLesson(){
+  fetch('/api/lesson/save', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name: lessonName || ('课' + Date.now()), tasks: lessonTasks }),
+  }).catch(() => {});
+}
+$('btnSplit').addEventListener('click', async () => {
+  const text = $('lessonText').value.trim();
+  if (!text) { $('splitHint').textContent = '⚠️ 先粘贴课程内容'; return; }
+  $('splitHint').textContent = '⏳ AI 拆解中…';
+  try {
+    const r = await fetch('/api/split-task', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text }),
+    });
+    const res = await r.json();
+    if (res.ok) {
+      lessonName = '课' + Date.now();
+      lessonTasks = res.tasks;
+      saveLesson();
+      renderLessonTasks();
+      $('splitHint').textContent = '✅ 已拆成 ' + lessonTasks.length + ' 个任务，可点 ✏️改 调整，逐个「推送」';
+    } else {
+      $('splitHint').textContent = '⚠️ ' + (res.reason || '拆解失败');
+    }
+  } catch(e) {
+    $('splitHint').textContent = '⚠️ 拆解失败：' + e;
+  }
 });
+loadLesson();
+setInterval(loadLesson, 5000);
 
 /* ---------- 课程筛选 ---------- */
 document.querySelectorAll('.cbtn').forEach(btn => {
