@@ -252,16 +252,22 @@ function renderLessonTasks(){
   const box = $('lessonTasks');
   if (!box) return;
   if (!lessonTasks.length) {
-    box.innerHTML = '<div class="lesson-empty">还没有任务——粘贴课程内容，点「AI 拆解任务」生成</div>';
+    box.innerHTML = '<div class="lesson-empty">还没有任务——上传课程文件，点「AI 拆解任务」生成</div>';
     return;
   }
-  box.innerHTML = lessonTasks.map((t, i) => `
+  const allPushed = lessonTasks.every(t => t.pushed);
+  const pushBtn = allPushed
+    ? '<span class="ltask-all pushed">✅ 全部已推送</span>'
+    : '<button class="ghost ghost-mini" onclick="pushAllTasks()">📨 一键全部推送</button>';
+  box.innerHTML = `<div class="ltask-all-row"><span class="f-label">共 ${lessonTasks.length} 个任务：</span>${pushBtn}
+    <span class="hint">全部推送后，逐个在下方「解锁/推送」当前任务</span></div>` +
+    lessonTasks.map((t, i) => `
     <div class="ltask">
       <div class="ltask-head">
         <span class="ltask-no">${t.no}</span>
         <span class="ltask-title">${esc(t.title)}</span>
         ${t.pushed
-          ? '<span class="ltask-state pushed">✅ 已推送</span>'
+          ? `<span class="ltask-state pushed">✅ 已推送</span><button class="ghost ghost-mini ${t.unlocked ? 'unlock-on' : ''}" onclick="pushTask(${i})">${t.unlocked ? '🔓 当前' : '🔒 设为当前'}</button>`
           : '<button class="ghost ghost-mini" onclick="pushTask(' + i + ')">推送</button>'}
         <button class="ghost ghost-mini" onclick="editTask(' + i + ')">✏️改</button>
       </div>
@@ -269,6 +275,25 @@ function renderLessonTasks(){
       ${t.points ? `<div class="ltask-body"><b>注意：</b>${esc(t.points).replace(/\n/g,'<br>')}</div>` : ''}
     </div>`).join('');
 }
+window.pushAllTasks = function(){
+  if (!lessonTasks.length) return;
+  // 全部标记已推送；解锁第一个，其余锁定
+  lessonTasks.forEach((t, i) => {
+    t.pushed = true;
+    t.unlocked = (i === 0);
+  });
+  // 广播每个任务的 task_push（学生端/大屏都能看到全部任务）
+  lessonTasks.forEach(t => {
+    const rec = {
+      ts: Date.now(), sid: 'teacher', course: '', event: 'task_push',
+      payload: { _ts: Date.now(), course: '', task_no: t.no, title: t.title, steps: t.steps, points: t.points, unlocked: t.unlocked }
+    };
+    fetch(COLLECT, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(rec) }).catch(() => {});
+  });
+  try { localStorage.removeItem(TASK_EVENT_KEY); } catch(e){}
+  saveLesson();
+  renderLessonTasks();
+};
 window.pushTask = function(i){
   const t = lessonTasks[i];
   if (!t) return;
