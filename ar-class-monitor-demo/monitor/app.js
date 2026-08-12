@@ -466,11 +466,13 @@ async function loadScreenBlocks(){
       const ld = await lr.json();
       const cur = ld.currentLesson;
       const tasks = (cur && ld.lessons && ld.lessons[cur]) ? (ld.lessons[cur].tasks || []) : [];
+      // 任务块 id 带课程前缀，避免不同课程的"任务一"互相覆盖
+      const courseTag = (cur || 'course').replace(/[^\w\u4e00-\u9fa5]/g, '');
       tasks.forEach(t => {
         fetch('/api/screen/save', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            id: 'blk_task_' + (t.no || '').replace(/[^\w\u4e00-\u9fa5]/g, ''),
+            id: 'blk_task_' + courseTag + '_' + (t.no || '').replace(/[^\w\u4e00-\u9fa5]/g, ''),
             type: 'task',
             title: t.no + ' · ' + t.title,
             content: { title: t.title, steps: t.steps, points: t.points },
@@ -495,6 +497,7 @@ function renderScreenBlocks(){
     return;
   }
   const icons = { task: '📋', text: '📝', image: '🖼', video: '🎬', page: '🌐' };
+  // 任务块 = 当前课程前缀的自动块（带课程名的 blk_task_<课>_）
   const isTask = id => (id || '').indexOf('blk_task_') === 0;
   // 服务端已按 order 排好，这里只把自动任务块提到最前（保持稳定，不按 ts 重排）
   const sorted = [...screenBlocks].sort((a, b) => {
@@ -604,7 +607,8 @@ document.querySelectorAll('.cbtn').forEach(btn => {
     document.querySelectorAll('.cbtn').forEach(b => b.classList.remove('on'));
     btn.classList.add('on');
     courseFilter = btn.dataset.course;
-    $('pushCourseTag').textContent = '（推送给' + (courseFilter === 'all' ? '全部课程' : COURSE_NAME[courseFilter]) + '）';
+    const pct = $('pushCourseTag');
+    if (pct) pct.textContent = '（推送给' + (courseFilter === 'all' ? '全部课程' : COURSE_NAME[courseFilter]) + '）';
     renderAll();
   });
 });
