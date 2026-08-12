@@ -2,7 +2,7 @@ import { prisma } from './db';
 import type { CourseTemplateData, ModuleConfig } from './types';
 
 // 课程模板版本。每次大幅调整模块结构时递增，便于追溯。
-export const COURSE_VERSION = 'A-v6';
+export const COURSE_VERSION = 'A-v7';
 
 // ---------------------------------------------------------------------------
 // 第二关核心数据：8 份资料（结构化元数据 + 模型可读正文）
@@ -395,309 +395,62 @@ const TEMPLATE: CourseTemplateData = {
       screenContent: { phase: 'avatar_flow' },
     },
 
-    // ===================== 第二关 =====================
+    // ===================== 方案二：快速入门网站 =====================
     {
-      id: 'L2_INTRO',
-      type: 'l2_intro',
-      title: '第二关：把 AI 助手交给别人用',
-      durationSeconds: 120,
+      id: 'P2_SITE',
+      type: 'site_entry',
+      title: 'P2 · 快速入门网站',
+      durationSeconds: 900,
       teacherContent: {
-        headline: '第二关：把AI助手交给别人用',
-        subline: '从“我自己用”到“设计一个助手服务不同的人”',
+        headline: 'P2 · 做一款「快速入门网站」',
+        subline: '手机端一个对话框，不停地问、不停地说；最后 AI 生成网站、小白测试、发布',
         bullets: [
-          '第一关：AI 根据我的要求，帮我完成一次训练',
-          '第二关：让同一个助手，分别服务情况不同的人',
-          '经历：选择知识 → 编写 Skill → 两人运行 → AI 检查 → 修改提交',
+          '六步：选择领域 → 定义入场任务 → 建立知识骨架 → 形成判断标准 → 设计网站路径 → 创作迭代',
+          'AI 按五屏结构生成 HTML 网站第一版',
+          '学生做「小白测试」，AI 评审可发布性，通过后发布上墙',
         ],
-        revealOrder: ['intro'],
-        coreQuestion: '他们的情况不同，同一个助手怎样分别帮助他们？',
-        flow: ['选择知识', '编写Skill', '两人运行', 'AI检查', '修改提交'],
-        // 阶段2：困难1 → 引出对训练依据的需求（不提前说"知识库"名词，留到 A04 自然引入）
-        difficulty1: {
-          headline: '困难 1：我怎么知道他们各自需要什么训练？',
-          subline: '两个人的基础、问题、可用时间都不一样。',
-          lin: {
-            problem: '生词多、阅读容易中断，只有 15 分钟',
-            corpus: '基础阅读短文 + 词汇表',
-            method: '基础训练方法：生词处理、细节定位',
-          },
-          zhou: {
-            problem: '推理题、作者态度题易错，有 30 分钟',
-            corpus: '进阶阅读材料（推理题、作者态度题）',
-            method: '进阶训练方法：推理分析、选项辨析',
-          },
-          conclusion: '如果只靠你自己的经验，很难同时照顾到两个人的不同需要。而且你的经验可能不准确、也不全面。',
-          solution: '所以，我们需要给 AI 提供可靠的训练方法和语料依据',
-          solutionSub: '让 AI 面对不同的人，有合适的材料可用、有合适的方法可循',
-        },
-      },
-      studentTask: {
-        prompt: '第二关来了：你要设计一个 AI 助手，让它能服务情况不同的同学。',
-        details: [
-          '第一关里，AI 根据你的要求完成了一次训练',
-          '这一关，你要让同一个助手分别服务小林和小周',
-          '先理解任务，再开始选择知识',
-        ],
-        submitLabel: '我明白了，开始第二关',
-      },
-      screenContent: {
-        phase: 'l2_intro',
-        headline: '第二关：把AI助手交给别人用',
-        subline: '同样的助手，服务情况不同的人',
-        firstLevel: {
-          title: '第一关',
-          desc: 'AI 根据我的要求，帮助我完成了一次英语训练。',
-        },
-        personas: PERSONAS,
-        coreQuestion: '他们的情况不同，同一个助手怎样分别帮助他们？',
-        flow: ['选择知识', '编写Skill', '两人运行', 'AI检查', '修改提交'],
-      },
-    },
-    {
-      id: 'A04_KNOWLEDGE',
-      type: 'knowledge_select',
-      title: '选择知识库：从 10 份资料中选 4 份核心知识',
-      durationSeconds: 240,
-      teacherContent: {
-        headline: '知识库不是越多越好，关键是选得合适',
-        subline: '从 10 份资料中选择 4 份，建立核心知识库',
-        bullets: [
-          '相关性：与当前任务有关吗？',
-          '可靠性：来源值得信任吗？',
-          '时效性：内容现在仍然适用吗？',
-          '本轮不显示全班热门资料，避免跟随多数',
-        ],
-        revealOrder: ['criteria', 'task'],
-        criteria: [
-          { key: '相关性', q: '与当前任务有关吗？' },
-          { key: '可靠性', q: '来源值得信任吗？' },
-          { key: '时效性', q: '内容现在仍然适用吗？' },
-        ],
-        hint: '下面的 8 份资料不一定都适合这个助手。请大家根据标题、来源、时间和摘要自己判断。',
-        progressNote: '第一次选择过程中不要显示“最多人选择了哪份资料”。',
-      },
-      studentTask: {
-        prompt: '为“英语个性化学习助手”选择 4 份核心资料。',
-        details: [
-          '下面有 8 份资料，本轮只能选择 4 份',
-          '资料多不等于知识库质量高',
-          '选择前请判断：相关性、可靠性、时效性',
-          '“4 份”是本次课堂任务的核心资料数量限制，目的是练习筛选知识',
-        ],
-        mustSelect: 4,
-        maxSelect: 4,
-        judgePrompts: [
-          '相关性：它与考研英语阅读训练有关吗？',
-          '可靠性：它的来源值得信任吗？',
-          '时效性：它的内容现在仍然适用吗？',
-        ],
-        fullHint: '当前核心知识库已满。请先移除一份资料，再添加新资料。',
-        submitLabel: '建立知识库，开始编写 Skill',
-      },
-      screenContent: {
-        phase: 'knowledge',
-        headline: '知识库不是越多越好，关键是选得合适',
-        subline: '从 10 份资料中选择 4 份核心资料',
-        docs: KNOWLEDGE_DOCS,
-        criteria: [
-          { key: '相关性', q: '与当前任务有关吗？' },
-          { key: '可靠性', q: '来源值得信任吗？' },
-          { key: '时效性', q: '内容现在仍然适用吗？' },
-        ],
-        mustSelect: 4,
-        maxSelect: 4,
-      },
-    },
-    {
-      id: 'A05_SKILL',
-      type: 'skill_build',
-      title: '编写 Skill：了解—判断—执行—反馈',
-      durationSeconds: 420,
-      teacherContent: {
-        headline: 'Skill：AI 面对不同的人应该怎么做？',
-        subline: '框架已给，具体内容由学生决定',
-        bullets: [
-          '了解：先了解这个人的什么？',
-          '判断：根据这些信息判断什么？',
-          '执行：从知识库选择什么，怎样安排？',
-          '反馈：训练后怎样帮助他改进？',
-          '知识库提供依据，Skill 规定使用方法',
-        ],
-        revealOrder: ['framework', 'task'],
-        framework: [
-          { key: '了解', q: '先了解这个人的什么？' },
-          { key: '判断', q: '根据这些信息判断什么？' },
-          { key: '执行', q: '从知识库选择什么，怎样安排？' },
-          { key: '反馈', q: '训练后怎样帮助使用者改进？' },
-        ],
-        hint: '大家先完成自己的第一版，不需要追求一次写得完美。之后会用两个人实际运行，再根据结果判断哪里需要改。',
-      },
-      studentTask: {
-        prompt: '写下你的助手服务不同学生的方法。',
-        details: [
-          '框架已经给你了，具体内容由你决定',
-          '先完成第一版，不需要一次写得完美',
-          '系统只检查结构是否完整，不评价内容',
-        ],
-        skillBlocks: SKILL_BLOCKS,
-        sourcePriorityHint:
-          '如果知识库中的资料观点不同，AI 应该优先使用什么资料？（选填）',
-        submitLabel: '运行我的助手',
-      },
-      screenContent: {
-        phase: 'skill',
-        headline: '写下你的助手服务不同学生的方法',
-        subline: '框架已给，内容由你决定',
-        skillBlocks: SKILL_BLOCKS,
-      },
-    },
-    {
-      id: 'A06_TRY',
-      type: 'assistant_try',
-      title: '运行·检查·修改·提交',
-      durationSeconds: 1200,
-      teacherContent: {
-        headline: '用两个不同的人测试你的助手',
-        subline: '只改变使用者，知识库和 Skill 保持不变',
-        bullets: [
-          '第一次运行：同时生成小林和小周两份结果',
-          '查看结果：重点看差异是否合理',
-          'AI 检查：问题可能来自知识库，也可能来自 Skill',
-          '修改后重新运行一次，再提交',
-        ],
-        revealOrder: ['profiles', 'run', 'result', 'check', 'revise', 'resubmit', 'summary'],
-      },
-      studentTask: {
-        prompt: '用两个不同的人测试你的助手。',
-        details: [
-          '这一次只改变使用者，知识库和 Skill 保持不变',
-          '一次运行同时生成两份结果',
-        ],
-        runButtonLabel: '开始运行',
-        checkButtonLabel: '让 AI 检查我的助手',
-        resubmitLabel: '重新运行我的助手',
-        finalSubmitLabel: '提交最终版本',
-      },
-      screenContent: {
-        phase: 'try',
-        headline: '用两个不同的人测试你的助手',
-        subline: '只改变使用者，知识库和 Skill 保持不变',
-        personas: PERSONAS,
-        runSteps: [
-          '正在读取两位同学的情况……',
-          '正在按照你的 Skill 进行判断……',
-          '正在从你的知识库中选择内容……',
-          '正在生成两份训练方案……',
-        ],
-        resultDimensions: RESULT_DIMENSIONS,
-        selfObserve: [
-          '两份结果的训练重点是否不同？',
-          '材料难度是否符合两个人的基础？',
-          '训练量是否符合 15 分钟和 30 分钟？',
-          '反馈方式是否针对两个人的问题？',
-          '结果参考的知识资料是否合适？',
-        ],
-        checkIntro: '问题可能来自知识库，也可能来自 Skill，也可能两者都有。',
-        submitSummaryLabel: '提交你的 AI 助手',
-        // 大屏 8 屏（教师投影端）
-        bigScreens: [
-          {
-            id: 'T01',
-            title: '第二关：把AI助手交给别人用',
-            blocks: [
-              '第一关：AI 帮助我完成一次任务',
-              '第二关：我要让同一个助手服务不同的人',
-            ],
-            personas: PERSONAS,
-            coreQuestion: '两个人的情况不同，同一个助手怎样分别帮助他们？',
-            flow: ['选择知识', '编写Skill', '两人运行', 'AI检查', '修改提交'],
-          },
-          {
-            id: 'T02',
-            title: '知识库不是越多越好，关键是选得合适',
-            blocks: [
-              '相关性：与当前任务有关吗？',
-              '可靠性：来源值得信任吗？',
-              '时效性：内容现在仍然适用吗？',
-            ],
-            task: '从 8 份资料中选择 4 份，建立你的核心知识库。',
-            note: '第一次选择时不显示全班热门资料，避免跟随。',
-          },
-          {
-            id: 'T03',
-            title: '为你的助手写一套可以重复执行的方法',
-            framework: [
-              '了解：先了解什么？',
-              '判断：根据什么作出判断？',
-              '执行：怎样使用知识库并安排训练？',
-              '反馈：训练后怎样帮助使用者改进？',
-            ],
-            note: '框架已经给出，具体内容由你决定。',
-          },
-          {
-            id: 'T04',
-            title: '用两个不同的人测试你的助手',
-            diagram: '同一个助手（核心知识库＋你的Skill） → 小林 / 小周',
-            note: '只改变使用者，知识库和 Skill 保持不变。',
-          },
-          {
-            id: 'T05',
-            title: '不要只看结果是否不同，还要看这种不同是否合理',
-            observe: [
-              '训练重点是否对应薄弱点？',
-              '材料难度是否对应基础？',
-              '训练量是否对应可用时间？',
-              '反馈方式是否有针对性？',
-              'AI 参考的知识资料是否合适？',
-            ],
-            note: '请先自己观察两份结果，再让 AI 进行检查。',
-          },
-          {
-            id: 'T06',
-            title: '问题可能来自知识，也可能来自方法',
-            problems: [
-              '知识库问题：资料不相关、不可靠或已经过时',
-              'Skill 问题：判断和执行规则不够清楚',
-              '两者都有问题：知识选择和使用方法都需要调整',
-            ],
-            emphasis: 'AI 只提供检查和建议，修改仍然由你完成。',
-          },
-          {
-            id: 'T07',
-            title: '修改以后，再运行一次看看',
-            flow: ['第一版', '运行发现问题', 'AI 提供建议', '学生修改', '第二次运行', '提交最终版本'],
-            note: '修改不一定一次就完美。今天重点体验：根据实际结果发现问题，再有依据地改进。',
-          },
-          {
-            id: 'T08',
-            title: '我们是怎样设计和改进 AI 助手的？',
-            cards: [
-              { title: '知识库', lines: ['第一版基本合理', '修改知识库人数', '选择低相关/风险资料人数'] },
-              { title: 'Skill', lines: ['完整写出四环节人数', '最常被建议修改：判断'] },
-              { title: '运行结果', lines: ['第一次差异清楚人数', '修改后差异清楚人数'] },
-              { title: '改进过程', lines: ['修改Skill人数', '调整知识库人数', '同时修改两者人数', '修改后明显改善人数'] },
-            ],
-          },
-        ],
-      },
-    },
-    {
-      id: 'A07_FINALE',
-      type: 'finale',
-      title: '一人公司（多 Agent 协同）',
-      durationSeconds: 1800,
-      teacherContent: {
-        headline: '用你设计的 AI 助手解决真实问题',
-        subline: '全班同学各自发布一个「一人公司」，互相体验、互相反馈',
-        bullets: [
-          '学生端：搭建 4 个 Agent，组成自己的「一人公司」',
-          '教师开放本轮后，可发布产品，全班同学互访、互评',
-          '大屏实时展示全班作品作战图',
+        revealOrder: [
+          'p2:1',
+          'p2:2',
+          'p2:3',
+          'p2:4',
+          'p2:5',
+          'p2:6',
+          'p2:wall',
         ],
       },
       studentTask: {},
-      screenContent: {},
+      screenContent: { phase: 'site_entry' },
     },
+
+    // ===================== 方案三：养成游戏 =====================
+    {
+      id: 'P3_GAME',
+      type: 'grow_game',
+      title: 'P3 · 养成游戏',
+      durationSeconds: 900,
+      teacherContent: {
+        headline: 'P3 · 做一款你的「养成游戏」',
+        subline: '手机端一个对话框，不停地问、不停地说；最后 AI 生成游戏、试玩修改、发布',
+        bullets: [
+          '六步：提出设想 → 定义成长 → 建立规则 → 设计事件 → 设计结局 → 创作迭代',
+          'AI 按「属性 + 事件 + 结局」生成手机养成游戏第一版',
+          '学生试玩，检查选择是否有效、冲突是否好玩，通过后发布上墙',
+        ],
+        revealOrder: [
+          'p3:1',
+          'p3:2',
+          'p3:3',
+          'p3:4',
+          'p3:5',
+          'p3:6',
+          'p3:wall',
+        ],
+      },
+      studentTask: {},
+      screenContent: { phase: 'grow_game' },
+    },
+
     {
       id: 'A08_WRAP',
       type: 'wrap_up',
@@ -724,12 +477,12 @@ const TEMPLATE: CourseTemplateData = {
             p: '同一个任务、同一个 AI，结果可以差很多。区别在你怎么定义问题、怎么设计过程、怎么检查结果。',
           },
           {
-            h: '你能给别人用吗？',
-            p: '把会做的事，变成一个助手：选对知识、写清 Skill、定好规则。别人也能用你的方法。',
+            h: '你能做出来给别人用吗？',
+            p: '三次动手，你把一个想法变成了别人能用的东西：帮人入门的网站、让人选择的游戏。',
           },
           {
-            h: '你能开公司吗？',
-            p: '多个专业员工 + 一个统一前台 = 一家会协作的公司。你刚刚做到了。',
+            h: '三样作品，分别教会了你什么？',
+            p: '网站教你把陌生讲清楚，游戏教你把规则变好玩，数字分身教你把一件事认认真真做完。',
           },
           {
             h: '面对真实世界，你想做什么？',

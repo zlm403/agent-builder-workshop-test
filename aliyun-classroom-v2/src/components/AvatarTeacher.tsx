@@ -1,9 +1,11 @@
 'use client';
 // =========================================================
-// A0 新版 + A1 数字分身 · 教师端控制面板
+// A0 新版 + A1 数字分身 + P2 快速入门网站 + P3 养成游戏 · 教师端控制面板
 // 单纯的按钮/说明插件，交给 TeacherPage 的 control() 执行。
 // =========================================================
 import { A1_STEPS } from '@/features/avatarLesson/config';
+import { P2_STEPS } from '@/features/siteEntry/config';
+import { P3_STEPS } from '@/features/growGame/config';
 
 export default function AvatarTeacher({
   moduleId,
@@ -77,6 +79,86 @@ export default function AvatarTeacher({
           {isWall ? '作品墙已开（再次进入）' : '展示作品墙'}
         </button>
         <span className="story-hint">A1 · 手机端连续对话，大屏六格逐一点亮，最后展示全班朋友圈墙</span>
+      </div>
+    );
+  }
+
+  // P2 快速入门网站 · 六格点亮 + 网站作品墙
+  if (moduleId === 'P2_SITE') {
+    const current = (() => {
+      const m = String(subState ?? '').match(/^p2:(\d+)$/);
+      return m ? Math.min(6, Math.max(1, parseInt(m[1], 10))) : 1;
+    })();
+    const isWall = subState === 'p2:wall';
+    return (
+      <div className="story-control" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+        <button
+          className="secondary"
+          disabled={busy || current <= 1}
+          onClick={() => control('setSubState', { subState: `p2:${Math.max(1, current - 1)}` })}
+        >
+          ◀ 上一格
+        </button>
+        <span className="story-hint" style={{ minWidth: 120 }}>
+          正在第 {isWall ? '作品墙' : current} 格 · {isWall ? '' : P2_STEPS[current - 1]?.name}
+        </span>
+        {!isWall && current < 6 ? (
+          <button
+            className="secondary"
+            disabled={busy}
+            onClick={() => control('setSubState', { subState: `p2:${Math.min(6, current + 1)}` })}
+          >
+            点亮下一步 ▶
+          </button>
+        ) : null}
+        <button
+          className="primary"
+          disabled={busy || isWall}
+          onClick={() => control('setSubState', { subState: 'p2:wall' })}
+        >
+          {isWall ? '作品墙已开（再次进入）' : '展示作品墙'}
+        </button>
+        <span className="story-hint">P2 · 手机端连续对话，大屏六格逐一点亮，最后展示全班入门网站墙</span>
+      </div>
+    );
+  }
+
+  // P3 养成游戏 · 六格点亮 + 游戏作品墙
+  if (moduleId === 'P3_GAME') {
+    const current = (() => {
+      const m = String(subState ?? '').match(/^p3:(\d+)$/);
+      return m ? Math.min(6, Math.max(1, parseInt(m[1], 10))) : 1;
+    })();
+    const isWall = subState === 'p3:wall';
+    return (
+      <div className="story-control" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+        <button
+          className="secondary"
+          disabled={busy || current <= 1}
+          onClick={() => control('setSubState', { subState: `p3:${Math.max(1, current - 1)}` })}
+        >
+          ◀ 上一格
+        </button>
+        <span className="story-hint" style={{ minWidth: 120 }}>
+          正在第 {isWall ? '作品墙' : current} 格 · {isWall ? '' : P3_STEPS[current - 1]?.name}
+        </span>
+        {!isWall && current < 6 ? (
+          <button
+            className="secondary"
+            disabled={busy}
+            onClick={() => control('setSubState', { subState: `p3:${Math.min(6, current + 1)}` })}
+          >
+            点亮下一步 ▶
+          </button>
+        ) : null}
+        <button
+          className="primary"
+          disabled={busy || isWall}
+          onClick={() => control('setSubState', { subState: 'p3:wall' })}
+        >
+          {isWall ? '作品墙已开（再次进入）' : '展示作品墙'}
+        </button>
+        <span className="story-hint">P3 · 手机端连续对话，大屏六格逐一点亮，最后展示全班养成游戏墙</span>
       </div>
     );
   }

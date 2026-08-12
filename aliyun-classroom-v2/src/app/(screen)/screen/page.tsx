@@ -9,6 +9,8 @@ import { compareRounds } from '@/lib/analytics';
 import { KNOWLEDGE_DOCS, SKILL_BLOCKS } from '@/lib/courseConfig';
 import AvatarA0Screen from '@/components/AvatarA0Screen';
 import AvatarA1Screen from '@/components/AvatarA1Screen';
+import SiteEntryScreen from '@/components/SiteEntryScreen';
+import GrowGameScreen from '@/components/GrowGameScreen';
 
 interface Summary {
   status: string;
@@ -254,6 +256,10 @@ export default function ScreenPage() {
         <AvatarA0Screen type={module.id} sessionId={sessionId} subState={summary?.moduleSubState ?? null} total={summary?.totalStudents ?? 1} />
       ) : module.type === 'avatar_flow' ? (
         <AvatarA1Screen sessionId={sessionId} subState={summary?.moduleSubState ?? null} />
+      ) : module.type === 'site_entry' ? (
+        <SiteEntryScreen sessionId={sessionId} subState={summary?.moduleSubState ?? null} />
+      ) : module.type === 'grow_game' ? (
+        <GrowGameScreen sessionId={sessionId} subState={summary?.moduleSubState ?? null} />
       ) : module.type === 'ai_task' ? (
         module.screenContent?.phase === 'redo' ? (
           <A03Screen module={module} analytics={analytics} total={total} summary={summary} startedAt={startedAt} subState={summary?.moduleSubState ?? null} sessionId={sessionId} />

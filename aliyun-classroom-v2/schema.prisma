@@ -52,6 +52,8 @@ model ClassSession {
   a0Screenings    A0Screening[]
   a0News          A0New[]
   a1Avatars       A1Avatar[]
+  p2SiteEntries   P2SiteEntry[]
+  p3GrowGames     P3GrowGame[]
   entryThoughts   EntryThought[]
   auditLogs       AuditLog[]
   agentCompanies  AgentCompany[]
@@ -81,6 +83,8 @@ model Participant {
   a0Screenings    A0Screening[]
   a0News          A0New[]
   a1Avatars       A1Avatar[]
+  p2SiteEntries   P2SiteEntry[]
+  p3GrowGames     P3GrowGame[]
   entryThoughts   EntryThought[]
   consentRecords  ConsentRecord[]
 
@@ -262,6 +266,62 @@ model A1Avatar {
   @@unique([sessionId, anonymousId])
   @@index([sessionId])
   @@map("a1_avatar")
+}
+
+/// 方案二：快速入门网站（site_entry）六步流程 + LLM 生成的领域骨架/网站草稿/发布作品
+model P2SiteEntry {
+  id            String   @id @default(uuid())
+  sessionId     String
+  anonymousId   String
+  participantId String
+  step          Int      @default(1) // 1..6 当前完成到第几步（大屏点亮格数）
+  field         String?  // 步1：选择的领域
+  entryTask     String?  // 步2：入场任务（帮谁 / 完成什么）
+  skeleton      String?  // 步3：AI 建立的最小知识骨架
+  keyDiff       String?  // 步4：三个关键区别与判断标准
+  sitePlan      String?  // 步5：五屏网站路径设计
+  chatLog       Json?    // 全程多轮对话 [{ role, content }]
+  siteCode      String?  // LLM 生成的手机网站 HTML
+  testNote      String?  // 步6：小白测试结果
+  finalWork     String?  // 发布版网址/描述
+  submittedAt   DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  participant Participant   @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  session     ClassSession  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, anonymousId])
+  @@index([sessionId])
+  @@map("p2_site_entry")
+}
+
+/// 方案三：养成游戏（grow_game）六步流程 + LLM 生成的游戏系统/草稿/发布作品
+model P3GrowGame {
+  id            String   @id @default(uuid())
+  sessionId     String
+  anonymousId   String
+  participantId String
+  step          Int      @default(1) // 1..6 当前完成到第几步（大屏点亮格数）
+  objectName    String?  // 步1：想养成的对象
+  growthDef     String?  // 步2：什么叫成长（成长观）
+  coreRules     String?  // 步3：核心属性与冲突机制
+  events        String?  // 步4：成长事件设计
+  endings       String?  // 步5：不同结局设计
+  chatLog       Json?    // 全程多轮对话 [{ role, content }]
+  gameCode      String?  // LLM 生成的手机游戏 HTML
+  testNote      String?  // 步6：试玩检查结果
+  finalWork     String?  // 发布版描述
+  submittedAt   DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  participant Participant   @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  session     ClassSession  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, anonymousId])
+  @@index([sessionId])
+  @@map("p3_grow_game")
 }
 
 /// A0 环节（AI 面试 · 应聘自检）：匿名收集每位学员的真实回答、兴趣信号与当前 AI 标签

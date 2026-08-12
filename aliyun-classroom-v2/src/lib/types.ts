@@ -33,7 +33,9 @@ export type ModuleType =
   | 'skill_build' // A05：编写 Skill
   | 'assistant_try' // A06：运行·检查·修改·提交
   | 'a0_new' // A0 新版：三问打字 + 关系题投票 + 揭晓（AI 与你的关系）
-  | 'avatar_flow'; // A1 数字分身：六步连续对话（梦想→路径→分身→任务→方案→迭代）
+  | 'avatar_flow' // A1 数字分身：六步连续对话（梦想→路径→分身→任务→方案→迭代）
+  | 'site_entry' // P2 快速入门网站：六步连续对话（领域→入场→骨架→判断→设计→迭代）
+  | 'grow_game'; // P3 养成游戏：六步连续对话（设想→成长→规则→事件→结局→迭代）
 
 export interface ChoiceOption {
   id: string;

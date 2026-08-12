@@ -750,7 +750,7 @@ export default function TeacherPage() {
   }
 
   const isA0 = currentModuleId === 'A0_SCREENING';
-  const isA0New = currentModuleId === 'A0N_QUESTIONS' || currentModuleId === 'A0N_VOTE' || currentModuleId === 'A0N_REVEAL' || currentModuleId === 'A1_AVATAR';
+  const isA0New = currentModuleId === 'A0N_QUESTIONS' || currentModuleId === 'A0N_VOTE' || currentModuleId === 'A0N_REVEAL' || currentModuleId === 'A1_AVATAR' || currentModuleId === 'P2_SITE' || currentModuleId === 'P3_GAME';
 
   function buildA0Dirs(s: ScreeningData | null): { kind: 'more' | 'less' | 'watch' | 'good'; text: string }[] {
     const out: { kind: 'more' | 'less' | 'watch' | 'good'; text: string }[] = [];

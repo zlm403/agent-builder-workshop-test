@@ -10,6 +10,8 @@ import VocabBrowser from '@/components/VocabBrowser';
 import L2StudentFlow from './L2StudentFlow';
 import AvatarA0Student from '@/components/AvatarA0Student';
 import AvatarA1Student from '@/components/AvatarA1Student';
+import SiteEntryStudent from '@/components/SiteEntryStudent';
+import GrowGameStudent from '@/components/GrowGameStudent';
 
 interface ModuleDef {
   id: string;
@@ -743,6 +745,14 @@ export default function StudentPage() {
               <AvatarA1Student anonymousId={anonymousId} sessionId={sessionId} locked={locked} />
             )}
 
+            {current.type === 'site_entry' && (
+              <SiteEntryStudent anonymousId={anonymousId} sessionId={sessionId} locked={locked} />
+            )}
+
+            {current.type === 'grow_game' && (
+              <GrowGameStudent anonymousId={anonymousId} sessionId={sessionId} locked={locked} />
+            )}
+
             {isAiTask && (
               <div className="ai-workspace">
                 <div className="zone task-zone">
@@ -1174,11 +1184,11 @@ export default function StudentPage() {
               />
             )}
 
-            {!['waiting', 'single_choice', 'multi_choice', 'short_text', 'source_select', 'ai_task', 'hr_screening', 'class_mirror', 'lecture', 'agent_config', 'rule_config', 'workflow_order', 'ai_run', 'stress_test', 'compare_runs', 'persona_config', 'finale', 'knowledge_select', 'skill_build', 'assistant_try', 'a0_new', 'avatar_flow'].includes(current.type) && (
+            {!['waiting', 'single_choice', 'multi_choice', 'short_text', 'source_select', 'ai_task', 'hr_screening', 'class_mirror', 'lecture', 'agent_config', 'rule_config', 'workflow_order', 'ai_run', 'stress_test', 'compare_runs', 'persona_config', 'finale', 'knowledge_select', 'skill_build', 'assistant_try', 'a0_new', 'avatar_flow', 'site_entry', 'grow_game'].includes(current.type) && (
               <p className="note">此模块类型（{current.type}）将在后续 Sprint 实现；当前演示版仅打通投票/文本/资料/AI 任务模块。</p>
             )}
 
-            {moduleStatus !== 'submitted' && current.type !== 'waiting' && current.type !== 'ai_task' && current.type !== 'hr_screening' && current.type !== 'class_mirror' && current.type !== 'lecture' && current.type !== 'l2_intro' && current.type !== 'knowledge_select' && current.type !== 'skill_build' && current.type !== 'assistant_try' && current.type !== 'finale' && current.type !== 'a0_new' && current.type !== 'avatar_flow' && (
+            {moduleStatus !== 'submitted' && current.type !== 'waiting' && current.type !== 'ai_task' && current.type !== 'hr_screening' && current.type !== 'class_mirror' && current.type !== 'lecture' && current.type !== 'l2_intro' && current.type !== 'knowledge_select' && current.type !== 'skill_build' && current.type !== 'assistant_try' && current.type !== 'finale' && current.type !== 'a0_new' && current.type !== 'avatar_flow' && current.type !== 'site_entry' && current.type !== 'grow_game' && (
               <div style={{ marginTop: 16 }}>
                 <button disabled={busy || locked} onClick={submit}>
                   {busy ? '提交中…' : '提交'}
