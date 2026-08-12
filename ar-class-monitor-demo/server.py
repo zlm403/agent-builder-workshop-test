@@ -208,6 +208,11 @@ class Handler(SimpleHTTPRequestHandler):
 
     def do_POST(self):
         parsed = urlparse(self.path)
+        if parsed.path == '/api/clear':
+            with open(DATA_FILE, 'w', encoding='utf-8') as f:
+                f.write('')
+            self._json(200, {'ok': True, 'cleared': True})
+            return
         if parsed.path == '/api/collect':
             try:
                 length = int(self.headers.get('Content-Length', 0))

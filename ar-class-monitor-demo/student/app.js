@@ -244,8 +244,24 @@ async function renderMirror(){
     ${gapHtml}`;
 }
 
+/* ---------- 清空重来（服务端 + 本机全部记录） ---------- */
+function bindReset(){
+  const btn = $('btnReset');
+  if (!btn) return;
+  btn.addEventListener('click', async () => {
+    if (!confirm('清空服务器和这台设备上的全部记录？页面将刷新，重新开始。')) return;
+    try { await fetch('/api/clear', { method: 'POST' }); } catch(e){}
+    try { localStorage.removeItem('ar_class_monitor_events'); } catch(e){}
+    try { localStorage.removeItem('ar_class_monitor_task'); } catch(e){}
+    try { localStorage.removeItem('ar_class_monitor_sid'); } catch(e){}
+    try { localStorage.removeItem('ar_class_monitor_sid_info'); } catch(e){}
+    location.reload();
+  });
+}
+
 /* ---------- 启动 ---------- */
 (function init(){
+  bindReset();
   bindSid();
   // 支持 ?course=1 直达某课
   try {

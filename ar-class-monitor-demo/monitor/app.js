@@ -391,9 +391,10 @@ document.querySelectorAll('.fbtn').forEach(btn => {
 
 /* ---------- 大屏 / 学生屏：标题旁 <a target="_blank"> 胶囊链接，无需 JS 绑定 ---------- */
 
-/* ---------- 清空（仅本机缓存，服务端数据保留） ---------- */
-$('clearBtn').addEventListener('click', () => {
-  if (!confirm('清空本机缓存记录？服务端已上报的数据会保留。')) return;
+/* ---------- 清空（服务端 + 本机） ---------- */
+$('clearBtn').addEventListener('click', async () => {
+  if (!confirm('清空全部数据？服务器和学生端所有记录都会删除，重新开始。')) return;
+  try { await fetch('/api/clear', { method: 'POST' }); } catch(e) {}
   localStorage.removeItem(EVENT_KEY);
   localStorage.removeItem(TASK_EVENT_KEY);
   events = []; lastTs = 0; selectedSid = null;
