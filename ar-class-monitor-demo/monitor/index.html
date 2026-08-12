@@ -105,7 +105,28 @@
   </div>
 </div>
 
-<script src="../lib/analyze.js?v=20260212"></script>
-<script src="app.js?v=20260212"></script>
+<script src="../lib/analyze.js?v=20260213"></script>
+<script>
+/* 内联自检：页面一开就显示数据服务连通状态（不依赖 app.js 是否加载成功） */
+(function(){
+  const chip = document.getElementById('connChip');
+  const run = () => {
+    fetch('/api/events?since=0', { cache: 'no-store' })
+      .then(r => r.json())
+      .then(arr => {
+        chip.textContent = '✅ 已连接 · ' + (Array.isArray(arr) ? arr.length : '?') + ' 条事件';
+        chip.style.color = 'var(--green)';
+        chip.style.borderColor = 'rgba(34,197,94,.45)';
+      })
+      .catch(e => {
+        chip.textContent = '⚠️ 连接失败：' + (e && e.message ? e.message : e) + '（服务器没在跑？）';
+        chip.style.color = 'var(--orange)';
+        chip.style.borderColor = 'rgba(251,146,60,.6)';
+      });
+  };
+  if (chip) { run(); }
+})();
+</script>
+<script src="app.js?v=20260213"></script>
 </body>
 </html>
