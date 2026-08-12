@@ -79,7 +79,7 @@
 - **对话转发（两条通路）**：
   1. **顷悟聊天面板**（学生跟 agent 说"做什么/怎么改"）→ `qingwu-dialog-bridge.py` 常驻转发桥，读顷悟 `memory/runtime/events.jsonl` 的 `user_message`/`assistant_done`，增量 + 去重转发到 `/api/collect`。多机部署时每台学生电脑各跑一个，`--server` 指向老师机。
   2. **作品内对话**（用户用作品时）→ `lib/qw-chat-fwd.js` 包装 `ai.chat()`，作品页引一行 `<script src="lib/qw-chat-fwd.js"></script>` 即生效。
-- **实时互动**：学生端任务看板下"我有问题"输入框 → `student_ask` 事件（带 sid/course）→ 教师端学生列表显示 💬 标记 + 问题内容。学生随时提问，老师实时看到。
+- **实时互动**：学生端任务看板下"有问题？和老师聊"对话框（上对话记录、下输入框）→ `student_ask` 事件（带 sid/course）；教师端独立"学生对话"面板，点学生列表选中后显示完整对话并回复（`teacher_reply` 事件带学生 sid）。双向实时。
 
 ### 课堂场次与签到（号码即身份，v2 起）
 **核心原则**：不核对"学生是谁"，只核对他拿来的上课号在不在本场名单里。号码 = 身份。
