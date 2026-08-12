@@ -63,12 +63,14 @@
     </div>
   </div>
 
-  <div class="stats">
-    <div class="stat"><b id="stEvents">0</b><span>事件总数</span></div>
-    <div class="stat"><b id="stStudents">0</b><span>学生人数</span></div>
-    <div class="stat"><b id="stFinish">0</b><span>已完成</span></div>
-    <div class="stat"><b id="stAgent">0</b><span>Agent 对话轮</span></div>
-    <div class="stat"><b id="stWork">0</b><span>作品数据</span></div>
+  <div class="pushcard chatcard">
+    <div class="pushhead">💬 消息 <span class="dim" id="chatSid">（学生消息实时进来，点下方学生可定向回复）</span></div>
+    <div class="chat-log" id="tchatLog"><div class="chat-empty">暂无消息，学生提问会实时出现在这里</div></div>
+    <div class="row ask-row">
+      <input id="tReplyTo" class="ask-input replyto" placeholder="回复给谁（输入学生上课号，如 001）" maxlength="20" disabled>
+      <input id="tAskInput" class="ask-input" placeholder="输入回复，按回车发送…" maxlength="200" disabled>
+      <button id="btnTAsk" class="ghost" type="button" disabled>发送</button>
+    </div>
   </div>
 
   <!-- 班级理解棱镜（一核多表：每课各穿各自的维度表） -->
@@ -84,16 +86,6 @@
     <button class="fbtn" data-filter="web" type="button">🖥 作品/网页</button>
     <button class="fbtn" data-filter="agent" type="button">🤖 顷悟 Agent</button>
     <button class="fbtn" data-filter="task" type="button">📨 任务</button>
-  </div>
-
-  <!-- 学生对话（选中学生后在此聊天，学生提问实时进来） -->
-  <div class="pushcard chatcard">
-    <div class="pushhead">💬 学生对话 <span class="dim" id="chatSid">（点左侧学生列表选择学生，回复会实时到学生端）</span></div>
-    <div class="chat-log" id="tchatLog"><div class="chat-empty">点学生列表选一个学生，就能看到并回复 TA 的问题</div></div>
-    <div class="row ask-row">
-      <input id="tAskInput" class="ask-input" placeholder="回复学生，按回车发送…" maxlength="200" disabled>
-      <button id="btnTAsk" class="ghost" type="button" disabled>回复</button>
-    </div>
   </div>
 
   <div class="cols">

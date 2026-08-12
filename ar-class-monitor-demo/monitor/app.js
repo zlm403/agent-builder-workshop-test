@@ -242,17 +242,8 @@ function renderStudents(){
     if (isWorkEvent(e)) map[e.sid].work++;
     if (e.event === 'finish') map[e.sid].done = true;
     if (e.event === 'task_view') map[e.sid].taskView = true;
-    if (e.event === 'student_ask') {
-      map[e.sid].lastAsk = e.payload.text || '';
-      map[e.sid].lastAskTs = e.ts;
-    }
   });
   const sids = Object.keys(map).sort((a, b) => map[b].last - map[a].last);
-  $('stEvents').textContent = matched.length;
-  $('stStudents').textContent = sids.length;
-  $('stFinish').textContent = sids.filter(s => map[s].done).length;
-  $('stAgent').textContent = sids.reduce((n, s) => n + map[s].agent, 0);
-  $('stWork').textContent = sids.reduce((n, s) => n + map[s].work, 0);
   if (!sids.length) { $('studentList').innerHTML = '<div class="empty">等待学生进入…</div>'; return; }
   const task = taskOfCourse(courseFilter);   // all 时用学生最近课
   $('studentList').innerHTML = sids.map(s => {
@@ -272,7 +263,7 @@ function renderStudents(){
       : `<div class="ringwrap"><div class="ring ${ringCls}" style="background:conic-gradient(currentColor ${score * 3.6}deg,#13203f 0)">${score}</div><span class="gaps">缺${gap}</span></div>`;
     return `<div class="stu ${s === selectedSid ? 'on' : ''}" onclick="selectSid('${s.replace(/'/g, "\\'")}')">
       <div>
-        <span class="nm">${s}</span>${m.lastAsk ? '<span class="ask-badge" title="' + esc(m.lastAsk) + '">💬</span>' : ''}
+        <span class="nm">${s}</span>
         <span class="ct">${m.count} 事件${m.agent ? ' · 🤖' + m.agent : ''}${m.work ? ' · 🎮' + m.work : ''} · ${ago}s 前</span>${m.done ? '<span class="ok">✓完成</span>' : ''}
       </div>
       ${ringHtml}
@@ -281,46 +272,46 @@ function renderStudents(){
 }
 window.selectSid = function(s){
   selectedSid = (selectedSid === s) ? null : s;
+  const replyTo = $('tReplyTo');
+  if (replyTo) replyTo.value = s;
   renderAll();
 };
 
-/* ---------- 学生对话面板（选中学生，双向聊天） ---------- */
+/* ---------- 消息中心（学生提问实时进来，定向回复） ---------- */
 function renderTeacherChat(){
   const log = $('tchatLog');
   const input = $('tAskInput');
   const btn = $('btnTAsk');
-  const sidLabel = $('chatSid');
+  const replyTo = $('tReplyTo');
   if (!log) return;
-  if (!selectedSid) {
-    log.innerHTML = '<div class="chat-empty">点学生列表选一个学生，就能看到并回复 TA 的问题</div>';
-    input.disabled = true; btn.disabled = true;
-    if (sidLabel) sidLabel.textContent = '（点左侧学生列表选择学生，回复会实时到学生端）';
-    return;
-  }
-  input.disabled = false; btn.disabled = false;
-  if (sidLabel) sidLabel.textContent = '—— 正在与 ' + selectedSid + ' 对话';
   const conv = events
-    .filter(e => e.sid === selectedSid && (e.event === 'student_ask' || e.event === 'teacher_reply'))
+    .filter(e => e.event === 'student_ask' || e.event === 'teacher_reply')
     .sort((a,b) => (a.ts||0) - (b.ts||0));
   if (!conv.length) {
-    log.innerHTML = '<div class="chat-empty">TA 还没有提问，有问题会实时出现在这里</div>';
+    log.innerHTML = '<div class="chat-empty">暂无消息，学生提问会实时出现在这里</div>';
+    input.disabled = true; btn.disabled = true; replyTo.disabled = true;
     return;
   }
+  input.disabled = false; btn.disabled = false; replyTo.disabled = false;
+  // 定向显示：谁发来的（学生提问 = 学生→老师；老师回复 = 老师→学生号）
   log.innerHTML = conv.map(e => {
-    const fromStu = e.event === 'student_ask';
-    return `<div class="chat-msg ${fromStu ? 'stu' : 'teacher'}"><div class="bubble">${fromStu ? '🧑‍🎓 ' : '👩‍🏫 '}${esc(e.payload.text || '')}</div></div>`;
+    const isAsk = e.event === 'student_ask';
+    const sender = isAsk ? '学生 ' + e.sid : '我 → ' + e.sid;
+    return `<div class="chat-msg ${isAsk ? 'stu' : 'teacher'}"><div class="bubble"><div class="chat-who">${sender}</div>${esc(e.payload.text || '')}</div></div>`;
   }).join('');
   log.scrollTop = log.scrollHeight;
 }
 function sendTeacherReply(){
   const text = $('tAskInput').value.trim();
-  if (!text || !selectedSid) return;
+  const to = ($('tReplyTo').value || '').trim();
+  if (!text || !to) return;
   fetch('/api/collect', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ sid: selectedSid, event: 'teacher_reply', payload: { text: text } }),
+    body: JSON.stringify({ sid: to, event: 'teacher_reply', payload: { text: text } }),
   }).catch(() => {});
   $('tAskInput').value = '';
+  $('tReplyTo').value = '';
   renderTeacherChat();
 }
 $('btnTAsk').addEventListener('click', sendTeacherReply);
