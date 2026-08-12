@@ -55,7 +55,7 @@
 | 学生端 | `student/` | 三项目通用工作台：任务看板 + 引导 + 作品运行容器（贴顷悟发布链接）+ "我的理解棱镜" |
 | 教师端 | `monitor/` | 按项目/学员切换 + 班级理解棱镜热力 + 时间线 + 穿透分析 |
 | 大屏端 | `bigscreen/` | 匿名班级隐形壳：班级棱镜自动轮播 + 匿名学生墙（只显示首字，不显示学号姓名） |
-| 数据服务 | `server.py` | 静态文件 + `POST /api/collect` + `GET /api/events?since=` + `GET /api/class` |
+| 数据服务 | `server.py` | 静态文件 + `POST /api/collect` + `GET /api/events?since=` + `GET /api/class` + **课堂场次/签到**（`POST /api/session` / `POST /api/admit` / `GET /api/identity`） |
 
 ### 三项目作品（三端 tab 已按三项目改造；以下目录为顷悟应用源码参考，作品运行区改贴学生发布链接）
 | 项目 | 目录 | 形态 | 教学底层 | 棱镜 | course |
@@ -75,6 +75,22 @@
 - 统一事件流：每行 `{ ts, sid, event, payload }`，`sid`=学员，`course`=第几课（warmup=0/game=1/tool=2/agent-team=4），`source`=来源。
 - 穿透判定统一走 `lib/analyze.js`（gridFor/detectGap/paraphrase），服务端只做字段聚合，不重复实现判定逻辑。
 - 埋点模块：`lib/track.js`，作品内一行接入；`Track.event('xxx', payload)` 上报，失败静默不打断学生。
+
+### 课堂场次与签到（号码即身份，v2 起）
+**核心原则**：不核对"学生是谁"，只核对他拿来的上课号在不在本场名单里。号码 = 身份。
+```
+教师端新建场次(输入销售发的一批号) → sessions.json（当前场次号码池）
+                                        │
+学生端输入上课号 ──POST /api/admit──→ 校验：在池且未用→放行并消耗该号；否则拒绝
+                                        │
+放行后：写 agent-live/identity.json（本机 sid=该号）
+                                        │
+顷悟对话记录 skill ──GET /api/identity──→ 拿到同机 sid → 对话事件归到该号名下
+```
+- 数据文件：`agent-live/sessions.json`（场次列表+号码池+已签到）、`agent-live/identity.json`（本机当前 sid）。
+- 学生端签到成功 → 本机免签（localStorage 记住）；「退出重来」只清本机身份，不清服务器课堂数据。
+- 教师端可新建多个场次并存、切换当前场次（未来上午一班/下午二班分场用）；签到只对当前场次生效。
+- 学生屏操作、顷悟对话都带同一 sid（= 上课号）→ 教师端一个号归一个人，两线合流。
 
 ### 怎么跑
 ```
@@ -104,12 +120,12 @@ python server.py 8099        （或 powershell -ExecutionPolicy Bypass -File sta
 3. **改完必须跑一遍验收**：启动 8099，把受影响页面各打开一次，确认没改坏。
 4. **每个完成的小改动用 git 提交**一次，写清"做了什么"；提交前 `git status` / `git diff` 确认只含本次改动。
 5. 教学红线：大屏匿名、镜子不说教、只观察不自动改学生作品。
-6. 内容文档与代码同仓维护；改了架构/铁律，同步更新本文件。
+6. **内容文档与代码同仓维护**；改了架构/铁律，**必须**同步更新 `AGENTS.md`（架构/数据链路/接口）、`文档索引.md`（新增/废弃文档）、`待办清单.md`（完成/新增事项）——三份一起，别只改代码。AI 会话每次动完代码，最后一步检查文档要不要跟着更新。
 
 ---
 
 ## 六、尚未打通 / 待办（重要，别重复造）
 
-- 顷悟 Agent 真实对话 → 事件流：本地 demo 用网页内模拟通道演示；真实环境靠顷悟平台"对话记录 skill"写入 `events.jsonl`。
+- 顷悟 Agent 真实对话 → 事件流：已通过 `GET /api/identity` 打通身份（对话事件归到签到上课号名下），**待真机验证**（顷悟 skill 实际记录一轮对话，教师端确认归到正确学生）。
 - 大屏匿名投影：本仓 `bigscreen/` 已做（P5 落地），轻物侧另有原型。
 - 三项目已按 course 1/2/4 映射落地（三端 tab + `正式课文档/上课执行方案.md`）；顷悟侧三项目应用是否就绪、学生发布链接格式待确认。
