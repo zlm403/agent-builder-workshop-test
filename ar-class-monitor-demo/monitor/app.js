@@ -357,6 +357,10 @@ document.querySelectorAll('.fbtn').forEach(btn => {
   });
 });
 
+/* ---------- 打开大屏 / 学生屏（新标签页） ---------- */
+$('btnBigscreen').addEventListener('click', () => window.open('/bigscreen/', '_blank'));
+$('btnStudentscreen').addEventListener('click', () => window.open('/student/', '_blank'));
+
 /* ---------- 清空（仅本机缓存，服务端数据保留） ---------- */
 $('clearBtn').addEventListener('click', () => {
   if (!confirm('清空本机缓存记录？服务端已上报的数据会保留。')) return;
