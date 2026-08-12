@@ -30,6 +30,7 @@ IDENTITY_FILE = os.path.join(BASE_DIR, 'agent-live', 'identity.json')
 WATER_FILE = os.path.join(BASE_DIR, 'agent-live', 'water.json')
 SCREEN_DIR = os.path.join(BASE_DIR, 'agent-live', 'screen')
 SCREEN_ACTIVE = os.path.join(SCREEN_DIR, 'active.json')
+UPLOAD_DIR = os.path.join(BASE_DIR, 'agent-live', 'uploads')
 LESSON_FILE = os.path.join(BASE_DIR, 'agent-live', 'lessons.json')
 KEY_FILE = os.path.join(BASE_DIR, '.deepseek_key')
 
@@ -372,6 +373,24 @@ def delete_screen_block(bid):
         pass
 
 
+def save_upload(filename, b64data):
+    """base64 上传文件存到 agent-live/uploads/，返回相对 URL"""
+    import base64
+    import uuid
+    try:
+        raw = base64.b64decode(b64data)
+    except Exception:
+        raise RuntimeError('文件数据解码失败')
+    os.makedirs(UPLOAD_DIR, exist_ok=True)
+    safe = os.path.basename(filename or 'upload')
+    ext = os.path.splitext(safe)[1].lower() or '.bin'
+    fname = uuid.uuid4().hex[:10] + ext
+    path = os.path.join(UPLOAD_DIR, fname)
+    with open(path, 'wb') as f:
+        f.write(raw)
+    return '/agent-live/uploads/' + fname
+
+
 def load_api_key():
     key = os.environ.get('DEEPSEEK_API_KEY', '')
     if not key:
@@ -621,6 +640,16 @@ class Handler(SimpleHTTPRequestHandler):
                 if get_active_screen() == data.get('id'):
                     set_active_screen(None)
                 self._json(200, {'ok': True})
+            except Exception as ex:
+                self._json(400, {'ok': False, 'reason': str(ex)})
+            return
+        if parsed.path == '/api/upload':
+            try:
+                length = int(self.headers.get('Content-Length', 0))
+                raw = self.rfile.read(length) if length else b''
+                data = json.loads(raw.decode('utf-8')) if raw else {}
+                url = save_upload(data.get('filename') or 'upload', data.get('data') or '')
+                self._json(200, {'ok': True, 'url': url})
             except Exception as ex:
                 self._json(400, {'ok': False, 'reason': str(ex)})
             return

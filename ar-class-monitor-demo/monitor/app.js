@@ -409,6 +409,40 @@ $('btnAddBlock').addEventListener('click', async () => {
   $('blkContent').value = '';
   loadScreenBlocks();
 });
+$('btnUploadBlock').addEventListener('click', () => {
+  const file = $('blkFile').files[0];
+  if (!file) { $('uploadHint').textContent = '⚠️ 先选一个文件'; return; }
+  const isImg = file.type.startsWith('image/');
+  const isVid = file.type.startsWith('video/');
+  if (!isImg && !isVid) { $('uploadHint').textContent = '⚠️ 只支持图片或视频'; return; }
+  const reader = new FileReader();
+  reader.onload = async () => {
+    const b64 = String(reader.result).split(',')[1];
+    $('uploadHint').textContent = '⏳ 上传中…';
+    try {
+      const r = await fetch('/api/upload', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filename: file.name, data: b64 }),
+      });
+      const res = await r.json();
+      if (res.ok) {
+        const title = file.name.replace(/\.[^.]+$/, '');
+        await fetch('/api/screen/save', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type: isImg ? 'image' : 'video', title, content: res.url, source: 'teacher' }),
+        });
+        $('uploadHint').textContent = '✅ 已上传并投屏，大屏正在显示';
+        $('blkFile').value = '';
+        loadScreenBlocks();
+      } else {
+        $('uploadHint').textContent = '⚠️ 上传失败：' + (res.reason || '');
+      }
+    } catch(e) {
+      $('uploadHint').textContent = '⚠️ 上传失败：' + e;
+    }
+  };
+  reader.readAsDataURL(file);
+});
 loadScreenBlocks();
 setInterval(loadScreenBlocks, 4000);
 

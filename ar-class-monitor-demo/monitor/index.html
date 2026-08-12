@@ -82,6 +82,12 @@
       <input id="blkContent" class="tno blk-content" placeholder="文字内容 / 图片或视频或网页链接" maxlength="500">
       <button id="btnAddBlock" class="ghost">＋ 添加</button>
     </div>
+    <div class="row add-block">
+      <span class="hint">上传本地文件：</span>
+      <input type="file" id="blkFile" accept="image/*,video/*">
+      <button id="btnUploadBlock" class="ghost">⬆ 上传并投屏</button>
+      <span class="hint" id="uploadHint">图片/视频传到服务器，大屏可投</span>
+    </div>
     <div id="screenBlocks" class="screen-blocks"></div>
   </div>
 
