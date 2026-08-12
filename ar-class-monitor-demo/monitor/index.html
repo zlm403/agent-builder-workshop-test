@@ -107,6 +107,13 @@
 
 <script src="../lib/analyze.js?v=20260213"></script>
 <script>
+/* 全局错误捕获：任何 JS 报错直接显示在学生列表上方，用于定位脚本中断 */
+window.addEventListener('error', function (e) {
+  var el = document.getElementById('studentList');
+  if (el) {
+    el.innerHTML = '<div class="empty" style="color:var(--orange)">⚠️ 脚本错误：' + (e.message || e) + (e.filename ? ' @ ' + e.filename.split('/').pop() + ':' + e.lineno : '') + '</div>';
+  }
+});
 /* 内联自检：页面一开就显示数据服务连通状态（不依赖 app.js 是否加载成功） */
 (function(){
   const chip = document.getElementById('connChip');
