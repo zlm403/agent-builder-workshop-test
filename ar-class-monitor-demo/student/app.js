@@ -139,50 +139,58 @@ document.querySelectorAll('.course').forEach(btn => {
 const TASK_EVENT_KEY = 'ar_class_monitor_task';
 let currentTask = null;
 
-function pickTask(events){
-  // 优先当前课的任务；无课标的任务也可显示
-  const mine = events.filter(e => e.event === 'task_push' && (!e.payload.course || e.payload.course === course));
-  const latest = mine[mine.length - 1];
-  return latest || null;
-}
 function renderTask(){
   const card = $('taskCard');
   const btn = $('btnTaskOk');
-  if (!currentTask) {
-    card.innerHTML = '<div class="task-empty">⏳ 等待老师下发任务…<br><span class="dim">老师端推送后，这里会自动出现这一步要做什么。</span></div>';
-    btn.disabled = true;
-    $('taskHint').textContent = '点「收到」后老师能看到你已开始';
-    $('taskCourseTag').textContent = '';
+  $('taskCourseTag').textContent = currentTask ? '（' + currentTask.no + '）' : '';
+  if (!currentTask || currentTask.locked) {
+    card.innerHTML = '<div class="task-empty">🔒 还没开始<br><span class="dim">这节课还没轮到你做这个任务，等老师推进后再看。</span></div>';
+    btn.hidden = true;
+    $('taskHint').textContent = '老师推进后，这里会显示你要做什么';
     return;
   }
-  const t = currentTask.payload;
-  const courseName = COURSES[t.course] ? COURSES[t.course].name : (t.course || '本课');
-  const meta = `推送 ${new Date(currentTask.ts).toLocaleTimeString()} · ${t.task_no || '任务'} · ${courseName}`;
+  const t = currentTask;
   card.innerHTML = `
-    <div class="task-meta">📨 ${meta.replace(/</g,'&lt;')}</div>
+    <div class="task-meta">📋 ${t.no || '任务'}</div>
     <div class="task-title">${(t.title || '课堂任务').replace(/</g,'&lt;')}</div>
-    <div class="task-desc">${(t.desc || '').replace(/</g,'&lt;').replace(/\n/g,'<br>')}</div>
-    ${t.goal ? `<div class="task-goal">🎯 目标：${t.goal.replace(/</g,'&lt;')}</div>` : ''}
-    ${t.steps ? `<div class="task-steps">📌 步骤：${t.steps.replace(/</g,'&lt;').replace(/\n/g,'<br>')}</div>` : ''}`;
-  $('taskCourseTag').textContent = '（' + courseName + '）';
-  const viewed = readLocalEvents().filter(e => e.event === 'task_view' && e.payload && e.payload.task_ts === currentTask.ts);
-  if (viewed.length) {
-    btn.textContent = '✓ 已确认收到';
-    btn.disabled = true;
-    $('taskHint').textContent = '已通知老师，去顷悟 APP 开工吧';
-  } else {
-    btn.textContent = '✓ 收到，开始执行';
-    btn.disabled = false;
-  }
+    ${t.steps ? `<div class="task-steps">📌 步骤：${t.steps.replace(/</g,'&lt;').replace(/\n/g,'<br>')}</div>` : ''}
+    ${t.points ? `<div class="task-goal">💡 注意：${t.points.replace(/</g,'&lt;').replace(/\n/g,'<br>')}</div>` : ''}`;
+  btn.hidden = false;
+  btn.disabled = true;
+  btn.textContent = '✓ 知道了，开始做';
+  $('taskHint').textContent = '做完这步，等老师推进下一个任务';
 }
 function readLocalEvents(){
   try { return JSON.parse(localStorage.getItem('ar_class_monitor_events') || '[]'); } catch(e){ return []; }
 }
 async function loadTask(){
-  // 1) localStorage 任务槽（老师刚推的，秒读）
+  // 优先读课程框架（教师端保存的课堂任务，含锁定状态）
+  try {
+    const r = await fetch('/api/lesson', { cache: 'no-store' });
+    if (r.ok) {
+      const d = await r.json();
+      const cur = d.currentLesson;
+      if (cur && d.lessons && d.lessons[cur]) {
+        const tasks = d.lessons[cur].tasks || [];
+        // 当前任务 = 解锁的那个（未解锁的锁定）；没有解锁的则显示第一个已推送的
+        const current = tasks.find(t => t.unlocked && t.pushed) || tasks.find(t => t.pushed) || null;
+        if (current) {
+          currentTask = {
+            no: current.no || '任务',
+            title: current.title || '课堂任务',
+            steps: current.steps || '',
+            points: current.points || '',
+            locked: !current.unlocked,
+          };
+          renderTask();
+          return;
+        }
+      }
+    }
+  } catch(e){}
+  // 兜底：老的事件流 task_push
   let events = [];
   try { const t = JSON.parse(localStorage.getItem(TASK_EVENT_KEY) || 'null'); if (t) events.push(t); } catch(e){}
-  // 2) 服务端 task_push（历史 + 多课）
   try {
     const r = await fetch('/api/events?since=0', { cache: 'no-store' });
     if (r.ok) {
@@ -190,7 +198,6 @@ async function loadTask(){
       events = events.concat(all.filter(e => e.event === 'task_push'));
     }
   } catch(e){}
-  // 去重（按 ts+sid+event）
   const seen = new Set();
   events = events.filter(e => {
     const k = [e.ts, e.sid, e.event].join('|');
@@ -198,15 +205,24 @@ async function loadTask(){
     seen.add(k);
     return true;
   }).sort((a,b) => (a.ts||0) - (b.ts||0));
-  currentTask = pickTask(events);
+  currentTask = events.length ? {
+    no: events[events.length-1].payload.task_no || '任务',
+    title: events[events.length-1].payload.title || '课堂任务',
+    steps: events[events.length-1].payload.steps || events[events.length-1].payload.desc || '',
+    points: events[events.length-1].payload.points || events[events.length-1].payload.goal || '',
+    locked: false,
+  } : null;
   renderTask();
 }
 $('btnTaskOk').addEventListener('click', () => {
-  if (!currentTask) return;
-  Track.event('task_view', { task_ts: currentTask.ts, task_no: currentTask.payload.task_no || '', title: currentTask.payload.title || '', course });
-  $('btnTaskOk').textContent = '✓ 已确认收到';
-  $('btnTaskOk').disabled = true;
-  $('taskHint').textContent = '已通知老师，去顷悟 APP 开工吧';
+  // 去掉"确认收到"，点一下标记自己知道了（本地记录，不打扰老师）
+  try {
+    const arr = JSON.parse(localStorage.getItem('ar_class_monitor_events') || '[]');
+    arr.push({ ts: Date.now(), sid: mySid(), event: 'task_view', payload: { task_no: currentTask && currentTask.no } });
+    localStorage.setItem('ar_class_monitor_events', JSON.stringify(arr));
+  } catch(e){}
+  $('btnTaskOk').textContent = '👌 开始做吧';
+  $('taskHint').textContent = '做的时候有问题，用下面的「和老师聊」问';
 });
 
 /* ---------- 和老师聊天（学生提问 → 老师回复，双向对话） ---------- */

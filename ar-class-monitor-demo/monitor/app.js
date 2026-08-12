@@ -227,10 +227,13 @@ function renderLessonTasks(){
 window.pushTask = function(i){
   const t = lessonTasks[i];
   if (!t) return;
-  // 推送：广播 task_push 事件 + 标记 pushed
+  // 推送：该任务解锁（学生端可见），其他保持锁定
+  lessonTasks.forEach((tt, idx) => { tt.unlocked = (idx === i); });
+  t.pushed = true;
+  // 广播 task_push 事件（含解锁状态）
   const rec = {
     ts: Date.now(), sid: 'teacher', course: '', event: 'task_push',
-    payload: { _ts: Date.now(), course: '', task_no: t.no, title: t.title, steps: t.steps, points: t.points, unlocked: t.unlocked || false }
+    payload: { _ts: Date.now(), course: '', task_no: t.no, title: t.title, steps: t.steps, points: t.points, unlocked: true }
   };
   try { localStorage.setItem(TASK_EVENT_KEY, JSON.stringify(rec)); } catch(e){}
   try {
@@ -238,7 +241,6 @@ window.pushTask = function(i){
     arr.push(rec); localStorage.setItem(EVENT_KEY, JSON.stringify(arr));
   } catch(e){}
   fetch(COLLECT, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(rec) }).catch(() => {});
-  lessonTasks[i].pushed = true;
   saveLesson();
   renderLessonTasks();
 };
