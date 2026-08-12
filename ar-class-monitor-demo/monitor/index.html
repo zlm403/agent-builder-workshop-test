@@ -29,20 +29,25 @@
     <button class="cbtn" data-course="4" type="button">🤖 项目三 · 内心戏</button>
   </div>
 
-  <!-- 任务推送 -->
+  <!-- 课堂场次与签到 -->
   <div class="pushcard" id="sessionCard">
-    <div class="pushhead">🎫 课堂场次与签到 <span class="dim" id="sessionInfo">（课前录入本场上课号，学生拿号签到，签到成功后数据自动归到该号名下）</span></div>
-    <div class="session-grid">
-      <input id="sTitle" class="tno" placeholder="场次标题，如：一班 上午" maxlength="30">
-      <input id="sDate" class="tno" placeholder="日期 2026-08-12" maxlength="12">
-      <input id="sTime" class="tno" placeholder="时间 09:00" maxlength="8">
+    <div class="pushhead session-head">
+      <span>🎫 课堂场次与签到 <span class="dim" id="sessionInfo">（课前录入本场上课号，学生拿号签到）</span></span>
+      <button id="btnToggleSession" class="ghost ghost-mini" type="button">收起 ▴</button>
     </div>
-    <textarea id="sNumbers" rows="2" placeholder="本场上课号，每行一个或空格分隔（销售发的那批号，如：001 002 003）"></textarea>
-    <div class="row">
-      <button id="btnNewSession" class="primary">➕ 新建本堂课</button>
-      <span class="hint" id="sessionHint">新建后学生即可凭号签到</span>
+    <div id="sessionBody">
+      <div class="session-grid">
+        <input id="sTitle" class="tno" placeholder="场次标题，如：一班 上午" maxlength="30">
+        <input id="sDate" class="tno" placeholder="日期 2026-08-12" maxlength="12">
+        <input id="sTime" class="tno" placeholder="时间 09:00" maxlength="8">
+      </div>
+      <textarea id="sNumbers" rows="2" placeholder="本场上课号，每行一个或空格分隔（销售发的那批号，如：001 002 003）"></textarea>
+      <div class="row">
+        <button id="btnNewSession" class="primary">➕ 新建本堂课</button>
+        <span class="hint" id="sessionHint">新建后学生即可凭号签到</span>
+      </div>
+      <div id="sessionList" class="session-list"></div>
     </div>
-    <div id="sessionList" class="session-list"></div>
   </div>
 
   <!-- 任务推送 -->

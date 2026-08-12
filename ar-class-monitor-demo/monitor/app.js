@@ -524,6 +524,15 @@ $('btnNewSession').addEventListener('click', async () => {
 loadSessions();
 setInterval(loadSessions, 5000);
 
+/* ---------- 课堂场次：收起/展开（开课后折叠，不占地方） ---------- */
+$('btnToggleSession').addEventListener('click', () => {
+  const body = $('sessionBody');
+  const btn = $('btnToggleSession');
+  const collapsed = body.style.display === 'none';
+  body.style.display = collapsed ? '' : 'none';
+  btn.textContent = collapsed ? '收起 ▴' : '展开 ▾';
+});
+
 /* ---------- 清空（服务端 + 本机） ---------- */
 $('clearBtn').addEventListener('click', async () => {
   if (!confirm('清空全部数据？服务器和学生端所有记录都会删除，重新开始。')) return;
