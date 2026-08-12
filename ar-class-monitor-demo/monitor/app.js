@@ -233,8 +233,9 @@ function renderUnlock(unlock){
     const btn = $('up' + k);
     if (!btn) return;
     const on = !!unlock[k];
-    btn.textContent = (on ? '🔓 ' : '🔒 ') + labels[k];
-    btn.classList.toggle('ghost-on', on);
+    btn.textContent = (on ? '🔓 已解锁 · ' : '🔒 已锁定 · ') + labels[k];
+    btn.classList.toggle('unlock-on', on);
+    btn.classList.toggle('unlock-off', !on);
   });
 }
 window.unlockProject = async function(k){
