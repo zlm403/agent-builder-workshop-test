@@ -65,6 +65,22 @@ button.primary:hover{filter:brightness(1.1)}
 .lesson-input:focus { border-color: var(--blue); }
 .lesson-tasks { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; }
 .lesson-empty { color: var(--sub); font-size: 12.5px; text-align: center; padding: 18px 0; }
+/* 大屏内容控制台 */
+.add-block { gap: 8px; }
+.blk-content { flex: 1; min-width: 200px; }
+.screen-blocks { margin-top: 12px; display: flex; flex-direction: column; gap: 6px; }
+.sblk {
+  display: flex; align-items: center; gap: 10px; padding: 9px 12px; cursor: pointer;
+  background: var(--panel2); border: 1px solid var(--line); border-radius: 10px; font-size: 13px;
+}
+.sblk:hover { border-color: var(--blue); }
+.sblk.on { border-color: var(--green); box-shadow: 0 0 0 1px var(--green) inset; background: rgba(34,197,94,.08); }
+.sblk-icon { font-size: 15px; }
+.sblk-title { flex: 1; font-weight: 700; }
+.sblk-state { font-size: 11px; color: var(--sub); }
+.sblk.on .sblk-state { color: var(--green); font-weight: 800; }
+.sblk-del { color: var(--sub); padding: 0 4px; }
+.sblk-del:hover { color: var(--red); }
 .ltask {
   background: var(--panel2); border: 1px solid var(--line); border-radius: 11px; padding: 10px 12px;
 }

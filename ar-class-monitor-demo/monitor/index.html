@@ -68,6 +68,23 @@
     </div>
   </div>
 
+  <!-- 大屏内容控制台 -->
+  <div class="pushcard">
+    <div class="pushhead">🖥 大屏内容 <span class="dim">（点某块投到大屏，投中的块高亮；内容存成独立文件）</span></div>
+    <div class="row add-block">
+      <select id="blkType" class="tno">
+        <option value="text">文字</option>
+        <option value="image">图片(链接)</option>
+        <option value="video">视频(链接)</option>
+        <option value="page">网页(链接)</option>
+      </select>
+      <input id="blkTitle" class="tno" placeholder="内容标题" maxlength="30">
+      <input id="blkContent" class="tno blk-content" placeholder="文字内容 / 图片或视频或网页链接" maxlength="500">
+      <button id="btnAddBlock" class="ghost">＋ 添加</button>
+    </div>
+    <div id="screenBlocks" class="screen-blocks"></div>
+  </div>
+
   <div class="pushcard chatcard">
     <div class="pushhead">💬 消息 <span class="dim">（点左侧会话，右侧对话记录按时间排列，回复实时到学生端）</span></div>
     <div class="chat-wrap">

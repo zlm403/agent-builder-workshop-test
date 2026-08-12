@@ -28,6 +28,8 @@ DATA_FILE = os.path.join(BASE_DIR, 'agent-live', 'events.jsonl')
 SESSION_FILE = os.path.join(BASE_DIR, 'agent-live', 'sessions.json')
 IDENTITY_FILE = os.path.join(BASE_DIR, 'agent-live', 'identity.json')
 WATER_FILE = os.path.join(BASE_DIR, 'agent-live', 'water.json')
+SCREEN_DIR = os.path.join(BASE_DIR, 'agent-live', 'screen')
+SCREEN_ACTIVE = os.path.join(SCREEN_DIR, 'active.json')
 LESSON_FILE = os.path.join(BASE_DIR, 'agent-live', 'lessons.json')
 KEY_FILE = os.path.join(BASE_DIR, '.deepseek_key')
 
@@ -306,6 +308,70 @@ def save_lessons(d):
     os.replace(tmp, LESSON_FILE)
 
 
+# ============================================================
+# 大屏内容块（每个内容单独存一个文件，教师端控制投屏）
+#   screen/<id>.json: {id, type, title, content, source, ts}
+#   screen/active.json: {"activeId": "xxx"}  当前投屏的块
+#   type: task(课堂任务) / text / image / video / page(网页)
+# ============================================================
+def ensure_screen_dir():
+    os.makedirs(SCREEN_DIR, exist_ok=True)
+
+
+def list_screen_blocks():
+    ensure_screen_dir()
+    out = []
+    for fn in os.listdir(SCREEN_DIR):
+        if not fn.endswith('.json') or fn == 'active.json':
+            continue
+        try:
+            with open(os.path.join(SCREEN_DIR, fn), 'r', encoding='utf-8') as f:
+                b = json.load(f)
+            if isinstance(b, dict) and b.get('id'):
+                out.append(b)
+        except Exception:
+            pass
+    out.sort(key=lambda x: x.get('ts', 0))
+    return out
+
+
+def save_screen_block(block):
+    ensure_screen_dir()
+    bid = block.get('id')
+    if not bid:
+        import uuid
+        bid = 'blk_' + uuid.uuid4().hex[:8]
+        block['id'] = bid
+    block['ts'] = int(time.time() * 1000)
+    with open(os.path.join(SCREEN_DIR, bid + '.json'), 'w', encoding='utf-8') as f:
+        json.dump(block, f, ensure_ascii=False)
+    return bid
+
+
+def get_active_screen():
+    ensure_screen_dir()
+    try:
+        with open(SCREEN_ACTIVE, 'r', encoding='utf-8') as f:
+            d = json.load(f)
+        return d.get('activeId')
+    except Exception:
+        return None
+
+
+def set_active_screen(bid):
+    ensure_screen_dir()
+    with open(SCREEN_ACTIVE, 'w', encoding='utf-8') as f:
+        json.dump({'activeId': bid}, f)
+
+
+def delete_screen_block(bid):
+    ensure_screen_dir()
+    try:
+        os.remove(os.path.join(SCREEN_DIR, bid + '.json'))
+    except Exception:
+        pass
+
+
 def load_api_key():
     key = os.environ.get('DEEPSEEK_API_KEY', '')
     if not key:
@@ -429,6 +495,12 @@ class Handler(SimpleHTTPRequestHandler):
         if parsed.path == '/api/lesson':
             self._json(200, load_lessons())
             return
+        if parsed.path == '/api/screen':
+            self._json(200, {
+                'blocks': list_screen_blocks(),
+                'activeId': get_active_screen(),
+            })
+            return
         if parsed.path == '/api/class':
             agg = class_aggregate(load_events())
             self._json(200, agg)
@@ -507,6 +579,47 @@ class Handler(SimpleHTTPRequestHandler):
                 d = load_lessons()
                 d['projectUnlock'] = data.get('projectUnlock') or d.get('projectUnlock') or {}
                 save_lessons(d)
+                self._json(200, {'ok': True})
+            except Exception as ex:
+                self._json(400, {'ok': False, 'reason': str(ex)})
+            return
+        if parsed.path == '/api/screen/save':
+            try:
+                length = int(self.headers.get('Content-Length', 0))
+                raw = self.rfile.read(length) if length else b''
+                data = json.loads(raw.decode('utf-8')) if raw else {}
+                if not data.get('title'):
+                    self._json(400, {'ok': False, 'reason': '标题为空'})
+                    return
+                bid = save_screen_block({
+                    'id': data.get('id'),
+                    'type': data.get('type') or 'text',
+                    'title': data.get('title'),
+                    'content': data.get('content') or '',
+                    'source': data.get('source') or 'teacher',
+                })
+                self._json(200, {'ok': True, 'id': bid})
+            except Exception as ex:
+                self._json(400, {'ok': False, 'reason': str(ex)})
+            return
+        if parsed.path == '/api/screen/active':
+            try:
+                length = int(self.headers.get('Content-Length', 0))
+                raw = self.rfile.read(length) if length else b''
+                data = json.loads(raw.decode('utf-8')) if raw else {}
+                set_active_screen(data.get('id'))
+                self._json(200, {'ok': True})
+            except Exception as ex:
+                self._json(400, {'ok': False, 'reason': str(ex)})
+            return
+        if parsed.path == '/api/screen/delete':
+            try:
+                length = int(self.headers.get('Content-Length', 0))
+                raw = self.rfile.read(length) if length else b''
+                data = json.loads(raw.decode('utf-8')) if raw else {}
+                delete_screen_block(data.get('id'))
+                if get_active_screen() == data.get('id'):
+                    set_active_screen(None)
                 self._json(200, {'ok': True})
             except Exception as ex:
                 self._json(400, {'ok': False, 'reason': str(ex)})

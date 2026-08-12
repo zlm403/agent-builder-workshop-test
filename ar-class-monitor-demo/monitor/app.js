@@ -349,6 +349,69 @@ $('btnSplit').addEventListener('click', async () => {
 loadLesson();
 setInterval(loadLesson, 5000);
 
+/* ---------- 大屏内容控制台 ---------- */
+let screenActive = null;
+let screenBlocks = [];
+async function loadScreenBlocks(){
+  try {
+    const r = await fetch('/api/screen', { cache: 'no-store' });
+    const d = await r.json();
+    screenBlocks = d.blocks || [];
+    screenActive = d.activeId;
+    renderScreenBlocks();
+  } catch(e){}
+}
+function renderScreenBlocks(){
+  const box = $('screenBlocks');
+  if (!box) return;
+  if (!screenBlocks.length) {
+    box.innerHTML = '<div class="lesson-empty">还没有内容块——添加一个（文字/图片/视频/网页），点它投到大屏</div>';
+    return;
+  }
+  const icons = { task: '📋', text: '📝', image: '🖼', video: '🎬', page: '🌐' };
+  box.innerHTML = screenBlocks.map(b => {
+    const on = b.id === screenActive;
+    const src = b.source === 'external' ? ' · 外部' : '';
+    return `<div class="sblk ${on ? 'on' : ''}" onclick="setScreenActive('${b.id}')" title="点击投到大屏">
+      <span class="sblk-icon">${icons[b.type] || '📄'}</span>
+      <span class="sblk-title">${esc(b.title)}${src}</span>
+      <span class="sblk-state">${on ? '● 投屏中' : '点击投放'}</span>
+      <span class="sblk-del" onclick="event.stopPropagation();delScreenBlock('${b.id}')">✕</span>
+    </div>`;
+  }).join('');
+}
+window.setScreenActive = async function(id){
+  await fetch('/api/screen/active', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id }),
+  }).catch(() => {});
+  loadScreenBlocks();
+};
+window.delScreenBlock = async function(id){
+  if (!confirm('删除这个内容块？')) return;
+  await fetch('/api/screen/delete', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id }),
+  }).catch(() => {});
+  loadScreenBlocks();
+};
+$('btnAddBlock').addEventListener('click', async () => {
+  const type = $('blkType').value;
+  const title = $('blkTitle').value.trim();
+  const content = $('blkContent').value.trim();
+  if (!title) { alert('先填内容标题'); return; }
+  if (type !== 'text' && !content) { alert('图片/视频/网页需要填链接'); return; }
+  await fetch('/api/screen/save', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ type, title, content, source: 'teacher' }),
+  }).catch(() => {});
+  $('blkTitle').value = '';
+  $('blkContent').value = '';
+  loadScreenBlocks();
+});
+loadScreenBlocks();
+setInterval(loadScreenBlocks, 4000);
+
 /* ---------- 课程筛选 ---------- */
 document.querySelectorAll('.cbtn').forEach(btn => {
   btn.addEventListener('click', () => {
