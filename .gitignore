@@ -19,6 +19,11 @@ dist/
 Thumbs.db
 *.log
 
+# ===== 运行时事件数据（上课实时生成，不进版本库）=====
+/ar-class-monitor-demo/agent-live/events.jsonl
+/ar-class-monitor-demo/server_out.log
+/ar-class-monitor-demo/server_err.log
+
 # ===== 其它非代码目录（不纳入本次课程代码仓库）=====
 /ai-dreamlab/
 
