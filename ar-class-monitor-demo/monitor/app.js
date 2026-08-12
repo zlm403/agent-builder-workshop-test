@@ -127,7 +127,7 @@ function renderConnChip(ok, err){
     chip.style.color = 'var(--green)';
     chip.style.borderColor = 'rgba(34,197,94,.45)';
   } else {
-    chip.textContent = '⚠️ 连接数据服务失败：' + err + '（请确认 8099 服务器在运行）';
+    chip.textContent = '⚠️ 连接失败：' + err + '（服务器没在跑？）';
     chip.style.color = 'var(--orange)';
     chip.style.borderColor = 'rgba(251,146,60,.6)';
   }
