@@ -134,7 +134,6 @@ function renderConnChip(ok, err){
   chip.style.display = '';
 }
 function renderAll(){ renderClassPrism(); renderStudents(); renderTimeline(); renderXray(); renderConvList(); renderTeacherChat(); }
-
 /* ---------- 班级理解棱镜（一核多表：每课各穿各自的维度表） ---------- */
 function taskOfCourse(c){
   if (c === 'pre') return 'pre';
@@ -144,48 +143,72 @@ function taskOfCourse(c){
   return null;
 }
 const STATE_ORDER = ['ok', 'rec', 'guess', 'clarify', 'empty', 'conflict'];
+/* ---------- 班级学情（六大知识点：全班平均水位柱状图，点柱子看明细） ---------- */
+let classWater = { updated: 0, students: {} };
+async function loadClassWater(){
+  try {
+    const r = await fetch('/api/water', { cache: 'no-store' });
+    if (r.ok) classWater = await r.json();
+    renderClassPrism();
+  } catch(e){}
+}
 function renderClassPrism(){
-  const task = taskOfCourse(courseFilter);
   const grid = $('prismGrid');
-  if (!task) {
-    grid.innerHTML = '<div class="empty">选择上方课程后查看班级棱镜</div>';
-    $('prismInfo').textContent = '（先选课程，看这一课全班哪里没立住）';
+  if (!grid) return;
+  const students = classWater.students || {};
+  const sids = Object.keys(students);
+  if (!sids.length) {
+    grid.innerHTML = '<div class="empty">还没有学习数据——学生开工后这里显示全班掌握情况</div>';
+    $('prismInfo').textContent = '（六大知识点全班掌握情况，点柱子看明细）';
     return;
   }
-  const matched = events.filter(e => taskIdOf(e.payload) === task && e.sid !== 'teacher');
-  const perStu = {};
-  matched.forEach(e => {
-    if (!perStu[e.sid]) perStu[e.sid] = [];
-    perStu[e.sid].push({ event: e.event, payload: e.payload });
-  });
-  const sids = Object.keys(perStu);
-  $('prismInfo').textContent = COURSE_NAME[courseFilter] + ' · ' + sids.length + ' 名学生参与';
-  if (!sids.length) { grid.innerHTML = '<div class="empty">该课暂无学生数据</div>'; return; }
-
-  const cells = Analyzer.CELLS_BY_TASK[task];
-  const counts = cells.map(() => ({}));
-  sids.forEach(sid => {
-    const r = Analyzer.clarityFor(task, perStu[sid]);
-    r.grid.forEach((c, i) => {
-      counts[i][c.state] = (counts[i][c.state] || 0) + 1;
+  // 聚合：每个知识点的全班平均水位 + 达标(≥60)人数
+  const items = students[sids[0]].items || [];
+  const agg = items.map(it => {
+    const vals = sids.map(s => {
+      const item = (students[s].items || []).find(x => x.key === it.key);
+      return item ? item.pct : 0;
     });
+    const avg = Math.round(vals.reduce((a, b) => a + b, 0) / vals.length);
+    const pass = vals.filter(v => v >= 60).length;
+    return { key: it.key, name: it.name, icon: it.icon, avg, pass, n: vals.length };
   });
-
-  grid.innerHTML = cells.map((c, i) => {
-    const cnt = counts[i];
-    let best = 'empty', bv = -1;
-    STATE_ORDER.forEach(k => { if ((cnt[k] || 0) > bv) { bv = cnt[k] || 0; best = k; } });
-    const miss = (cnt.guess || 0) + (cnt.clarify || 0) + (cnt.empty || 0) + (cnt.conflict || 0)
-      > (cnt.ok || 0) + (cnt.rec || 0);
-    const st = Analyzer.STATE[best];
-    const pct = sids.length ? Math.round(bv / sids.length * 100) : 0;
-    return `<div class="prism-cell ${miss ? 'gap' : ''}">
-      <div class="pn">${i + 1}. ${c.name}</div>
-      <div class="pv">${st.sym} ${st.label} ${pct}%</div>
-      <div class="ps ${best}">${bv}/${sids.length} 人</div>
+  $('prismInfo').textContent = '全班 ' + sids.length + ' 人 · 六大知识点掌握情况（点击柱子看明细）';
+  grid.innerHTML = agg.map(a => {
+    const level = a.avg >= 60 ? 'hi' : a.avg >= 35 ? 'mid' : 'lo';
+    return `<div class="prism-cell ${level}" onclick="showClassDetail('${a.key}')" title="点击查看该知识点全班明细">
+      <div class="pn">${a.icon} ${a.name}</div>
+      <div class="bar-wrap"><div class="bar ${level}" style="height:${Math.max(8, a.avg)}%"></div></div>
+      <div class="pv">${a.avg}%</div>
+      <div class="ps">${a.pass}/${a.n} 人达标</div>
     </div>`;
   }).join('');
 }
+window.showClassDetail = function(key){
+  const students = classWater.students || {};
+  const sids = Object.keys(students);
+  if (!sids.length) return;
+  const item0 = (students[sids[0]].items || []).find(x => x.key === key);
+  if (!item0) return;
+  const rows = sids.map(s => {
+    const item = (students[s].items || []).find(x => x.key === key);
+    const pct = item ? item.pct : 0;
+    const level = pct >= 60 ? 'hi' : pct >= 35 ? 'mid' : 'lo';
+    return `<div class="xrow ${level === 'hi' ? 'ok' : level === 'lo' ? 'bad' : ''}"><span class="xk">学生 ${s}</span><span class="xv">${pct}%</span></div>`;
+  }).sort((a, b) => {
+    const pa = parseInt(a.match(/(\d+)%/)[1]), pb = parseInt(b.match(/(\d+)%/)[1]);
+    return pb - pa;
+  }).join('');
+  const overlay = document.createElement('div');
+  overlay.className = 'wmodal';
+  overlay.innerHTML = `
+    <div class="wmodal-box">
+      <div class="wmodal-head"><span>${item0.icon} ${item0.name} · 全班明细</span><span class="wmodal-close" onclick="this.closest('.wmodal').remove()">✕</span></div>
+      <div class="wmodal-body">${rows || '（暂无学生数据）'}</div>
+    </div>`;
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+  document.body.appendChild(overlay);
+};
 
 /* ---------- 课堂任务框架（课程 = 一节课，含 N 个任务，逐个推送+锁定） ---------- */
 let lessonTasks = [];   // 当前课程的拆解任务 [{no,title,steps,points,pushed,unlocked}]
@@ -634,4 +657,6 @@ $('clearBtn').addEventListener('click', async () => {
 /* ---------- 启动 ---------- */
 load();
 setInterval(load, 2000);
+loadClassWater();
+setInterval(loadClassWater, 5000);
 window.addEventListener('storage', load);
