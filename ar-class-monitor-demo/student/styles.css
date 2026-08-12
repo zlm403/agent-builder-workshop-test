@@ -85,13 +85,6 @@ button.ghost:hover { background: var(--blue); color: #04263a; }
 .guide li:last-child { border-bottom: none; }
 .guide li b { flex: 0 0 20px; color: var(--blue); }
 
-/* 作品运行区 */
-.workbox { min-height: 120px; }
-.work-empty { padding: 30px 10px; text-align: center; color: var(--sub); font-size: 14px; line-height: 2; }
-.workframe {
-  width: 100%; height: 520px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel2);
-}
-
 /* 我的学习水位（6 大知识点：水满 = 学得好；点击柱子看分析） */
 .mirror-empty { padding: 22px 10px; text-align: center; color: var(--sub); font-size: 14px; line-height: 2; }
 .wgrid {

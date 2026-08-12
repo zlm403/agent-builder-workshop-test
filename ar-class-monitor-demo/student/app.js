@@ -1,9 +1,9 @@
 /* ============ 课堂工作台 · 学生端（通用壳） ============
    职责:
    1. 项目切换（项目一·接金币游戏 / 项目二·心情电量 / 项目三·内心戏）
-   2. 任务看板：接收老师按项目推送的任务
-   3. 本课引导：提示去顷悟 APP 对话 + 回到这里跑作品
-   4. 作品运行容器：iframe 加载学生发布到顷悟平台的成品 URL
+   2. 任务看板：接收老师按项目推送的任务 + "和老师聊"对话框
+   3. 本课引导：提示去顷悟 APP 对话开工
+   4. 我的学习水位：6 大知识点水杯（点击看 AI 分析）
    与 AI 的对话在顷悟 APP 内完成（每个项目一个顷悟应用），本页不嵌对话通道。
    埋点: lib/track.js（POST /api/collect + localStorage 双写） */
 
@@ -19,9 +19,8 @@ const COURSES = {
       '打开顷悟 APP，进入「接金币游戏」应用',
       '一句话告诉 AI 你想要什么游戏，先做出最小的版本，立刻跑起来',
       '边玩边改：哪里不好玩，把话说清楚让 AI 改，再跑一遍',
-      '跑通了就上传发布——回到这里，把发布链接填进作品运行区，数据自动同步老师'
+      '跑通了就上传发布，发布链接记下来，数据自动同步老师'
     ],
-    work: null // 填学生发布到顷悟平台的成品 URL
   },
   '2': {
     name: '项目二 · 心情电量', icon: '🔋',
@@ -33,7 +32,6 @@ const COURSES = {
       '把记录存起来：设置规则，让 AI 按流程处理、规范化输出',
       '画出电量曲线和小结，发布到平台——使用数据自动上报给老师'
     ],
-    work: null // 填学生发布到顷悟平台的成品 URL
   },
   '4': {
     name: '项目三 · 内心戏', icon: '🤖',
@@ -45,7 +43,6 @@ const COURSES = {
       '让它读懂你：观察你的表达、复述确认、把你说不出的话讲出来',
       '发布到平台，和朋友互相体验作品——数据自动上报给老师'
     ],
-    work: null // 填学生发布到顷悟平台的成品 URL
   }
 };
 let course = '1';
@@ -127,16 +124,6 @@ function renderCourse(){
   $('guideList').innerHTML = c.guide.map((g, i) =>
     `<li><b>${i+1}.</b> ${g.replace(/</g,'&lt;')}</li>`
   ).join('');
-  // 作品容器
-  const box = $('workBox');
-  const empty = $('workEmpty');
-  if (c.work) {
-    empty.hidden = true;
-    box.innerHTML = '<iframe src="' + c.work + '" class="workframe" title="作品运行区"></iframe>';
-  } else {
-    empty.hidden = false;
-    box.innerHTML = '';
-  }
   loadTask();
 }
 document.querySelectorAll('.course').forEach(btn => {
