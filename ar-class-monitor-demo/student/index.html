@@ -12,10 +12,9 @@
   <header>
     <h1>🎯 课堂工作台 <em>学生端</em><span class="ver-badge" title="页面版本号，刷新后应变 v3">v3</span></h1>
     <div class="head-right" id="sidForm">
-      <input id="sidNo" class="sid sidno" placeholder="学号（如 01）" maxlength="8">
-      <input id="sidName" class="sid sidname" placeholder="昵称（如 大熊）" maxlength="12">
-      <button id="btnSidSubmit" class="ghost" type="button">上报</button>
-      <button id="btnReset" class="ghost reset-btn" type="button" title="清空服务器与该设备上的所有记录，重新开始">清空重来</button>
+      <input id="sidNo" class="sid sidno" placeholder="上课号（向老师领取）" maxlength="20" autocomplete="off">
+      <button id="btnSidSubmit" class="ghost" type="button">签到</button>
+      <button id="btnReset" class="ghost reset-btn" type="button" title="退出签到状态，重新开始">退出重来</button>
       <span class="hint sid-hint" id="sidHint"></span>
     </div>
   </header>

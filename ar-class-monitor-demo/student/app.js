@@ -53,34 +53,48 @@ let course = '1';
 /* ---------- 初始化埋点 ---------- */
 Track.config({ endpoint: '/api/collect', course: course, page: 'student-workbench' });
 
-/* ---------- 学号 + 昵称（规范：学号如 01，昵称如 大熊；上报后老师端显示「学号 昵称」） ---------- */
+/* ---------- 上课号签到（号码即身份：老师课前录入本场次有效号码池，学生拿号来签到） ---------- */
 function sidStorage(){
   try { return JSON.parse(localStorage.getItem('ar_class_monitor_sid_info') || 'null'); } catch(e){ return null; }
 }
+function applySid(sid){
+  localStorage.setItem('ar_class_monitor_sid', sid);
+  try { localStorage.setItem('ar_class_monitor_sid_info', JSON.stringify({ no: sid, name: '' })); } catch(e){}
+  Track.config({ sid: sid });
+  $('sidNo').value = sid;
+  $('sidHint').textContent = '✅ 已签到：' + sid + '（本机记住，重开免签）';
+  $('sidNo').disabled = true;
+  $('btnSidSubmit').disabled = true;
+}
 function bindSid(){
   const saved = sidStorage();
-  if (saved) {
-    $('sidNo').value = saved.no || '';
-    $('sidName').value = saved.name || '';
-    if (saved.no && saved.name) {
-      Track.config({ sid: saved.no + ' ' + saved.name });
-      $('sidHint').textContent = '✅ 已上报：' + saved.no + ' ' + saved.name;
-    }
+  if (saved && saved.no) {
+    applySid(saved.no);
+    return;
   }
+  $('sidHint').textContent = '输入老师发的上课号签到（一个号只能用一次）';
 }
 function submitSid(){
-  const no = $('sidNo').value.trim();
-  const name = $('sidName').value.trim();
-  if (!no || !name) { $('sidHint').textContent = '⚠️ 学号和昵称都要填'; return; }
-  if (!/^\d+$/.test(no)) { $('sidHint').textContent = '⚠️ 学号只填数字（如 01）'; return; }
-  const sid = no + ' ' + name;
-  try { localStorage.setItem('ar_class_monitor_sid_info', JSON.stringify({ no, name })); } catch(e){}
-  localStorage.setItem('ar_class_monitor_sid', sid);
-  Track.config({ sid });
-  Track.event('sid_set', { sid, no, name });
-  $('sidHint').textContent = '✅ 已上报：' + sid;
+  const number = $('sidNo').value.trim();
+  if (!number) { $('sidHint').textContent = '⚠️ 先输入上课号'; return; }
+  $('sidHint').textContent = '⏳ 签到中…';
+  fetch('/api/admit', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ number: number })
+  }).then(r => r.json()).then(res => {
+    if (res.ok) {
+      applySid(res.sid);
+      Track.event('sid_set', { sid: res.sid, no: res.sid });
+    } else {
+      $('sidHint').textContent = '❌ ' + (res.reason || '签到失败');
+    }
+  }).catch(() => {
+    $('sidHint').textContent = '⚠️ 连不上服务器（老师端的服务没开？）';
+  });
 }
 $('btnSidSubmit').addEventListener('click', submitSid);
+$('sidNo').addEventListener('keydown', e => { if (e.key === 'Enter') submitSid(); });
 
 /* ---------- 课程切换 ---------- */
 function renderCourse(){
@@ -244,17 +258,15 @@ async function renderMirror(){
     ${gapHtml}`;
 }
 
-/* ---------- 清空重来（服务端 + 本机全部记录） ---------- */
+/* ---------- 退出签到（只清本机身份，不清服务器课堂数据） ---------- */
 function bindReset(){
   const btn = $('btnReset');
   if (!btn) return;
   btn.addEventListener('click', async () => {
-    if (!confirm('清空服务器和这台设备上的全部记录？页面将刷新，重新开始。')) return;
-    try { await fetch('/api/clear', { method: 'POST' }); } catch(e){}
-    try { localStorage.removeItem('ar_class_monitor_events'); } catch(e){}
-    try { localStorage.removeItem('ar_class_monitor_task'); } catch(e){}
+    if (!confirm('退出签到？这台设备将不再以当前上课号上报，需要重新输号签到。')) return;
     try { localStorage.removeItem('ar_class_monitor_sid'); } catch(e){}
     try { localStorage.removeItem('ar_class_monitor_sid_info'); } catch(e){}
+    try { localStorage.removeItem('ar_class_monitor_events'); } catch(e){}
     location.reload();
   });
 }

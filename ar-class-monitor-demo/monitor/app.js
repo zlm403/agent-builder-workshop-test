@@ -391,6 +391,74 @@ document.querySelectorAll('.fbtn').forEach(btn => {
 
 /* ---------- 大屏 / 学生屏：标题旁 <a target="_blank"> 胶囊链接，无需 JS 绑定 ---------- */
 
+/* ---------- 课堂场次与签到 ---------- */
+function esc(s){ return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+async function loadSessions(){
+  try {
+    const r = await fetch('/api/session', { cache: 'no-store' });
+    const d = await r.json();
+    renderSessions(d);
+  } catch(e) {}
+}
+function renderSessions(d){
+  const list = $('sessionList');
+  if (!list) return;
+  const sessions = d.sessions || [];
+  const activeId = d.activeSessionId;
+  $('sessionInfo').textContent = sessions.length
+    ? '当前场次：' + esc(activeName(sessions, activeId)) + ' —— 学生凭号签到，签到后数据自动归到该号名下'
+    : '（课前录入本场上课号，学生拿号签到，签到成功后数据自动归到该号名下）';
+  if (!sessions.length) { list.innerHTML = ''; return; }
+  list.innerHTML = sessions.map(s => {
+    const usedCount = Object.keys(s.used || {}).length;
+    const total = (s.numbers || []).length;
+    const chips = (s.numbers || []).map(n => {
+      const used = s.used && s.used[n];
+      return `<span class="chip-mini ${used ? 'ok' : ''}" title="${used ? '已签到' : '未签到'}">${used ? '✓' : ''}${esc(n)}</span>`;
+    }).join('');
+    return `<div class="sess ${s.id === activeId ? 'cur' : ''}">
+      <span class="nm">${esc(s.title || '课堂')}</span>
+      <span class="sub">${esc(s.date || '')} ${esc(s.time || '')} · ${usedCount}/${total} 已到</span>
+      ${s.id === activeId ? '' : `<button class="switch" data-id="${s.id}" data-newsid="${s.id}">设为本场</button>`}
+      <div class="bars">${chips}</div>
+    </div>`;
+  }).join('');
+  list.querySelectorAll('button[data-newsid]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      await fetch('/api/session/active', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ id: btn.dataset.newsid }) });
+      loadSessions();
+    });
+  });
+}
+function activeName(sessions, activeId){
+  for (const s of sessions) if (s.id === activeId) return s.title || '课堂';
+  return '未建课';
+}
+$('btnNewSession').addEventListener('click', async () => {
+  const title = $('sTitle').value.trim();
+  const date = $('sDate').value.trim();
+  const time = $('sTime').value.trim();
+  const raw = $('sNumbers').value;
+  const numbers = raw.split(/[\s,，;；]+/).map(s => s.trim()).filter(Boolean);
+  if (!numbers.length) { $('sessionHint').textContent = '⚠️ 至少填一个上课号'; return; }
+  const r = await fetch('/api/session', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ title, date, time, numbers })
+  });
+  const res = await r.json();
+  if (res.ok) {
+    $('sessionHint').textContent = '✅ 本堂课已建好（' + numbers.length + ' 个号），学生现在可以签到';
+    $('sNumbers').value = '';
+    $('sessionInfo').textContent = '当前场次：' + title + ' —— 学生凭号签到';
+    loadSessions();
+  } else {
+    $('sessionHint').textContent = '⚠️ ' + (res.reason || '新建失败');
+  }
+});
+loadSessions();
+setInterval(loadSessions, 5000);
+
 /* ---------- 清空（服务端 + 本机） ---------- */
 $('clearBtn').addEventListener('click', async () => {
   if (!confirm('清空全部数据？服务器和学生端所有记录都会删除，重新开始。')) return;

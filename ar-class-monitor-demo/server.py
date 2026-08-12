@@ -24,6 +24,8 @@ from urllib.parse import urlparse, parse_qs
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_FILE = os.path.join(BASE_DIR, 'agent-live', 'events.jsonl')
+SESSION_FILE = os.path.join(BASE_DIR, 'agent-live', 'sessions.json')
+IDENTITY_FILE = os.path.join(BASE_DIR, 'agent-live', 'identity.json')
 
 
 def ensure_data_file():
@@ -154,6 +156,106 @@ def append_events(items):
     return n
 
 
+# ============================================================
+# 课堂场次 + 签到（号码即身份）
+#   sessions.json: {"sessions":[{id,title,date,time,numbers,used}], "activeSessionId": "..."}
+#   used: {"号码": "01 大熊"}（签到成功的 sid 回填，用于教师端看谁到场）
+# ============================================================
+def ensure_session_file():
+    os.makedirs(os.path.dirname(SESSION_FILE), exist_ok=True)
+    if not os.path.exists(SESSION_FILE):
+        with open(SESSION_FILE, 'w', encoding='utf-8') as f:
+            f.write(json.dumps({'sessions': [], 'activeSessionId': None}, ensure_ascii=False))
+
+
+def load_sessions():
+    ensure_session_file()
+    try:
+        with open(SESSION_FILE, 'r', encoding='utf-8') as f:
+            d = json.load(f)
+        if not isinstance(d, dict):
+            d = {}
+        d.setdefault('sessions', [])
+        d.setdefault('activeSessionId', None)
+        return d
+    except Exception:
+        return {'sessions': [], 'activeSessionId': None}
+
+
+def save_sessions(d):
+    ensure_session_file()
+    tmp = SESSION_FILE + '.tmp'
+    with open(tmp, 'w', encoding='utf-8') as f:
+        json.dump(d, f, ensure_ascii=False)
+    os.replace(tmp, SESSION_FILE)
+
+
+def new_session(title, date, clock, numbers):
+    """新建课堂场次，numbers 是去空去重后的上课号列表"""
+    d = load_sessions()
+    sid = 's' + str(int(time.time() * 1000))
+    d['sessions'].append({
+        'id': sid,
+        'title': title or '课堂',
+        'date': date or '',
+        'time': clock or '',
+        'numbers': numbers,
+        'used': {},
+        'created': int(time.time() * 1000),
+    })
+    if not d['activeSessionId']:
+        d['activeSessionId'] = sid
+    save_sessions(d)
+    return sid
+
+
+def admit_number(number):
+    """上课号签到。返回 (ok, sid, reason)"""
+    if not number:
+        return False, None, '号码为空'
+    number = str(number).strip()
+    d = load_sessions()
+    sess = None
+    for s in d['sessions']:
+        if s['id'] == d.get('activeSessionId'):
+            sess = s
+            break
+    if not sess:
+        return False, None, '还没有进行中的课堂，老师先建课'
+    if number not in sess['numbers']:
+        return False, None, '号码无效，上不了课'
+    if number in sess.get('used', {}):
+        return False, None, '该号已签到过'
+    sess['used'][number] = {'ts': int(time.time() * 1000)}
+    save_sessions(d)
+    return True, number, 'ok'
+
+
+# ============================================================
+# 本机身份（学生屏签到后写入，顷悟 agent-conversation-log 上报前读取）
+#   解决"这台电脑的顷悟对应哪个上课号"：学生屏在浏览器签到成功后，
+#   POST /api/identity {sid} 写入本机 agent-live/identity.json，
+#   顷悟 skill 上报对话前 GET /api/identity 拿到同机 sid，两线合流。
+# ============================================================
+def save_identity(sid):
+    ensure_session_file()
+    tmp = IDENTITY_FILE + '.tmp'
+    with open(tmp, 'w', encoding='utf-8') as f:
+        json.dump({'sid': sid, 'ts': int(time.time() * 1000)}, f, ensure_ascii=False)
+    os.replace(tmp, IDENTITY_FILE)
+
+
+def load_identity():
+    try:
+        with open(IDENTITY_FILE, 'r', encoding='utf-8') as f:
+            d = json.load(f)
+        if isinstance(d, dict) and d.get('sid'):
+            return d
+    except Exception:
+        pass
+    return {'sid': None, 'ts': None}
+
+
 class Handler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=BASE_DIR, **kwargs)
@@ -200,6 +302,12 @@ class Handler(SimpleHTTPRequestHandler):
                 events = [e for e in events if e.get('sid') == sidf]
             self._json(200, events)
             return
+        if parsed.path == '/api/session':
+            self._json(200, load_sessions())
+            return
+        if parsed.path == '/api/identity':
+            self._json(200, load_identity())
+            return
         if parsed.path == '/api/class':
             agg = class_aggregate(load_events())
             self._json(200, agg)
@@ -208,6 +316,62 @@ class Handler(SimpleHTTPRequestHandler):
 
     def do_POST(self):
         parsed = urlparse(self.path)
+        if parsed.path == '/api/admit':
+            try:
+                length = int(self.headers.get('Content-Length', 0))
+                raw = self.rfile.read(length) if length else b''
+                data = json.loads(raw.decode('utf-8')) if raw else {}
+                ok, sid, reason = admit_number(data.get('number'))
+                if ok:
+                    save_identity(sid)
+                self._json(200, {'ok': ok, 'sid': sid if ok else None, 'reason': reason})
+            except Exception as ex:
+                self._json(400, {'ok': False, 'reason': str(ex)})
+            return
+        if parsed.path == '/api/identity':
+            try:
+                length = int(self.headers.get('Content-Length', 0))
+                raw = self.rfile.read(length) if length else b''
+                data = json.loads(raw.decode('utf-8')) if raw else {}
+                sid = (data.get('sid') or '').strip()
+                if not sid:
+                    self._json(400, {'ok': False, 'reason': 'sid 为空'})
+                    return
+                save_identity(sid)
+                self._json(200, {'ok': True, 'sid': sid})
+            except Exception as ex:
+                self._json(400, {'ok': False, 'reason': str(ex)})
+            return
+        if parsed.path == '/api/session':
+            try:
+                length = int(self.headers.get('Content-Length', 0))
+                raw = self.rfile.read(length) if length else b''
+                data = json.loads(raw.decode('utf-8')) if raw else {}
+                numbers = [str(n).strip() for n in (data.get('numbers') or []) if str(n).strip()]
+                numbers = list(dict.fromkeys(numbers))
+                if not numbers:
+                    self._json(400, {'ok': False, 'reason': '上课号列表为空'})
+                    return
+                sid = new_session(data.get('title') or '', data.get('date') or '', data.get('time') or '', numbers)
+                self._json(200, {'ok': True, 'sessionId': sid, 'numbers': numbers})
+            except Exception as ex:
+                self._json(400, {'ok': False, 'reason': str(ex)})
+            return
+        if parsed.path == '/api/session/active':
+            try:
+                length = int(self.headers.get('Content-Length', 0))
+                raw = self.rfile.read(length) if length else b''
+                data = json.loads(raw.decode('utf-8')) if raw else {}
+                d = load_sessions()
+                if not any(s['id'] == data.get('id') for s in d['sessions']):
+                    self._json(400, {'ok': False, 'reason': '场次不存在'})
+                    return
+                d['activeSessionId'] = data.get('id')
+                save_sessions(d)
+                self._json(200, {'ok': True})
+            except Exception as ex:
+                self._json(400, {'ok': False, 'reason': str(ex)})
+            return
         if parsed.path == '/api/clear':
             with open(DATA_FILE, 'w', encoding='utf-8') as f:
                 f.write('')
