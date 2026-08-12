@@ -9,11 +9,12 @@
 <body>
 <div class="app">
   <header>
-    <h1>📡 课堂监控看板 <em>老师端</em></h1>
+    <h1>📡 课堂监控看板 <em>老师端</em>
+      <a href="/student/" target="_blank" class="screen-btn student">学生端</a>
+      <a href="/bigscreen/" target="_blank" class="screen-btn big">大屏</a>
+    </h1>
     <div class="head-right">
       <span class="chip" id="liveChip">● 实时监控中</span>
-      <form action="/bigscreen/" method="get" target="_blank"><button id="btnBigscreen" class="ghost" type="submit">🖥 大屏</button></form>
-      <form action="/student/" method="get" target="_blank"><button id="btnStudentscreen" class="ghost" type="submit">🎯 学生屏</button></form>
       <button id="clearBtn" class="ghost">清空记录</button>
     </div>
   </header>

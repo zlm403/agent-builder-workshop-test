@@ -357,7 +357,7 @@ document.querySelectorAll('.fbtn').forEach(btn => {
   });
 });
 
-/* ---------- 大屏 / 学生屏：头部 <form target="_blank"> 原生打开，无需 JS 绑定 ---------- */
+/* ---------- 大屏 / 学生屏：标题旁 <a target="_blank"> 胶囊链接，无需 JS 绑定 ---------- */
 
 /* ---------- 清空（仅本机缓存，服务端数据保留） ---------- */
 $('clearBtn').addEventListener('click', () => {
