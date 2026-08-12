@@ -68,11 +68,33 @@ function applySid(sid){
 }
 function bindSid(){
   const saved = sidStorage();
-  if (saved && saved.no) {
-    applySid(saved.no);
-    return;
-  }
-  $('sidHint').textContent = '输入老师发的上课号签到（一个号只能用一次）';
+  const tryLocal = () => {
+    if (saved && saved.no) {
+      applySid(saved.no);
+      return true;
+    }
+    return false;
+  };
+  // 校验本机身份是否仍是当前场次有效上课号（换场次/号被作废后自动放开重新签）
+  fetch('/api/identity', { cache: 'no-store' }).then(r => r.json()).then(ident => {
+    if (ident && ident.valid && ident.sid && (!saved || saved.no === ident.sid)) {
+      applySid(ident.sid);
+    } else {
+      clearLocalSid();
+      $('sidNo').disabled = false;
+      $('btnSidSubmit').disabled = false;
+      $('sidHint').textContent = '输入老师发的上课号签到（一个号只能用一次）';
+    }
+  }).catch(() => {
+    // 连不上服务器：本机有记录就先用着，没有就让输入
+    if (!tryLocal()) {
+      $('sidHint').textContent = '⚠️ 连不上服务器（老师端的服务没开？）';
+    }
+  });
+}
+function clearLocalSid(){
+  try { localStorage.removeItem('ar_class_monitor_sid'); } catch(e){}
+  try { localStorage.removeItem('ar_class_monitor_sid_info'); } catch(e){}
 }
 function submitSid(){
   const number = $('sidNo').value.trim();

@@ -246,14 +246,26 @@ def save_identity(sid):
 
 
 def load_identity():
+    d = {'sid': None, 'ts': None, 'valid': False, 'sessionTitle': None}
     try:
         with open(IDENTITY_FILE, 'r', encoding='utf-8') as f:
-            d = json.load(f)
-        if isinstance(d, dict) and d.get('sid'):
-            return d
+            raw = json.load(f)
+        if isinstance(raw, dict) and raw.get('sid'):
+            d['sid'] = raw['sid']
+            d['ts'] = raw.get('ts')
+            # 校验：该 sid 是否仍是当前场次的有效上课号
+            sess = load_sessions()
+            cur = None
+            for s in sess['sessions']:
+                if s['id'] == sess.get('activeSessionId'):
+                    cur = s
+                    break
+            if cur and d['sid'] in cur.get('numbers', []):
+                d['valid'] = True
+                d['sessionTitle'] = cur.get('title') or '课堂'
     except Exception:
         pass
-    return {'sid': None, 'ts': None}
+    return d
 
 
 class Handler(SimpleHTTPRequestHandler):
