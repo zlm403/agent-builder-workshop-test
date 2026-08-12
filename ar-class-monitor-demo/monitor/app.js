@@ -440,25 +440,39 @@ function renderScreenBlocks(){
   }
   const icons = { task: '📋', text: '📝', image: '🖼', video: '🎬', page: '🌐' };
   const isTask = id => (id || '').indexOf('blk_task_') === 0;
-  // 课堂任务块排最前，其余按时间
+  // 服务端已按 order 排好，这里只把自动任务块提到最前（保持稳定，不按 ts 重排）
   const sorted = [...screenBlocks].sort((a, b) => {
     const at = isTask(a.id), bt = isTask(b.id);
     if (at && !bt) return -1;
     if (!at && bt) return 1;
-    return (a.ts || 0) - (b.ts || 0);
+    return (a.order ?? a.ts ?? 0) - (b.order ?? b.ts ?? 0);
   });
+  // 每一行后面都能插入（except 自动任务块不可插）
   box.innerHTML = sorted.map(b => {
     const on = b.id === screenActive;
     const src = b.source === 'external' ? ' · 外部' : (b.source === 'auto' ? ' · 自动' : '');
     const del = isTask(b.id) ? '' : `<span class="sblk-del" onclick="event.stopPropagation();delScreenBlock('${b.id}')">✕</span>`;
+    const ins = isTask(b.id) ? '' : `<span class="sblk-ins" onclick="event.stopPropagation();addAfter('${b.id}')" title="在此块后添加">＋</span>`;
     return `<div class="sblk ${on ? 'on' : ''}" onclick="setScreenActive('${b.id}')" title="点击投到大屏">
       <span class="sblk-icon">${icons[b.type] || '📄'}</span>
       <span class="sblk-title">${esc(b.title)}${src}</span>
       <span class="sblk-state">${on ? '● 投屏中' : '点击投放'}</span>
-      ${del}
+      ${del}${ins}
     </div>`;
   }).join('');
 }
+// 记录要插入的位置：点某块的"＋" → 打开添加框，新块插到它后面
+let insertAfterId = null;
+window.addAfter = function(id){
+  insertAfterId = id;
+  const t = screenBlocks.find(b => b.id === id);
+  const hint = $('addBlockHint');
+  if (hint) hint.textContent = '将插到「' + (t ? t.title : '') + '」后面';
+  $('blkTitle').value = '';
+  $('blkContent').value = '';
+  $('blkType').value = 'text';
+  $('blkTitle').focus();
+};
 window.setScreenActive = async function(id){
   await fetch('/api/screen/active', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -482,10 +496,13 @@ $('btnAddBlock').addEventListener('click', async () => {
   if (type !== 'text' && !content) { alert('图片/视频/网页需要填链接'); return; }
   await fetch('/api/screen/save', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ type, title, content, source: 'teacher' }),
+    body: JSON.stringify({ type, title, content, source: 'teacher', afterId: insertAfterId }),
   }).catch(() => {});
   $('blkTitle').value = '';
   $('blkContent').value = '';
+  insertAfterId = null;
+  const hint = $('addBlockHint');
+  if (hint) hint.textContent = '';
   loadScreenBlocks();
 });
 $('btnUploadBlock').addEventListener('click', () => {

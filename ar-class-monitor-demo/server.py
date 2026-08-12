@@ -332,17 +332,53 @@ def list_screen_blocks():
                 out.append(b)
         except Exception:
             pass
-    out.sort(key=lambda x: x.get('ts', 0))
+    # 按 order 排序（固定，不随刷新变化）；无 order 的按 ts
+    out.sort(key=lambda x: x.get('order', x.get('ts', 0)))
     return out
 
 
-def save_screen_block(block):
+def save_screen_block(block, after_id=None):
+    """保存内容块。after_id 指定插到哪个块后面（新块）；已有块保留原 order。"""
     ensure_screen_dir()
     bid = block.get('id')
-    if not bid:
+    existing_order = None
+    if bid:
+        # 已有块：保留原 order 和 ts
+        try:
+            with open(os.path.join(SCREEN_DIR, bid + '.json'), 'r', encoding='utf-8') as f:
+                old = json.load(f)
+            existing_order = old.get('order')
+        except Exception:
+            pass
+    else:
         import uuid
         bid = 'blk_' + uuid.uuid4().hex[:8]
         block['id'] = bid
+    # 计算 order
+    if existing_order is not None:
+        block['order'] = existing_order
+    else:
+        blocks = list_screen_blocks()
+        if after_id:
+            # 插到 after_id 后面：order = after 的 order + 1，后面的整体 +1
+            after = None
+            for b in blocks:
+                if b['id'] == after_id:
+                    after = b
+                    break
+            if after:
+                new_order = after.get('order', 0) + 1
+                # 后面的都 +1
+                for b in blocks:
+                    if b.get('order', b.get('ts', 0)) >= new_order and b['id'] != bid:
+                        b['order'] = b.get('order', b.get('ts', 0)) + 1
+                        with open(os.path.join(SCREEN_DIR, b['id'] + '.json'), 'w', encoding='utf-8') as f:
+                            json.dump(b, f, ensure_ascii=False)
+                block['order'] = new_order
+            else:
+                block['order'] = max([b.get('order', b.get('ts', 0)) for b in blocks] + [0]) + 1
+        else:
+            block['order'] = max([b.get('order', b.get('ts', 0)) for b in blocks] + [0]) + 1
     block['ts'] = int(time.time() * 1000)
     with open(os.path.join(SCREEN_DIR, bid + '.json'), 'w', encoding='utf-8') as f:
         json.dump(block, f, ensure_ascii=False)
@@ -616,7 +652,7 @@ class Handler(SimpleHTTPRequestHandler):
                     'title': data.get('title'),
                     'content': data.get('content') or '',
                     'source': data.get('source') or 'teacher',
-                })
+                }, after_id=data.get('afterId'))
                 self._json(200, {'ok': True, 'id': bid})
             except Exception as ex:
                 self._json(400, {'ok': False, 'reason': str(ex)})

@@ -81,6 +81,8 @@ button.primary:hover{filter:brightness(1.1)}
 .sblk.on .sblk-state { color: var(--green); font-weight: 800; }
 .sblk-del { color: var(--sub); padding: 0 4px; }
 .sblk-del:hover { color: var(--red); }
+.sblk-ins { color: var(--blue); padding: 0 4px; font-weight: 900; }
+.sblk-ins:hover { color: var(--green); }
 .ltask {
   background: var(--panel2); border: 1px solid var(--line); border-radius: 11px; padding: 10px 12px;
 }
