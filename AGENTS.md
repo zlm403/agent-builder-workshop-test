@@ -80,7 +80,7 @@
   1. **顷悟聊天面板**（学生跟 agent 说"做什么/怎么改"）→ `qingwu-dialog-bridge.py` 常驻转发桥，读顷悟 `memory/runtime/events.jsonl` 的 `user_message`/`assistant_done`，增量 + 去重转发到 `/api/collect`。多机部署时每台学生电脑各跑一个，`--server` 指向老师机。
   2. **作品内对话**（用户用作品时）→ `lib/qw-chat-fwd.js` 包装 `ai.chat()`，作品页引一行 `<script src="lib/qw-chat-fwd.js"></script>` 即生效。
 - **实时互动**：学生端任务看板下"有问题？和老师聊"对话框（上对话记录、下输入框）→ `student_ask` 事件（带 sid/course）；教师端独立"消息中心"面板（原统计区位置，**会话列表+聊天窗口**，微信单聊式）：左侧按学生分组（未读标红、最近排序），右侧点开查看完整对话（新消息沉底），回复自动定向到该生（`teacher_reply` 事件带学生 sid）。双向实时、定向不串线。
-- **学习水位（六大知识点分析）**：`water-analyzer.py` 常驻服务定时读 events.jsonl → 对照六大知识点规则（判断信号）算每个学生水位+分析 → 写 `agent-live/water.json` → 学生端「我的学习水位」6 个水杯展示（点击柱子弹窗看分析）+ 教师端可读 `/api/water`。AI 深度解析（读《判断skill知识库.md》三合一）接入后替换规则版。
+- **学习水位（六大知识点分析）**：`water-analyzer.py` 常驻服务定时读 events.jsonl → 规则算水位（判断信号）+ **DeepSeek AI 深度解析**生成针对性分析文本（key 从本地 `.deepseek_key`/环境变量读，AI 失败自动回退规则版）→ 写 `agent-live/water.json` → 学生端「我的学习水位」6 个水杯展示（点击柱子弹窗看分析）+ 教师端可读 `/api/water`。判断标尺：`正式课文档/判断skill知识库.md`。
 - **知识库（给 AI 判断/提醒用）**：`正式课文档/判断skill知识库.md`（判断信号+提醒话术A+分析话术B 三合一）、`正式课文档/顷悟提醒知识库.md`（可导入顷悟应用，AI 当场引导学生改，配 system_prompt 引导规则）。
 
 ### 课堂场次与签到（号码即身份，v2 起）
