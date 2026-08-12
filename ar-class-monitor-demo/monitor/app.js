@@ -357,9 +357,7 @@ document.querySelectorAll('.fbtn').forEach(btn => {
   });
 });
 
-/* ---------- 打开大屏 / 学生屏（新标签页） ---------- */
-$('btnBigscreen').addEventListener('click', () => window.open('/bigscreen/', '_blank'));
-$('btnStudentscreen').addEventListener('click', () => window.open('/student/', '_blank'));
+/* ---------- 大屏 / 学生屏：顶部 <a target="_blank"> 链接直接打开，无需 JS 绑定 ---------- */
 
 /* ---------- 清空（仅本机缓存，服务端数据保留） ---------- */
 $('clearBtn').addEventListener('click', () => {
