@@ -10,7 +10,9 @@
 try {
   var _boot = document.getElementById('bootBadge');
   if (_boot) _boot.textContent = '√JS已运行';
+  window.__appBooted = true;
 } catch(e){}
+window.__diag_error = '';
 
 const API = '/api/events';
 const COLLECT = '/api/collect';
@@ -121,6 +123,7 @@ async function load(){
     }
   } catch(e){ errMsg = String(e && e.message ? e.message : e); }
   mergeInto(loadLocal());   // 兼容老师本机 localStorage 事件
+  window.__diag_events = events.length;
   renderAll();
   renderConnChip(ok, errMsg);
 }
@@ -250,6 +253,8 @@ function renderStudents(){
     if (e.event === 'task_view') map[e.sid].taskView = true;
   });
   const sids = Object.keys(map).sort((a, b) => map[b].last - map[a].last);
+  window.__diag_students = sids.length;
+  window.__diag_student_names = sids.join(', ');
   $('stEvents').textContent = matched.length;
   $('stStudents').textContent = sids.length;
   $('stFinish').textContent = sids.filter(s => map[s].done).length;

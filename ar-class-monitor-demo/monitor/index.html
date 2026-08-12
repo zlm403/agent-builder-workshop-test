@@ -136,5 +136,20 @@ window.addEventListener('error', function (e) {
 })();
 </script>
 <script src="app.js?v=20260213"></script>
+<div id="diagBox" style="position:fixed;bottom:10px;left:10px;right:10px;z-index:999;font-size:12px;font-family:monospace;color:#9fb0d0;background:rgba(7,11,22,.92);border:1px solid #26324d;border-radius:10px;padding:8px 12px;white-space:pre-wrap;line-height:1.5">[诊断] 等待数据…</div>
+<script>
+/* 诊断区：每秒显示渲染状态（调试用，可随时删除） */
+(function(){
+  var box = document.getElementById('diagBox');
+  if (!box) return;
+  setInterval(function(){
+    var evs = (typeof window.__diag_events !== 'undefined') ? window.__diag_events : -1;
+    var stus = (typeof window.__diag_students !== 'undefined') ? window.__diag_students : -1;
+    var names = (typeof window.__diag_student_names !== 'undefined') ? window.__diag_student_names : '';
+    var err = (typeof window.__diag_error !== 'undefined') ? window.__diag_error : '';
+    box.textContent = '[诊断] 事件数=' + evs + ' | 学生数=' + stus + ' | app.js已运行=' + (window.__appBooted ? '是' : '否') + '\n学生: ' + names + (err ? '\n错误: ' + err : '');
+  }, 1000);
+})();
+</script>
 </body>
 </html>
