@@ -128,14 +128,23 @@ button.primary:hover{filter:brightness(1.1)}
 .chat-msg .bubble {
   max-width: 80%; padding: 8px 12px; border-radius: 12px; font-size: 13px; line-height: 1.6;
 }
-.chat-who { font-size: 11px; font-weight: 700; opacity: .75; margin-bottom: 2px; }
 .chat-msg.stu .bubble { background: var(--panel2); border: 1px solid var(--line); border-bottom-left-radius: 3px; }
 .chat-msg.teacher .bubble { background: var(--blue); color: #04263a; border-bottom-right-radius: 3px; }
+.chat-group { border: 1px solid var(--line); border-radius: 11px; padding: 8px 10px; background: rgba(7,11,22,.35); }
+.chat-group.on { border-color: var(--blue); box-shadow: 0 0 0 1px var(--blue) inset; }
+.chat-group-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.chat-who { font-size: 12px; font-weight: 800; color: var(--txt); }
+.chat-last { font-size: 11px; color: var(--sub); margin-right: auto; }
+.reply-btn {
+  font-size: 11px; padding: 3px 10px; border-radius: 7px; cursor: pointer;
+  background: rgba(56,189,248,.12); border: 1px solid rgba(56,189,248,.4); color: var(--blue); font-weight: 700;
+}
+.reply-btn:hover { background: var(--blue); color: #04263a; }
+.reply-target { flex: 1; color: var(--sub); font-size: 12px; }
 .ask-input {
   flex: 1; min-width: 220px; background: var(--panel2); border: 1px solid var(--line);
   border-radius: 10px; color: var(--txt); padding: 9px 12px; font-size: 13.5px; outline: none;
 }
-.ask-input.replyto { flex: 0 0 200px; min-width: 150px; }
 .ask-input:focus { border-color: var(--blue); }
 .ask-row { gap: 8px; }
 

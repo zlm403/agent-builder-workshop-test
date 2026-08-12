@@ -272,46 +272,64 @@ function renderStudents(){
 }
 window.selectSid = function(s){
   selectedSid = (selectedSid === s) ? null : s;
-  const replyTo = $('tReplyTo');
-  if (replyTo) replyTo.value = s;
+  setTargetSid(s);
   renderAll();
 };
 
-/* ---------- 消息中心（学生提问实时进来，定向回复） ---------- */
-function renderTeacherChat(){
-  const log = $('tchatLog');
+/* ---------- 消息中心（学生提问实时进来，点消息回复即定向） ---------- */
+let targetSid = null;   // 当前回复目标（学生上课号）
+function setTargetSid(sid){
+  targetSid = sid;
+  const target = $('tReplyTarget');
   const input = $('tAskInput');
   const btn = $('btnTAsk');
-  const replyTo = $('tReplyTo');
+  if (target) target.textContent = '正在回复：学生 ' + sid + '（回车发送）';
+  if (input) { input.disabled = false; input.focus(); }
+  if (btn) btn.disabled = false;
+  renderTeacherChat();
+}
+function renderTeacherChat(){
+  const log = $('tchatLog');
   if (!log) return;
   const conv = events
     .filter(e => e.event === 'student_ask' || e.event === 'teacher_reply')
     .sort((a,b) => (a.ts||0) - (b.ts||0));
   if (!conv.length) {
     log.innerHTML = '<div class="chat-empty">暂无消息，学生提问会实时出现在这里</div>';
-    input.disabled = true; btn.disabled = true; replyTo.disabled = true;
     return;
   }
-  input.disabled = false; btn.disabled = false; replyTo.disabled = false;
-  // 定向显示：谁发来的（学生提问 = 学生→老师；老师回复 = 老师→学生号）
-  log.innerHTML = conv.map(e => {
-    const isAsk = e.event === 'student_ask';
-    const sender = isAsk ? '学生 ' + e.sid : '我 → ' + e.sid;
-    return `<div class="chat-msg ${isAsk ? 'stu' : 'teacher'}"><div class="bubble"><div class="chat-who">${sender}</div>${esc(e.payload.text || '')}</div></div>`;
-  }).join('');
+  // 按学生分组显示：每个学生的消息一组（对话形式），学生消息带「回复」按钮
+  const bySid = {};
+  conv.forEach(e => { (bySid[e.sid] = bySid[e.sid] || []).push(e); });
+  log.innerHTML = Object.keys(bySid).sort((a,b) => (bySid[b][bySid[b].length-1].ts||0) - (bySid[a][bySid[a].length-1].ts||0))
+    .map(sid => {
+      const msgs = bySid[sid];
+      const last = msgs[msgs.length-1];
+      const isTarget = sid === targetSid;
+      const inner = msgs.map(e => {
+        const isAsk = e.event === 'student_ask';
+        return `<div class="chat-msg ${isAsk ? 'stu' : 'teacher'}"><div class="bubble">${esc(e.payload.text || '')}</div></div>`;
+      }).join('');
+      return `<div class="chat-group ${isTarget ? 'on' : ''}">
+        <div class="chat-group-head">
+          <span class="chat-who">学生 ${sid}</span>
+          <span class="chat-last">${fmt(last.ts)}</span>
+          <button class="reply-btn" onclick="setTargetSid('${sid}')">回复</button>
+        </div>
+        ${inner}
+      </div>`;
+    }).join('');
   log.scrollTop = log.scrollHeight;
 }
 function sendTeacherReply(){
   const text = $('tAskInput').value.trim();
-  const to = ($('tReplyTo').value || '').trim();
-  if (!text || !to) return;
+  if (!text || !targetSid) return;
   fetch('/api/collect', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ sid: to, event: 'teacher_reply', payload: { text: text } }),
+    body: JSON.stringify({ sid: targetSid, event: 'teacher_reply', payload: { text: text } }),
   }).catch(() => {});
   $('tAskInput').value = '';
-  $('tReplyTo').value = '';
   renderTeacherChat();
 }
 $('btnTAsk').addEventListener('click', sendTeacherReply);
