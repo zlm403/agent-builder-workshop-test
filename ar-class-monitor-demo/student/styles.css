@@ -39,7 +39,7 @@ button.ghost {
 button.ghost:hover { background: var(--blue); color: #04263a; }
 
 /* 课程切换 */
-.courses { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+.courses { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
 .course {
   padding: 9px 16px; border: 1px solid var(--line); border-radius: 12px;
   background: var(--panel); color: var(--sub); font-size: 14px; cursor: pointer;

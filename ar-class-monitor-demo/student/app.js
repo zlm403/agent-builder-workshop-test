@@ -136,7 +136,7 @@ function renderCourse(){
     el.classList.toggle('on', cid === course && unlocked);
     el.classList.toggle('locked', !unlocked);
     el.disabled = !unlocked;
-    el.textContent = (unlocked ? '' : '🔒 ') + (cid === '1' ? '项目一 · 接金币游戏' : cid === '2' ? '项目二 · 心情电量' : '项目三 · 内心戏');
+    el.textContent = (unlocked ? '' : '🔒 ') + (cid === '1' ? '🎮 项目一' : cid === '2' ? '🔋 项目二' : '🤖 项目三');
   });
   if (!projectUnlock[course]) {
     // 当前项目被锁：切回第一个解锁的
@@ -149,8 +149,6 @@ function renderCourse(){
   if (gl) gl.innerHTML = c.guide.map((g, i) =>
     `<li><b>${i+1}.</b> ${g.replace(/</g,'&lt;')}</li>`
   ).join('');
-  const ln = $('lessonName');
-  if (ln) ln.textContent = '—— ' + c.icon + ' ' + c.name;
   const li = $('lessonIntro');
   if (li) li.textContent = '🎯 这节课：' + (c.goal || '');
   loadTask();
