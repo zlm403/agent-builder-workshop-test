@@ -149,6 +149,10 @@ function renderCourse(){
   if (gl) gl.innerHTML = c.guide.map((g, i) =>
     `<li><b>${i+1}.</b> ${g.replace(/</g,'&lt;')}</li>`
   ).join('');
+  const ln = $('lessonName');
+  if (ln) ln.textContent = '—— ' + c.icon + ' ' + c.name;
+  const li = $('lessonIntro');
+  if (li) li.textContent = '🎯 这节课：' + (c.goal || '');
   loadTask();
 }
 document.querySelectorAll('.course').forEach(btn => {

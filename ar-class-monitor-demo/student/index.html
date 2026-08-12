@@ -19,16 +19,20 @@
     </div>
   </header>
 
-  <!-- 项目切换 -->
-  <nav class="courses" id="courseNav">
-    <button class="course on" data-course="1" type="button">🎮 项目一 · 接金币游戏</button>
-    <button class="course" data-course="2" type="button">🔋 项目二 · 心情电量</button>
-    <button class="course" data-course="4" type="button">🤖 项目三 · 内心戏</button>
-  </nav>
-
-  <!-- 任务看板（含本课引导，合二为一） -->
+  <!-- ① 课堂：当前这堂课是什么 -->
   <section class="pane">
-    <div class="pane-title">📋 任务看板 <span class="dim" id="taskCourseTag"></span></div>
+    <div class="pane-title"><span class="pane-num">①</span> 课堂 <span class="dim" id="lessonName"></span></div>
+    <nav class="courses" id="courseNav">
+      <button class="course on" data-course="1" type="button">🎮 项目一 · 接金币游戏</button>
+      <button class="course" data-course="2" type="button">🔋 项目二 · 心情电量</button>
+      <button class="course" data-course="4" type="button">🤖 项目三 · 内心戏</button>
+    </nav>
+    <div class="lesson-intro" id="lessonIntro"></div>
+  </section>
+
+  <!-- ② 课堂任务：这一步要做什么 -->
+  <section class="pane">
+    <div class="pane-title"><span class="pane-num">②</span> 课堂任务 <span class="dim" id="taskCourseTag"></span></div>
     <div class="taskcard" id="taskCard">
       <div class="task-empty">🔒 还没开始<br><span class="dim">等老师推进后，这里会显示你要做什么。</span></div>
     </div>
@@ -42,9 +46,9 @@
     </div>
   </section>
 
-  <!-- 和老师聊（独立消息框，老师回复实时显示） -->
+  <!-- ③ 交流区：有问题和老师聊 -->
   <section class="pane" id="chatPane">
-    <div class="pane-title">💬 和老师聊 <span class="dim" id="chatTitle">（有问题直接说，老师回复会出现在这里）</span></div>
+    <div class="pane-title"><span class="pane-num">③</span> 交流区 <span class="dim" id="chatTitle">（有问题直接说，老师回复会出现在这里）</span></div>
     <div class="chat-log" id="chatLog"><div class="chat-empty">还没有消息，遇到问题就发一条吧</div></div>
     <div class="row ask-row">
       <input id="askInput" class="ask-input" placeholder="遇到问题打出来，比如：AI 不按我说的做…" maxlength="200">
@@ -53,9 +57,9 @@
     <span class="hint" id="askHint"></span>
   </section>
 
-  <!-- 我的学习水位（六大知识点：水满=学得好） -->
+  <!-- ④ 水平区：我学得怎么样 -->
   <section class="pane">
-    <div class="pane-title">💧 我的学习水位 <span class="dim" id="mirrorCourse">（6 块知识，水满了就说明这块学会了）</span></div>
+    <div class="pane-title"><span class="pane-num">④</span> 水平区 <span class="dim" id="mirrorCourse">（6 块知识，水满了就说明这块学会了）</span></div>
     <div id="mirrorBody">
       <div class="mirror-empty">📝 你开始动手后，这里会显示你在 6 块知识上各学到哪了——<br><span class="dim">哪块水满了（学会了），哪块还是浅的（还要练）。</span></div>
     </div>

@@ -56,6 +56,12 @@ button.ghost:hover { background: var(--blue); color: #04263a; }
   padding: 18px 20px; margin-bottom: 16px;
 }
 .pane-title { font-size: 16px; font-weight: 800; margin-bottom: 12px; }
+.pane-num {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 24px; height: 24px; border-radius: 7px; font-size: 13px; font-weight: 800;
+  background: var(--blue); color: #04263a; margin-right: 8px;
+}
+.lesson-intro { font-size: 13px; color: var(--sub); margin-top: 10px; line-height: 1.6; }
 .dim { color: var(--sub); font-weight: 400; font-size: 13px; }
 .row { display: flex; align-items: center; gap: 12px; margin-top: 12px; flex-wrap: wrap; }
 .hint { color: var(--sub); font-size: 13px; }
