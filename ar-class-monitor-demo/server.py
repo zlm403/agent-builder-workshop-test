@@ -26,6 +26,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_FILE = os.path.join(BASE_DIR, 'agent-live', 'events.jsonl')
 SESSION_FILE = os.path.join(BASE_DIR, 'agent-live', 'sessions.json')
 IDENTITY_FILE = os.path.join(BASE_DIR, 'agent-live', 'identity.json')
+WATER_FILE = os.path.join(BASE_DIR, 'agent-live', 'water.json')
 
 
 def ensure_data_file():
@@ -317,6 +318,13 @@ class Handler(SimpleHTTPRequestHandler):
             return
         if parsed.path == '/api/identity':
             self._json(200, load_identity())
+            return
+        if parsed.path == '/api/water':
+            try:
+                with open(WATER_FILE, 'r', encoding='utf-8') as f:
+                    self._json(200, json.load(f))
+            except Exception:
+                self._json(200, {'updated': 0, 'students': {}})
             return
         if parsed.path == '/api/class':
             agg = class_aggregate(load_events())
