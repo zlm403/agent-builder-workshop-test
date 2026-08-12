@@ -100,6 +100,7 @@ function mergeInto(fresh){
   return added;
 }
 async function load(){
+  let ok = false, errMsg = '';
   try {
     const r = await fetch(API + '?since=' + lastTs, { cache: 'no-store' });
     if (r.ok) {
@@ -108,10 +109,29 @@ async function load(){
         mergeInto(fresh);
         lastTs = Math.max(lastTs, ...fresh.map(e => e.ts || 0));
       }
+      ok = true;
+    } else {
+      errMsg = 'HTTP ' + r.status;
     }
-  } catch(e){}
+  } catch(e){ errMsg = String(e && e.message ? e.message : e); }
   mergeInto(loadLocal());   // 兼容老师本机 localStorage 事件
   renderAll();
+  renderConnChip(ok, errMsg);
+}
+function renderConnChip(ok, err){
+  const chip = document.getElementById('connChip');
+  if (!chip) return;
+  if (ok) {
+    if (err) return;
+    chip.textContent = '✅ 已连接 · ' + events.length + ' 条事件';
+    chip.style.color = 'var(--green)';
+    chip.style.borderColor = 'rgba(34,197,94,.45)';
+  } else {
+    chip.textContent = '⚠️ 连接数据服务失败：' + err + '（请确认 8099 服务器在运行）';
+    chip.style.color = 'var(--orange)';
+    chip.style.borderColor = 'rgba(251,146,60,.6)';
+  }
+  chip.style.display = '';
 }
 function renderAll(){ renderClassPrism(); renderStudents(); renderTimeline(); renderXray(); }
 
