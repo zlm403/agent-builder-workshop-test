@@ -5,3 +5,4 @@ __pycache__/
 *.pyc
 agent-live/water.json
 .bridge_cursor.json
+.deepseek_key
