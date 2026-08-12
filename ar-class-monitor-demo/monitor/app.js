@@ -227,6 +227,62 @@ async function loadLesson(){
     renderLessonTasks();
   } catch(e){}
 }
+
+/* ---------- 课程库（常用课程存档，加载即用） ---------- */
+let libraryCourses = [];
+async function loadLibrary(){
+  try {
+    const r = await fetch('/api/library', { cache: 'no-store' });
+    const d = await r.json();
+    libraryCourses = d.courses || [];
+    const sel = $('libSelect');
+    if (sel) {
+      sel.innerHTML = '<option value="">— 选一门已存课程 —</option>' +
+        libraryCourses.map(c => `<option value="${esc(c.name)}">${esc(c.name)}（${c.tasks.length}任务）</option>`).join('');
+    }
+  } catch(e){}
+}
+$('btnLibSave').addEventListener('click', async () => {
+  const name = $('libName').value.trim() || lessonName;
+  if (!name) { $('libHint').textContent = '⚠️ 先填课程名'; return; }
+  if (!lessonTasks.length) { $('libHint').textContent = '⚠️ 当前没有拆解任务，先 AI 拆解'; return; }
+  await fetch('/api/library/save', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, tasks: lessonTasks }),
+  }).catch(() => {});
+  $('libHint').textContent = '✅ 已存入课程库：' + name;
+  loadLibrary();
+});
+$('btnLibLoad').addEventListener('click', async () => {
+  const name = $('libSelect').value;
+  if (!name) { $('libHint').textContent = '⚠️ 先选一门课程'; return; }
+  const r = await fetch('/api/library/load', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name }),
+  });
+  const res = await r.json();
+  if (res.ok) {
+    lessonName = name;
+    lessonTasks = res.lesson.tasks || [];
+    renderLessonTasks();
+    loadScreenBlocks();
+    $('libHint').textContent = '✅ 已加载课程：' + name + '（任务已摆好，大屏内容已同步）';
+  } else {
+    $('libHint').textContent = '⚠️ ' + (res.reason || '加载失败');
+  }
+});
+$('btnLibDel').addEventListener('click', async () => {
+  const name = $('libSelect').value;
+  if (!name) { $('libHint').textContent = '⚠️ 先选一门课程'; return; }
+  if (!confirm('删除课程「' + name + '」？')) return;
+  await fetch('/api/library/delete', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name }),
+  }).catch(() => {});
+  $('libHint').textContent = '🗑 已删除';
+  loadLibrary();
+});
+loadLibrary();
 function renderUnlock(unlock){
   const labels = { '1': '🎮 项目一', '2': '🔋 项目二', '4': '🤖 项目三' };
   Object.keys(labels).forEach(k => {

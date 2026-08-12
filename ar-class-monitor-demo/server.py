@@ -31,6 +31,7 @@ WATER_FILE = os.path.join(BASE_DIR, 'agent-live', 'water.json')
 SCREEN_DIR = os.path.join(BASE_DIR, 'agent-live', 'screen')
 SCREEN_ACTIVE = os.path.join(SCREEN_DIR, 'active.json')
 UPLOAD_DIR = os.path.join(BASE_DIR, 'agent-live', 'uploads')
+LIBRARY_DIR = os.path.join(BASE_DIR, 'agent-live', 'library')
 LESSON_FILE = os.path.join(BASE_DIR, 'agent-live', 'lessons.json')
 KEY_FILE = os.path.join(BASE_DIR, '.deepseek_key')
 
@@ -427,6 +428,59 @@ def save_upload(filename, b64data):
     return '/agent-live/uploads/' + fname
 
 
+# ============================================================
+# 课程库（常用课程存档，加载即用；每门课一个目录）
+#   library/<课名>/
+#     lesson.json   { name, tasks: [...], ts }  拆解好的任务结构
+#     files/        源文件（可选，暂不单独管理，先存任务结构）
+# ============================================================
+def ensure_library_dir():
+    os.makedirs(LIBRARY_DIR, exist_ok=True)
+
+
+def list_library():
+    ensure_library_dir()
+    out = []
+    for d in os.listdir(LIBRARY_DIR):
+        p = os.path.join(LIBRARY_DIR, d)
+        if not os.path.isdir(p):
+            continue
+        try:
+            with open(os.path.join(p, 'lesson.json'), 'r', encoding='utf-8') as f:
+                lesson = json.load(f)
+            out.append({'name': d, 'tasks': lesson.get('tasks') or [], 'ts': lesson.get('ts', 0)})
+        except Exception:
+            pass
+    out.sort(key=lambda x: x.get('ts', 0), reverse=True)
+    return out
+
+
+def save_library_lesson(name, tasks):
+    ensure_library_dir()
+    safe = os.path.basename(name) or ('课程' + str(int(time.time())))
+    p = os.path.join(LIBRARY_DIR, safe)
+    os.makedirs(p, exist_ok=True)
+    with open(os.path.join(p, 'lesson.json'), 'w', encoding='utf-8') as f:
+        json.dump({'name': safe, 'tasks': tasks or [], 'ts': int(time.time() * 1000)}, f, ensure_ascii=False)
+    return safe
+
+
+def load_library_lesson(name):
+    ensure_library_dir()
+    p = os.path.join(LIBRARY_DIR, name, 'lesson.json')
+    try:
+        with open(p, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except Exception:
+        return None
+
+
+def delete_library_lesson(name):
+    ensure_library_dir()
+    import shutil
+    shutil.rmtree(os.path.join(LIBRARY_DIR, name), ignore_errors=True)
+
+
 def load_api_key():
     key = os.environ.get('DEEPSEEK_API_KEY', '')
     if not key:
@@ -555,6 +609,9 @@ class Handler(SimpleHTTPRequestHandler):
                 'blocks': list_screen_blocks(),
                 'activeId': get_active_screen(),
             })
+            return
+        if parsed.path == '/api/library':
+            self._json(200, {'courses': list_library()})
             return
         if parsed.path == '/api/class':
             agg = class_aggregate(load_events())
@@ -686,6 +743,49 @@ class Handler(SimpleHTTPRequestHandler):
                 data = json.loads(raw.decode('utf-8')) if raw else {}
                 url = save_upload(data.get('filename') or 'upload', data.get('data') or '')
                 self._json(200, {'ok': True, 'url': url})
+            except Exception as ex:
+                self._json(400, {'ok': False, 'reason': str(ex)})
+            return
+        if parsed.path == '/api/library/save':
+            try:
+                length = int(self.headers.get('Content-Length', 0))
+                raw = self.rfile.read(length) if length else b''
+                data = json.loads(raw.decode('utf-8')) if raw else {}
+                name = (data.get('name') or '').strip()
+                if not name:
+                    self._json(400, {'ok': False, 'reason': '课程名为空'})
+                    return
+                safe = save_library_lesson(name, data.get('tasks') or [])
+                self._json(200, {'ok': True, 'name': safe})
+            except Exception as ex:
+                self._json(400, {'ok': False, 'reason': str(ex)})
+            return
+        if parsed.path == '/api/library/load':
+            try:
+                length = int(self.headers.get('Content-Length', 0))
+                raw = self.rfile.read(length) if length else b''
+                data = json.loads(raw.decode('utf-8')) if raw else {}
+                name = (data.get('name') or '').strip()
+                lesson = load_library_lesson(name)
+                if not lesson:
+                    self._json(400, {'ok': False, 'reason': '课程不存在'})
+                    return
+                # 载入为当前课程
+                d = load_lessons()
+                d['lessons'][name] = {'title': name, 'tasks': lesson.get('tasks') or []}
+                d['currentLesson'] = name
+                save_lessons(d)
+                self._json(200, {'ok': True, 'lesson': lesson})
+            except Exception as ex:
+                self._json(400, {'ok': False, 'reason': str(ex)})
+            return
+        if parsed.path == '/api/library/delete':
+            try:
+                length = int(self.headers.get('Content-Length', 0))
+                raw = self.rfile.read(length) if length else b''
+                data = json.loads(raw.decode('utf-8')) if raw else {}
+                delete_library_lesson(data.get('name') or '')
+                self._json(200, {'ok': True})
             except Exception as ex:
                 self._json(400, {'ok': False, 'reason': str(ex)})
             return

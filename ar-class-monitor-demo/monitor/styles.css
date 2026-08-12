@@ -22,6 +22,7 @@ button.ghost:hover{border-color:var(--pink);color:var(--pink)}
 button.ghost-mini{padding:3px 10px;font-size:11px;border-radius:7px}
 button.ghost-on{border-color:var(--green);color:var(--green);background:rgba(34,197,94,.1)}
 .unlock-row{display:flex;align-items:center;gap:8px;margin-top:12px;padding-top:10px;border-top:1px dashed var(--line)}
+.lib-row{display:flex;align-items:center;gap:8px;margin-top:10px;padding-top:10px;border-top:1px dashed var(--line)}
 .unlock-row .ghost{padding:7px 14px;font-size:12.5px;border-radius:9px;font-weight:800}
 button.unlock-on{border-color:var(--green);color:var(--green);background:rgba(34,197,94,.15)}
 button.unlock-off{border-color:rgba(239,68,68,.5);color:#fca5a5;background:rgba(239,68,68,.08);border-style:solid}
