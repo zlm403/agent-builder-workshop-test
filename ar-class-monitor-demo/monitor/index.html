@@ -52,12 +52,16 @@
 
   <!-- 课堂任务（课程框架） -->
   <div class="pushcard">
-    <div class="pushhead">📋 课堂任务 <span class="dim" id="pushCourseTag">（粘贴一节课内容，AI 拆解成任务；逐个推送+锁定）</span></div>
-    <div class="row">
-      <textarea id="lessonText" class="lesson-input" rows="3" placeholder="粘贴本节课的课程内容/教案（一节课一节课来）…"></textarea>
-      <button id="btnSplit" class="primary">🤖 AI 拆解任务</button>
+    <div class="pushhead">📋 课堂任务 <span class="dim">（上传课程/支撑点/流程文件，AI 拆解成任务；逐个推送+锁定）</span></div>
+    <div class="row add-block">
+      <input type="file" id="lessonFiles" multiple accept=".txt,.md,.doc,.docx,.pdf,.png,.jpg,.jpeg" class="lesson-file">
+      <span class="hint">可传多个：课程方案 / 支撑点 / 流程文档等</span>
     </div>
-    <div class="hint" id="splitHint"></div>
+    <div class="hint" id="fileListHint">还没选文件</div>
+    <div class="row">
+      <button id="btnSplit" class="primary">🤖 AI 拆解任务</button>
+      <span class="hint" id="splitHint"></span>
+    </div>
     <div id="lessonTasks" class="lesson-tasks"></div>
     <div class="unlock-row">
       <span class="f-label">项目解锁：</span>
@@ -157,7 +161,7 @@
   </div>
 </div>
 
-<script src="../lib/analyze.js?v=20260213"></script>
+<script src="../lib/analyze.js?v=20260214"></script>
 <script>
 /* 全局错误捕获：任何 JS 报错直接显示在学生列表上方，用于定位脚本中断 */
 window.addEventListener('error', function (e) {
@@ -186,6 +190,6 @@ window.addEventListener('error', function (e) {
   if (chip) { run(); }
 })();
 </script>
-<script src="app.js?v=20260213"></script>
+<script src="app.js?v=20260214"></script>
 </body>
 </html>

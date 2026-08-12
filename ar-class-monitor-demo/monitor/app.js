@@ -324,9 +324,24 @@ function saveLesson(){
   }).catch(() => {});
 }
 $('btnSplit').addEventListener('click', async () => {
-  const text = $('lessonText').value.trim();
-  if (!text) { $('splitHint').textContent = '⚠️ 先粘贴课程内容'; return; }
-  $('splitHint').textContent = '⏳ AI 拆解中…';
+  const files = $('lessonFiles').files;
+  if (!files.length) { $('splitHint').textContent = '⚠️ 先选文件（课程/支撑点/流程文档）'; return; }
+  $('splitHint').textContent = '⏳ 读取文件 + AI 拆解中…';
+  // 读取每个文本文件的文字内容
+  const parts = [];
+  for (const f of files) {
+    const isText = /\.(txt|md|doc|docx)$/i.test(f.name);
+    if (!isText) { continue; }   // 图片/pdf 暂不读文字，跳过
+    try {
+      const txt = await f.text();
+      parts.push('【文件：' + f.name + '】\n' + txt);
+    } catch(e){}
+  }
+  if (!parts.length) {
+    $('splitHint').textContent = '⚠️ 只支持读 .txt/.md/.doc/.docx 文字文件，图片请粘贴文字或用其他方式';
+    return;
+  }
+  const text = parts.join('\n\n');
   try {
     const r = await fetch('/api/split-task', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -345,6 +360,16 @@ $('btnSplit').addEventListener('click', async () => {
   } catch(e) {
     $('splitHint').textContent = '⚠️ 拆解失败：' + e;
   }
+});
+// 选文件后显示已选哪些
+$('lessonFiles').addEventListener('change', () => {
+  const files = $('lessonFiles').files;
+  const names = [];
+  for (const f of files) {
+    const isText = /\.(txt|md|doc|docx)$/i.test(f.name);
+    names.push((isText ? '📄 ' : '⏭ ') + f.name);
+  }
+  $('fileListHint').textContent = files.length ? ('已选：' + names.join('、')) : '还没选文件';
 });
 loadLesson();
 setInterval(loadLesson, 5000);
