@@ -92,19 +92,22 @@ button.ghost:hover { background: var(--blue); color: #04263a; }
   width: 100%; height: 520px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel2);
 }
 
-/* 我的学习水位（6 大知识点：水满 = 学得好） */
+/* 我的学习水位（6 大知识点：水满 = 学得好；点击柱子看分析） */
 .mirror-empty { padding: 22px 10px; text-align: center; color: var(--sub); font-size: 14px; line-height: 2; }
-.wgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 12px; margin-top: 6px; }
-.wcell {
-  border: 1px solid var(--line); border-radius: 12px; padding: 10px;
-  background: var(--panel2); display: flex; flex-direction: column; align-items: center;
+.wgrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 14px; margin-top: 6px;
 }
-.wcell-head { width: 100%; display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-.wcell .wn { font-size: 11.5px; font-weight: 700; color: var(--txt); }
-.wcell .wp { font-size: 12px; font-weight: 800; }
-.wcell .wp { color: var(--sub); }
+.wcell {
+  border: 1px solid var(--line); border-radius: 12px; padding: 14px 10px;
+  background: var(--panel2); display: flex; flex-direction: column; align-items: center;
+  cursor: pointer; transition: border-color .15s ease;
+}
+.wcell:hover { border-color: var(--blue); }
+/* 柱子：统一高度，水柱在容器内变高变矮，顶部对齐 */
 .wmeter {
-  width: 34px; height: 92px; border-radius: 6px 6px 10px 10px;
+  width: 38px; height: 110px; border-radius: 6px 6px 10px 10px;
   border: 2px solid var(--line); background: rgba(7,11,22,.6);
   display: flex; align-items: flex-end; overflow: hidden; padding: 2px;
 }
@@ -116,13 +119,37 @@ button.ghost:hover { background: var(--blue); color: #04263a; }
 .wmeter.high .wfill { background: linear-gradient(180deg, var(--green), #16a34a); }
 .wmeter.mid .wfill { background: linear-gradient(180deg, #facc15, #eab308); }
 .wmeter.low .wfill { background: linear-gradient(180deg, var(--orange), #ea580c); }
-.wtip { font-size: 11px; color: var(--sub); margin-top: 7px; text-align: center; }
+/* 名称区：固定占两行高度，文字居中，所有格底部对齐 */
+.wtip { font-size: 11px; color: var(--sub); margin-top: 8px; height: 16px; line-height: 16px; text-align: center; white-space: nowrap; }
+.wn { font-size: 12.5px; font-weight: 700; color: var(--txt); text-align: center; margin-top: 4px; min-height: 34px; display: flex; align-items: center; justify-content: center; line-height: 1.35; }
+.wp { font-size: 13px; font-weight: 800; color: var(--blue); margin-top: 2px; }
 .wsummary {
   margin-top: 14px; padding: 12px 14px; border-radius: 12px;
   background: rgba(56,189,248,.08); border: 1px solid rgba(56,189,248,.25);
   font-size: 13px; line-height: 1.9; color: var(--txt);
 }
 .mirror-note { margin-top: 10px; font-size: 11.5px; color: var(--sub); }
+
+/* 点击柱子的分析弹窗 */
+.wmodal {
+  position: fixed; inset: 0; background: rgba(3,7,16,.72); z-index: 999;
+  display: flex; align-items: center; justify-content: center; padding: 20px;
+}
+.wmodal-box {
+  background: var(--panel); border: 1px solid var(--line); border-radius: 16px;
+  width: 460px; max-width: 92vw; padding: 20px 22px;
+  box-shadow: 0 20px 60px rgba(0,0,0,.5);
+}
+.wmodal-head { display: flex; justify-content: space-between; align-items: center; font-size: 16px; font-weight: 800; margin-bottom: 12px; }
+.wmodal-close { cursor: pointer; color: var(--sub); font-size: 16px; padding: 2px 6px; }
+.wmodal-close:hover { color: var(--txt); }
+.wmodal-pct { font-size: 13px; font-weight: 700; margin-bottom: 10px; }
+.wmodal-level { font-size: 11px; padding: 2px 9px; border-radius: 999px; margin-left: 8px; }
+.wmodal-level.high { background: rgba(34,197,94,.15); color: var(--green); }
+.wmodal-level.mid { background: rgba(234,179,8,.15); color: #eab308; }
+.wmodal-level.low { background: rgba(251,146,60,.15); color: var(--orange); }
+.wmodal-body { font-size: 13.5px; line-height: 1.9; color: var(--txt); }
+.wmodal-tip { margin-top: 14px; font-size: 11px; color: var(--sub); }
 
 .tip {
   font-size: 12px; color: var(--sub); text-align: center; line-height: 1.9; padding: 8px;

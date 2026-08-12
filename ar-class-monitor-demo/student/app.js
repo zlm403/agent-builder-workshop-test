@@ -282,16 +282,59 @@ $('btnAsk').addEventListener('click', sendAsk);
 $('askInput').addEventListener('keydown', e => { if (e.key === 'Enter') sendAsk(); });
 setInterval(refreshChat, 4000);   // 轮询老师回复
 
-/* ---------- 我的学习水位（6 大知识点：水满 = 学得好） ---------- */
+/* ---------- 我的学习水位（6 大知识点：水满 = 学得好；点击柱子看分析） ---------- */
 // 6 大知识点（对应 正式课知识点分类表）
 const WATER_ITEMS = [
-  { key: 'speak',  name: '把话说清楚', icon: '🗣️', desc: '跟 AI 提要求、把想法说清楚', signals: ['student_ask', 'agent_dialog_req'] },
-  { key: 'plan',   name: '知道下一步', icon: '🧭', desc: '知道项目现在到哪、下一步做什么', signals: ['task_view', 'page_loaded'] },
-  { key: 'tools',  name: '会用手里的工具', icon: '🛠️', desc: '打开、运行、预览、跑作品', signals: ['page_loaded', 'game_start', 'tool_submit'] },
-  { key: 'fix',    name: '做错了会修', icon: '🔧', desc: '发现问题、说清楚、让 AI 改', signals: ['student_ask', 'agent_dialog_req', 'readback_reject'] },
-  { key: 'save',   name: '怕弄丢会存档', icon: '💾', desc: '重要东西先存好、不慌', signals: ['finish', 'task_view'] },
-  { key: 'memory', name: '记得住接得上', icon: '🔗', desc: '前面说的后面还记得、续得上', signals: ['agent_dialog_req', 'agent_dialog_resp'] },
+  { key: 'speak',  name: '把话说清楚', icon: '🗣️', signals: ['student_ask', 'agent_dialog_req'],
+    good: '你有多次跟 AI 提要求、说想法的记录，说明你已经会主动开口表达需求。',
+    bad: '你还没怎么开口跟 AI 提过要求。试着把你想要的东西说成一句话，哪怕说砸了也没关系，AI 会帮你补。' },
+  { key: 'plan',   name: '知道下一步', icon: '🧭', signals: ['task_view', 'page_loaded'],
+    good: '你确认过任务、打开过作品，说明你知道自己该干什么、项目推进到哪里。',
+    bad: '还没看到你确认任务或打开作品的记录。先点「收到任务」，再跟着引导一步一步走。' },
+  { key: 'tools',  name: '会用手里的工具', icon: '🛠️', signals: ['page_loaded', 'game_start', 'tool_submit'],
+    good: '你有打开并运行作品的记录，说明你已经会用顷悟把作品跑起来。',
+    bad: '还没看到你运行作品的记录。试着打开顷悟做的东西、点运行，把它跑起来。' },
+  { key: 'fix',    name: '做错了会修', icon: '🔧', signals: ['student_ask', 'agent_dialog_req', 'readback_reject'],
+    good: '你发现问题后主动说给 AI 听、让它改，这是最值钱的能力——会修，就能一直做下去。',
+    bad: '还没看到你修改作品的记录。作品不对、不好玩，都是正常的——把"哪里不对"说给 AI 听，让它改。' },
+  { key: 'save',   name: '怕弄丢会存档', icon: '💾', signals: ['finish', 'task_view'],
+    good: '你有完成和确认的记录，说明你懂得把做好的东西收好、有交代。',
+    bad: '还没看到你收尾/确认的记录。做完一步就保存、确认一下，别让成果丢了。' },
+  { key: 'memory', name: '记得住接得上', icon: '🔗', signals: ['agent_dialog_req', 'agent_dialog_resp'],
+    good: '你和 AI 有多轮来回，说明对话能接得上，前面说的后面还记得。',
+    bad: '还没看到你和 AI 的连续对话。多聊几轮，让 AI 记住你前面说过的话。' },
 ];
+
+function analyzeItem(item, evs, eventNames){
+  const hits = item.signals.filter(s => eventNames.has(s)).length;
+  let pct = Math.min(100, Math.round(hits / item.signals.length * 100));
+  const totalText = evs.reduce((n, e) => n + ((e.payload && (e.payload.text || e.payload.reply)) ? 1 : 0), 0);
+  if (item.key === 'speak' && totalText >= 3) pct = Math.max(pct, 90);
+  if (item.key === 'memory' && totalText >= 2) pct = Math.max(pct, 70);
+  if (item.key === 'plan' && totalText >= 1) pct = Math.max(pct, 40);
+  const level = pct >= 75 ? 'high' : pct >= 40 ? 'mid' : 'low';
+  return { pct, level };
+}
+window.showWaterDetail = function(key){
+  const item = WATER_ITEMS.find(i => i.key === key);
+  if (!item) return;
+  const body = $('mirrorBody');
+  const evs = body._evs || [];
+  const eventNames = new Set(evs.map(e => e.event));
+  const { pct, level } = analyzeItem(item, evs, eventNames);
+  const goodBad = pct >= 40 ? item.good : item.bad;
+  const overlay = document.createElement('div');
+  overlay.className = 'wmodal';
+  overlay.innerHTML = `
+    <div class="wmodal-box">
+      <div class="wmodal-head"><span>${item.icon} ${item.name}</span><span class="wmodal-close" onclick="this.closest('.wmodal').remove()">✕</span></div>
+      <div class="wmodal-pct">当前水位：${pct}% <span class="wmodal-level ${level}">${level === 'high' ? '不错' : level === 'mid' ? '练到一半' : '还要练'}</span></div>
+      <div class="wmodal-body">${goodBad}</div>
+      <div class="wmodal-tip">分析由系统根据你在这节课的行为自动生成（AI 深度分析接入后会更有针对性）。</div>
+    </div>`;
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+  document.body.appendChild(overlay);
+};
 
 async function renderMirror(){
   const sid = (localStorage.getItem('ar_class_monitor_sid') || '').trim();
@@ -300,7 +343,7 @@ async function renderMirror(){
     body.innerHTML = '<div class="mirror-empty">🪪 先在上方签到，你的学习水位就会在这里亮起来。</div>';
     return;
   }
-  $('mirrorCourse').textContent = '（6 块知识，水满了就说明这块学会了）';
+  $('mirrorCourse').textContent = '（6 块知识，水满了就说明这块学会了；点击柱子看详细分析）';
 
   // 拉取该生的行为事件
   let evs = [];
@@ -309,6 +352,7 @@ async function renderMirror(){
     if (r.ok) evs = await r.json();
   } catch(e){}
   evs = evs.filter(e => e.sid === sid);
+  body._evs = evs;   // 供弹窗分析用
   const eventNames = new Set(evs.map(e => e.event));
 
   if (!evs.length) {
@@ -317,37 +361,31 @@ async function renderMirror(){
   }
 
   // 每个知识点：命中信号越多水位越高（0~100）
-  const totalText = evs.reduce((n, e) => n + ((e.payload && (e.payload.text || e.payload.reply)) ? 1 : 0), 0);
   const rows = WATER_ITEMS.map(item => {
-    let hits = item.signals.filter(s => eventNames.has(s)).length;
-    // 对话越多，"把话说清楚"水位越高
-    let pct = Math.min(100, Math.round(hits / item.signals.length * 100));
-    if (item.key === 'speak' && totalText >= 3) pct = Math.max(pct, 90);
-    if (item.key === 'memory' && totalText >= 2) pct = Math.max(pct, 70);
-    if (item.key === 'plan' && totalText >= 1) pct = Math.max(pct, 40);
-    const level = pct >= 75 ? 'high' : pct >= 40 ? 'mid' : 'low';
-    const tip = pct >= 75 ? '这块你练得不错' : pct >= 40 ? '练到一半，继续' : '这块还没怎么练';
-    return `<div class="wcell">
-      <div class="wcell-head"><span class="wn">${item.icon} ${item.name}</span><span class="wp">${pct}%</span></div>
+    const { pct, level } = analyzeItem(item, evs, eventNames);
+    const tip = pct >= 75 ? '练得不错' : pct >= 40 ? '练到一半' : '还没怎么练';
+    return `<div class="wcell" onclick="showWaterDetail('${item.key}')" title="点击查看分析">
       <div class="wmeter ${level}"><div class="wfill" style="height:${pct}%"></div></div>
       <div class="wtip">${tip}</div>
+      <div class="wn">${item.icon} ${item.name}</div>
+      <div class="wp">${pct}%</div>
     </div>`;
   }).join('');
 
   // 底部解释：哪些学得好、哪些还要练
-  const good = WATER_ITEMS.filter(it => {
-    const hits = it.signals.filter(s => eventNames.has(s)).length;
-    return hits / it.signals.length >= 0.75;
-  }).map(it => it.name);
-  const need = WATER_ITEMS.filter(it => {
-    const hits = it.signals.filter(s => eventNames.has(s)).length;
-    return hits / it.signals.length < 0.4;
-  }).map(it => it.name);
+  const good = WATER_ITEMS.filter(it => analyzeItem(it, evs, eventNames).pct >= 75).map(it => it.name);
+  const need = WATER_ITEMS.filter(it => analyzeItem(it, evs, eventNames).pct < 40).map(it => it.name);
 
   const summary = [];
   if (good.length) summary.push(`<b>学得不错：</b>${good.join('、')}`);
   if (need.length) summary.push(`<b>还要练：</b>${need.join('、')}`);
   if (!good.length && !need.length) summary.push('<b>还在起步</b>——多动手，水位就会涨');
+
+  body.innerHTML = `
+    <div class="wgrid">${rows}</div>
+    <div class="wsummary">${summary.join('<br>')}</div>
+    <div class="mirror-note dim">水位是根据你在这节课的行为自动判断的，参考用；老师那边看到的是同一份数据。点击任一柱子可看详细分析。</div>`;
+}
 
   body.innerHTML = `
     <div class="wgrid">${rows}</div>
