@@ -242,6 +242,10 @@ function renderStudents(){
     if (isWorkEvent(e)) map[e.sid].work++;
     if (e.event === 'finish') map[e.sid].done = true;
     if (e.event === 'task_view') map[e.sid].taskView = true;
+    if (e.event === 'student_ask') {
+      map[e.sid].lastAsk = e.payload.text || '';
+      map[e.sid].lastAskTs = e.ts;
+    }
   });
   const sids = Object.keys(map).sort((a, b) => map[b].last - map[a].last);
   $('stEvents').textContent = matched.length;
@@ -268,8 +272,9 @@ function renderStudents(){
       : `<div class="ringwrap"><div class="ring ${ringCls}" style="background:conic-gradient(currentColor ${score * 3.6}deg,#13203f 0)">${score}</div><span class="gaps">缺${gap}</span></div>`;
     return `<div class="stu ${s === selectedSid ? 'on' : ''}" onclick="selectSid('${s.replace(/'/g, "\\'")}')">
       <div>
-        <span class="nm">${s}</span>
+        <span class="nm">${s}</span>${m.lastAsk ? '<span class="ask-badge" title="' + esc(m.lastAsk) + '">💬</span>' : ''}
         <span class="ct">${m.count} 事件${m.agent ? ' · 🤖' + m.agent : ''}${m.work ? ' · 🎮' + m.work : ''} · ${ago}s 前</span>${m.done ? '<span class="ok">✓完成</span>' : ''}
+        ${m.lastAsk ? `<div class="ask-msg" onclick="event.stopPropagation()">💬 ${esc(m.lastAsk)}</div>` : ''}
       </div>
       ${ringHtml}
     </div>`;

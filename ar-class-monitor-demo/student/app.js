@@ -221,6 +221,18 @@ $('btnTaskOk').addEventListener('click', () => {
   $('taskHint').textContent = '已通知老师，去顷悟 APP 开工吧';
 });
 
+/* ---------- 我有问题（学生提问 → 教师端实时可见） ---------- */
+function sendAsk(){
+  const text = $('askInput').value.trim();
+  if (!text) { $('askHint').textContent = '⚠️ 先写点什么再发送'; return; }
+  Track.event('student_ask', { text: text, course, ts: Date.now() });
+  $('askInput').value = '';
+  $('askHint').textContent = '✅ 已发给老师，继续做你的';
+  setTimeout(() => { $('askHint').textContent = ''; }, 4000);
+}
+$('btnAsk').addEventListener('click', sendAsk);
+$('askInput').addEventListener('keydown', e => { if (e.key === 'Enter') sendAsk(); });
+
 /* ---------- 我的理解棱镜（学生端自我显影） ---------- */
 const MIRROR_TASK = { pre: 'pre', 1: 't1', 2: 't2', 3: 't3', 4: 't3' };
 const MIRROR_NAME = { pre: '语言棱镜 · 想法说清楚没', t1: '边界棱镜 · 依据在不在资料内', t2: '规则棱镜 · 流程与规则立没立', t3: '系统棱镜 · 能力系统成没成' };

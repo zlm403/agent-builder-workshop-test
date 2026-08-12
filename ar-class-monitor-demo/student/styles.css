@@ -126,3 +126,15 @@ button.ghost:hover { background: var(--blue); color: #04263a; }
   font-size: 12px; color: var(--sub); text-align: center; line-height: 1.9; padding: 8px;
 }
 .tip b { color: var(--blue); }
+
+/* 我有问题（学生提问 → 教师端） */
+.askbox {
+  margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--line);
+}
+.ask-title { font-size: 13px; font-weight: 700; margin-bottom: 8px; }
+.ask-row { gap: 8px; }
+.ask-input {
+  flex: 1; min-width: 220px; background: var(--panel2); border: 1px solid var(--line);
+  border-radius: 10px; color: var(--txt); padding: 9px 12px; font-size: 13.5px; outline: none;
+}
+.ask-input:focus { border-color: var(--blue); }
