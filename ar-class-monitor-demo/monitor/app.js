@@ -6,14 +6,6 @@
 3. 实时看每位学生的对话数据（顷悟 Agent）+ 作品数据（作品埋点）
     4. 选中学生 → 穿透分析: 原话 vs AI 结构化理解 + Agent 对话 + 作品轨迹 */
 
-/* 启动标记：脚本被浏览器加载并开始执行 = 显示在世界徽章旁 */
-try {
-  var _boot = document.getElementById('bootBadge');
-  if (_boot) _boot.textContent = '√JS已运行';
-  window.__appBooted = true;
-} catch(e){}
-window.__diag_error = '';
-
 const API = '/api/events';
 const COLLECT = '/api/collect';
 const EVENT_KEY = 'ar_class_monitor_events';
@@ -123,10 +115,7 @@ async function load(){
     }
   } catch(e){ errMsg = String(e && e.message ? e.message : e); }
   mergeInto(loadLocal());   // 兼容老师本机 localStorage 事件
-  window.__diag_events = events.length;
-  try { renderAll(); } catch(e) {
-    window.__diag_error = 'renderAll: ' + (e && e.message ? e.message : e) + ' @' + (e && e.stack ? (e.stack.split('\n')[1] || '') : '');
-  }
+  renderAll();
   renderConnChip(ok, errMsg);
 }
 function renderConnChip(ok, err){
@@ -255,8 +244,6 @@ function renderStudents(){
     if (e.event === 'task_view') map[e.sid].taskView = true;
   });
   const sids = Object.keys(map).sort((a, b) => map[b].last - map[a].last);
-  window.__diag_students = sids.length;
-  window.__diag_student_names = sids.join(', ');
   $('stEvents').textContent = matched.length;
   $('stStudents').textContent = sids.length;
   $('stFinish').textContent = sids.filter(s => map[s].done).length;

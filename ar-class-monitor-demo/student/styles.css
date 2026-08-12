@@ -23,12 +23,11 @@ header h1 em {
   color: var(--pink); border: 1px solid rgba(244,114,182,.45); background: rgba(244,114,182,.1);
   padding: 3px 10px; border-radius: 999px; margin-left: 8px;
 }
-.ver-badge{font-style:normal;font-size:10px;font-weight:800;color:#eab308;border:1px solid rgba(234,179,8,.5);background:rgba(234,179,8,.12);padding:2px 7px;border-radius:999px;margin-left:8px;vertical-align:2px}
 .sid {
   padding: 9px 13px; border: 1px solid var(--line); border-radius: 10px;
   font-size: 14px; outline: none; background: var(--panel2); color: var(--txt);
 }
-.sid.sidno { width: 90px; }
+.sid.sidno { width: 150px; }
 .sid.sidname { width: 140px; }
 .sid:focus { border-color: var(--blue); }
 .sid::placeholder { color: var(--sub); }

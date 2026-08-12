@@ -8,13 +8,10 @@
 </head>
 <body>
 <div class="app">
-  <div id="diagBanner" style="background:rgba(251,146,60,.12);border:1px solid rgba(251,146,60,.5);color:#fdba74;border-radius:12px;padding:10px 16px;margin-bottom:14px;font-size:14px;font-weight:700;text-align:center">⏳ 等待加载…（刷新后这里会显示连接与数据状态）</div>
   <header>
     <h1>📡 课堂监控看板 <em>老师端</em>
       <a href="/student/" target="_blank" class="screen-btn student">学生端</a>
       <a href="/bigscreen/" target="_blank" class="screen-btn big">大屏</a>
-      <span class="ver-badge" id="verBadge" title="本页面版本号，用于确认刷新后是否为新版">v3</span>
-      <span class="ver-badge" id="bootBadge" title="app.js 是否在浏览器执行">JS未运行</span>
     </h1>
     <div class="head-right">
       <span class="chip" id="liveChip">● 实时监控中</span>
@@ -153,25 +150,5 @@ window.addEventListener('error', function (e) {
 })();
 </script>
 <script src="app.js?v=20260213"></script>
-<script>
-/* 顶部诊断横幅：实时显示连接与渲染状态（调试用） */
-(function(){
-  var box = document.getElementById('diagBanner');
-  if (!box) return;
-  var render = function(){
-    var evs = (typeof window.__diag_events !== 'undefined') ? window.__diag_events : '?';
-    var stus = (typeof window.__diag_students !== 'undefined') ? window.__diag_students : '?';
-    var booted = window.__appBooted ? '是' : '否';
-    var line1 = '📡 诊断 | 事件数=' + evs + ' | 学生数=' + stus + ' | JS已运行=' + booted;
-    var line2 = '学生名单: ' + (window.__diag_student_names || '（空）');
-    var err = window.__diag_error || (document.getElementById('studentList') ? '' : '');
-    box.textContent = line1 + ' ｜ ' + line2;
-    if (err) box.textContent += ' ｜ ⚠️' + err;
-  };
-  setInterval(render, 1000);
-  render();
-})();
-</script>
-<div id="diagBox" style="display:none"></div>
 </body>
 </html>

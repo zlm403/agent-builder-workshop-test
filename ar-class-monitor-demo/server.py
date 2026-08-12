@@ -203,11 +203,9 @@ def new_session(title, date, clock, numbers):
         'used': {},
         'created': int(time.time() * 1000),
     })
-    if not d['activeSessionId']:
-        d['activeSessionId'] = sid
+    d['activeSessionId'] = sid   # 新建即设为当前场次（老师刚建完就是要用的）
     save_sessions(d)
     return sid
-
 
 def admit_number(number):
     """上课号签到。返回 (ok, sid, reason)"""
