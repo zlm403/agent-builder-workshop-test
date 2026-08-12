@@ -67,14 +67,15 @@
 
 ### 数据链路（一核多表，三端共用同一算法）
 ```
-学生/老师与AI对话 ──(顷悟对话记录skill)──┐
-                                        ├─→ events.jsonl ──GET /api/class──→ 教师端 + 大屏端
-作品页操作 track() ──POST /api/collect───┘        │
-                                        └─GET /api/events?since=──→ 学生端(自己的镜子) + 教师端(时间线)
+学生作品页与AI对话 ──(lib/qw-chat-fwd.js 包装 ai.chat 自动转发)──┐
+                                                          ├─→ events.jsonl ──GET /api/class──→ 教师端 + 大屏端
+作品页操作 track() ──POST /api/collect───┘                       │
+                                                          └─GET /api/events?since=──→ 学生端(自己的镜子) + 教师端(时间线)
 ```
 - 统一事件流：每行 `{ ts, sid, event, payload }`，`sid`=学员，`course`=第几课（warmup=0/game=1/tool=2/agent-team=4），`source`=来源。
 - 穿透判定统一走 `lib/analyze.js`（gridFor/detectGap/paraphrase），服务端只做字段聚合，不重复实现判定逻辑。
 - 埋点模块：`lib/track.js`，作品内一行接入；`Track.event('xxx', payload)` 上报，失败静默不打断学生。
+- **对话转发**：`lib/qw-chat-fwd.js` 包装顷悟 SDK 的 `ai.chat()`，学生发消息/AI 回复自动上报 `agent_dialog_req/resp`（含 sid + task）。学生作品页 `index.html` 引一行 `<script src="lib/qw-chat-fwd.js"></script>` 即生效，不依赖 agent 自觉。
 
 ### 课堂场次与签到（号码即身份，v2 起）
 **核心原则**：不核对"学生是谁"，只核对他拿来的上课号在不在本场名单里。号码 = 身份。
@@ -85,7 +86,7 @@
                                         │
 放行后：写 agent-live/identity.json（本机 sid=该号）
                                         │
-顷悟对话记录 skill ──GET /api/identity──→ 拿到同机 sid → 对话事件归到该号名下
+学生作品页 qw-chat-fwd.js / 顷悟对话 ──POST /api/collect──→ 事件带 sid=该号
 ```
 - 数据文件：`agent-live/sessions.json`（场次列表+号码池+已签到）、`agent-live/identity.json`（本机当前 sid）。
 - 学生端签到成功 → 本机免签（localStorage 记住）；**重开时先 `GET /api/identity` 校验本机 sid 是否仍是当前场次有效号**（valid=true 才免签，换场次/号作废自动放开重新签到）；「退出重来」只清本机身份，不清服务器课堂数据。
@@ -126,6 +127,6 @@ python server.py 8099        （或 powershell -ExecutionPolicy Bypass -File sta
 
 ## 六、尚未打通 / 待办（重要，别重复造）
 
-- 顷悟 Agent 真实对话 → 事件流：已通过 `GET /api/identity` 打通身份（对话事件归到签到上课号名下），**待真机验证**（顷悟 skill 实际记录一轮对话，教师端确认归到正确学生）。
+- 顷悟 Agent 真实对话 → 事件流：**已通过 `lib/qw-chat-fwd.js` 注入块打通**（包装 ai.chat 自动上报 agent_dialog_req/resp，带签到上课号 sid）——方案已定：作品页引一行脚本即生效，不依赖 agent 自觉。**待真机验证**：学生作品页实际引一次、对话一轮，教师端确认归到正确学生。
 - 大屏匿名投影：本仓 `bigscreen/` 已做（P5 落地），轻物侧另有原型。
 - 三项目已按 course 1/2/4 映射落地（三端 tab + `正式课文档/上课执行方案.md`）；顷悟侧三项目应用是否就绪、学生发布链接格式待确认。
