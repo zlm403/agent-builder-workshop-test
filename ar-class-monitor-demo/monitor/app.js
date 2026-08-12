@@ -133,7 +133,7 @@ function renderConnChip(ok, err){
   }
   chip.style.display = '';
 }
-function renderAll(){ renderClassPrism(); renderStudents(); renderTimeline(); renderXray(); }
+function renderAll(){ renderClassPrism(); renderStudents(); renderTimeline(); renderXray(); renderTeacherChat(); }
 
 /* ---------- 班级理解棱镜（一核多表：每课各穿各自的维度表） ---------- */
 function taskOfCourse(c){
@@ -274,7 +274,6 @@ function renderStudents(){
       <div>
         <span class="nm">${s}</span>${m.lastAsk ? '<span class="ask-badge" title="' + esc(m.lastAsk) + '">💬</span>' : ''}
         <span class="ct">${m.count} 事件${m.agent ? ' · 🤖' + m.agent : ''}${m.work ? ' · 🎮' + m.work : ''} · ${ago}s 前</span>${m.done ? '<span class="ok">✓完成</span>' : ''}
-        ${m.lastAsk ? `<div class="ask-msg" onclick="event.stopPropagation()">💬 ${esc(m.lastAsk)}</div>` : ''}
       </div>
       ${ringHtml}
     </div>`;
@@ -284,6 +283,48 @@ window.selectSid = function(s){
   selectedSid = (selectedSid === s) ? null : s;
   renderAll();
 };
+
+/* ---------- 学生对话面板（选中学生，双向聊天） ---------- */
+function renderTeacherChat(){
+  const log = $('tchatLog');
+  const input = $('tAskInput');
+  const btn = $('btnTAsk');
+  const sidLabel = $('chatSid');
+  if (!log) return;
+  if (!selectedSid) {
+    log.innerHTML = '<div class="chat-empty">点学生列表选一个学生，就能看到并回复 TA 的问题</div>';
+    input.disabled = true; btn.disabled = true;
+    if (sidLabel) sidLabel.textContent = '（点左侧学生列表选择学生，回复会实时到学生端）';
+    return;
+  }
+  input.disabled = false; btn.disabled = false;
+  if (sidLabel) sidLabel.textContent = '—— 正在与 ' + selectedSid + ' 对话';
+  const conv = events
+    .filter(e => e.sid === selectedSid && (e.event === 'student_ask' || e.event === 'teacher_reply'))
+    .sort((a,b) => (a.ts||0) - (b.ts||0));
+  if (!conv.length) {
+    log.innerHTML = '<div class="chat-empty">TA 还没有提问，有问题会实时出现在这里</div>';
+    return;
+  }
+  log.innerHTML = conv.map(e => {
+    const fromStu = e.event === 'student_ask';
+    return `<div class="chat-msg ${fromStu ? 'stu' : 'teacher'}"><div class="bubble">${fromStu ? '🧑‍🎓 ' : '👩‍🏫 '}${esc(e.payload.text || '')}</div></div>`;
+  }).join('');
+  log.scrollTop = log.scrollHeight;
+}
+function sendTeacherReply(){
+  const text = $('tAskInput').value.trim();
+  if (!text || !selectedSid) return;
+  fetch('/api/collect', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ sid: selectedSid, event: 'teacher_reply', payload: { text: text } }),
+  }).catch(() => {});
+  $('tAskInput').value = '';
+  renderTeacherChat();
+}
+$('btnTAsk').addEventListener('click', sendTeacherReply);
+$('tAskInput').addEventListener('keydown', e => { if (e.key === 'Enter') sendTeacherReply(); });
 
 /* ---------- 时间线（课程 + 来源筛选） ---------- */
 function renderTimeline(){

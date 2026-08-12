@@ -221,17 +221,52 @@ $('btnTaskOk').addEventListener('click', () => {
   $('taskHint').textContent = '已通知老师，去顷悟 APP 开工吧';
 });
 
-/* ---------- 我有问题（学生提问 → 教师端实时可见） ---------- */
+/* ---------- 和老师聊天（学生提问 → 老师回复，双向对话） ---------- */
+let chatMsgs = [];   // {role:'me'|'teacher', text, ts}
+function mySid(){
+  return (localStorage.getItem('ar_class_monitor_sid') || '').trim();
+}
+function renderChat(){
+  const log = $('chatLog');
+  if (!log) return;
+  if (!chatMsgs.length) { log.innerHTML = '<div class="chat-empty">还没有消息，遇到问题就发一条吧</div>'; return; }
+  log.innerHTML = chatMsgs.map(m => {
+    const mine = m.role === 'me';
+    return `<div class="chat-msg ${mine ? 'me' : 'teacher'}"><div class="bubble">${m.text.replace(/</g,'&lt;').replace(/\n/g,'<br>')}</div></div>`;
+  }).join('');
+  log.scrollTop = log.scrollHeight;
+}
+async function refreshChat(){
+  const sid = mySid();
+  if (!sid) return;
+  try {
+    const r = await fetch('/api/events?since=0', { cache: 'no-store' });
+    if (!r.ok) return;
+    const all = await r.json();
+    // 我的消息：我发的 student_ask + 老师回我的 teacher_reply（sid=我的号）
+    const mine = all.filter(e => e.sid === sid && (e.event === 'student_ask' || e.event === 'teacher_reply'));
+    chatMsgs = mine.sort((a,b) => (a.ts||0) - (b.ts||0)).map(e => ({
+      role: e.event === 'student_ask' ? 'me' : 'teacher',
+      text: e.payload.text || '',
+      ts: e.ts,
+    }));
+    renderChat();
+  } catch(e){}
+}
 function sendAsk(){
   const text = $('askInput').value.trim();
   if (!text) { $('askHint').textContent = '⚠️ 先写点什么再发送'; return; }
+  const sid = mySid();
+  if (!sid) { $('askHint').textContent = '⚠️ 先在上方签到，才能和老师聊'; return; }
   Track.event('student_ask', { text: text, course, ts: Date.now() });
   $('askInput').value = '';
-  $('askHint').textContent = '✅ 已发给老师，继续做你的';
+  $('askHint').textContent = '✅ 已发给老师，老师回复会出现在上面';
   setTimeout(() => { $('askHint').textContent = ''; }, 4000);
+  refreshChat();
 }
 $('btnAsk').addEventListener('click', sendAsk);
 $('askInput').addEventListener('keydown', e => { if (e.key === 'Enter') sendAsk(); });
+setInterval(refreshChat, 4000);   // 轮询老师回复
 
 /* ---------- 我的理解棱镜（学生端自我显影） ---------- */
 const MIRROR_TASK = { pre: 'pre', 1: 't1', 2: 't2', 3: 't3', 4: 't3' };

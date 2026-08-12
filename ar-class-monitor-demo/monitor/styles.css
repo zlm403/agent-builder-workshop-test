@@ -114,6 +114,29 @@ button.primary:hover{filter:brightness(1.1)}
   border:1px solid rgba(251,146,60,.25);border-radius:8px;padding:5px 9px;line-height:1.5;max-width:300px;
 }
 
+/* 学生对话面板 */
+.chatcard { margin-top: 0; }
+.chat-log {
+  max-height: 240px; overflow-y: auto; padding: 10px; margin-bottom: 10px;
+  background: var(--panel2); border: 1px solid var(--line); border-radius: 11px;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.chat-empty { color: var(--sub); font-size: 12.5px; text-align: center; padding: 18px 0; }
+.chat-msg { display: flex; }
+.chat-msg.stu { justify-content: flex-start; }
+.chat-msg.teacher { justify-content: flex-end; }
+.chat-msg .bubble {
+  max-width: 80%; padding: 8px 12px; border-radius: 12px; font-size: 13px; line-height: 1.6;
+}
+.chat-msg.stu .bubble { background: var(--panel2); border: 1px solid var(--line); border-bottom-left-radius: 3px; }
+.chat-msg.teacher .bubble { background: var(--blue); color: #04263a; border-bottom-right-radius: 3px; }
+.ask-input {
+  flex: 1; min-width: 220px; background: var(--panel2); border: 1px solid var(--line);
+  border-radius: 10px; color: var(--txt); padding: 9px 12px; font-size: 13.5px; outline: none;
+}
+.ask-input:focus { border-color: var(--blue); }
+.ask-row { gap: 8px; }
+
 /* ---------- 穿透分析 ---------- */
 .xray{margin-top:14px;background:var(--panel);border:1px solid var(--purple);border-radius:15px;padding:14px 16px}
 .xray-head{font-size:14px;font-weight:800;margin-bottom:11px;color:var(--purple)}

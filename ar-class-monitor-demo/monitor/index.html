@@ -86,6 +86,16 @@
     <button class="fbtn" data-filter="task" type="button">📨 任务</button>
   </div>
 
+  <!-- 学生对话（选中学生后在此聊天，学生提问实时进来） -->
+  <div class="pushcard chatcard">
+    <div class="pushhead">💬 学生对话 <span class="dim" id="chatSid">（点左侧学生列表选择学生，回复会实时到学生端）</span></div>
+    <div class="chat-log" id="tchatLog"><div class="chat-empty">点学生列表选一个学生，就能看到并回复 TA 的问题</div></div>
+    <div class="row ask-row">
+      <input id="tAskInput" class="ask-input" placeholder="回复学生，按回车发送…" maxlength="200" disabled>
+      <button id="btnTAsk" class="ghost" type="button" disabled>回复</button>
+    </div>
+  </div>
+
   <div class="cols">
     <div class="col">
       <div class="colh">👥 学生列表 <span class="dim">（点击看轨迹+穿透分析）</span></div>
