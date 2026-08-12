@@ -3,8 +3,14 @@
    功能:
    1. 按项目筛选（全部/项目一·接金币游戏/项目二·心情电量/项目三·内心戏）
    2. 推送课堂任务（带课程标记，POST /api/collect + localStorage 槽）
-   3. 实时看每位学生的对话数据（顷悟 Agent）+ 作品数据（作品埋点）
-   4. 选中学生 → 穿透分析: 原话 vs AI 结构化理解 + Agent 对话 + 作品轨迹 */
+3. 实时看每位学生的对话数据（顷悟 Agent）+ 作品数据（作品埋点）
+    4. 选中学生 → 穿透分析: 原话 vs AI 结构化理解 + Agent 对话 + 作品轨迹 */
+
+/* 启动标记：脚本被浏览器加载并开始执行 = 显示在世界徽章旁 */
+try {
+  var _boot = document.getElementById('bootBadge');
+  if (_boot) _boot.textContent = '√JS已运行';
+} catch(e){}
 
 const API = '/api/events';
 const COLLECT = '/api/collect';
