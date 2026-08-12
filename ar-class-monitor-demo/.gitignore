@@ -3,3 +3,5 @@ agent-live/identity.json
 server.log
 __pycache__/
 *.pyc
+agent-live/water.json
+.bridge_cursor.json
