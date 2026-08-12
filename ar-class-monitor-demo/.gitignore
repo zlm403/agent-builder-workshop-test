@@ -1,0 +1,5 @@
+﻿agent-live/sessions.json
+agent-live/identity.json
+server.log
+__pycache__/
+*.pyc
