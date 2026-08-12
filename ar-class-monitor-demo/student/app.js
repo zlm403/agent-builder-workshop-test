@@ -170,7 +170,7 @@ function renderTask(){
   const card = $('taskCard');
   const btn = $('btnTaskOk');
   $('taskCourseTag').textContent = currentTask ? '（' + currentTask.no + '）' : '';
-  if (!currentTask || currentTask.locked) {
+  if (!currentTask) {
     card.innerHTML = '<div class="task-empty">🔒 还没开始<br><span class="dim">这节课还没轮到你做这个任务，等老师推进后再看。</span></div>';
     btn.hidden = true;
     $('taskHint').textContent = '老师推进后，这里会显示你要做什么';
@@ -191,54 +191,32 @@ function readLocalEvents(){
   try { return JSON.parse(localStorage.getItem('ar_class_monitor_events') || '[]'); } catch(e){ return []; }
 }
 async function loadTask(){
-  // 优先读课程框架（教师端保存的课堂任务，含锁定状态）
+  // 只信课程框架（/api/lesson）：显示解锁的任务，未解锁/无课程一律锁定
   try {
     const r = await fetch('/api/lesson', { cache: 'no-store' });
     if (r.ok) {
       const d = await r.json();
       const cur = d.currentLesson;
-      if (cur && d.lessons && d.lessons[cur]) {
-        const tasks = d.lessons[cur].tasks || [];
-        // 当前任务 = 解锁的那个（未解锁的锁定）；没有解锁的则显示第一个已推送的
-        const current = tasks.find(t => t.unlocked && t.pushed) || tasks.find(t => t.pushed) || null;
-        if (current) {
-          currentTask = {
-            no: current.no || '任务',
-            title: current.title || '课堂任务',
-            steps: current.steps || '',
-            points: current.points || '',
-            locked: !current.unlocked,
-          };
-          renderTask();
-          return;
-        }
+      const tasks = (cur && d.lessons && d.lessons[cur]) ? (d.lessons[cur].tasks || []) : [];
+      // 当前任务 = 解锁的那个；没有解锁的 → 显示"等待"
+      const current = tasks.find(t => t.unlocked && t.pushed) || null;
+      if (current) {
+        currentTask = {
+          no: current.no || '任务',
+          title: current.title || '课堂任务',
+          steps: current.steps || '',
+          points: current.points || '',
+          locked: false,
+        };
+      } else {
+        currentTask = null;   // 没有解锁的任务 → 显示等待/锁定
       }
+      renderTask();
+      return;
     }
   } catch(e){}
-  // 兜底：老的事件流 task_push
-  let events = [];
-  try { const t = JSON.parse(localStorage.getItem(TASK_EVENT_KEY) || 'null'); if (t) events.push(t); } catch(e){}
-  try {
-    const r = await fetch('/api/events?since=0', { cache: 'no-store' });
-    if (r.ok) {
-      const all = await r.json();
-      events = events.concat(all.filter(e => e.event === 'task_push'));
-    }
-  } catch(e){}
-  const seen = new Set();
-  events = events.filter(e => {
-    const k = [e.ts, e.sid, e.event].join('|');
-    if (seen.has(k)) return false;
-    seen.add(k);
-    return true;
-  }).sort((a,b) => (a.ts||0) - (b.ts||0));
-  currentTask = events.length ? {
-    no: events[events.length-1].payload.task_no || '任务',
-    title: events[events.length-1].payload.title || '课堂任务',
-    steps: events[events.length-1].payload.steps || events[events.length-1].payload.desc || '',
-    points: events[events.length-1].payload.points || events[events.length-1].payload.goal || '',
-    locked: false,
-  } : null;
+  // 连不上服务器或没有课程框架：一律锁定（不给看旧事件流的任务）
+  currentTask = null;
   renderTask();
 }
 $('btnTaskOk').addEventListener('click', () => {
