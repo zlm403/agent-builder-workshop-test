@@ -354,25 +354,24 @@ let screenActive = null;
 let screenBlocks = [];
 async function loadScreenBlocks(){
   try {
-    // 1) 同步"当前课堂任务"为可投内容块（从课程框架取当前解锁任务）
+    // 1) 每个已推送的课堂任务 → 一个可投内容块（id 固定，不重复）
     try {
       const lr = await fetch('/api/lesson', { cache: 'no-store' });
       const ld = await lr.json();
       const cur = ld.currentLesson;
       const tasks = (cur && ld.lessons && ld.lessons[cur]) ? (ld.lessons[cur].tasks || []) : [];
-      const current = tasks.find(t => t.unlocked && t.pushed) || null;
-      if (current) {
-        await fetch('/api/screen/save', {
+      tasks.filter(t => t.pushed).forEach(t => {
+        fetch('/api/screen/save', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            id: 'blk_current_task',
+            id: 'blk_task_' + (t.no || '').replace(/[^\w\u4e00-\u9fa5]/g, ''),
             type: 'task',
-            title: '当前课堂任务 · ' + current.no,
-            content: { title: current.title, steps: current.steps, points: current.points },
+            title: t.no + ' · ' + t.title,
+            content: { title: t.title, steps: t.steps, points: t.points },
             source: 'auto',
           }),
         });
-      }
+      });
     } catch(e){}
     // 2) 读全部块（含课堂任务块）
     const r = await fetch('/api/screen', { cache: 'no-store' });
@@ -390,16 +389,18 @@ function renderScreenBlocks(){
     return;
   }
   const icons = { task: '📋', text: '📝', image: '🖼', video: '🎬', page: '🌐' };
+  const isTask = id => (id || '').indexOf('blk_task_') === 0;
   // 课堂任务块排最前，其余按时间
   const sorted = [...screenBlocks].sort((a, b) => {
-    if (a.id === 'blk_current_task') return -1;
-    if (b.id === 'blk_current_task') return 1;
+    const at = isTask(a.id), bt = isTask(b.id);
+    if (at && !bt) return -1;
+    if (!at && bt) return 1;
     return (a.ts || 0) - (b.ts || 0);
   });
   box.innerHTML = sorted.map(b => {
     const on = b.id === screenActive;
     const src = b.source === 'external' ? ' · 外部' : (b.source === 'auto' ? ' · 自动' : '');
-    const del = b.id === 'blk_current_task' ? '' : `<span class="sblk-del" onclick="event.stopPropagation();delScreenBlock('${b.id}')">✕</span>`;
+    const del = isTask(b.id) ? '' : `<span class="sblk-del" onclick="event.stopPropagation();delScreenBlock('${b.id}')">✕</span>`;
     return `<div class="sblk ${on ? 'on' : ''}" onclick="setScreenActive('${b.id}')" title="点击投到大屏">
       <span class="sblk-icon">${icons[b.type] || '📄'}</span>
       <span class="sblk-title">${esc(b.title)}${src}</span>
