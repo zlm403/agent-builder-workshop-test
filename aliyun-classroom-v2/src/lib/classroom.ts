@@ -225,6 +225,44 @@ export async function setModuleSubState(sessionId: string, subState: string | nu
   return session;
 }
 
+/** 重置指定模块的全班进度（清业务表 + 该模块 moduleProgress + subState 回到第一步），用于重新开始本环节。 */
+export async function resetModuleProgress(sessionId: string, moduleId: string) {
+  const session = await prisma.classSession.findUnique({ where: { id: sessionId } });
+  if (!session) throw new Error('SESSION_NOT_FOUND');
+
+  const parts = await prisma.participant.findMany({ where: { sessionId }, select: { id: true } });
+  const partIds = parts.map((p) => p.id);
+
+  await prisma.$transaction(async (tx) => {
+    if (moduleId === 'A1_AVATAR') {
+      if (partIds.length) await tx.a1Avatar.deleteMany({ where: { participantId: { in: partIds } } });
+    } else if (moduleId === 'A0N_QUESTIONS' || moduleId === 'A0N_VOTE' || moduleId === 'A0N_REVEAL') {
+      if (partIds.length) await tx.a0New.deleteMany({ where: { participantId: { in: partIds } } });
+    } else if (moduleId === 'P2_SITE') {
+      if (partIds.length) await tx.p2SiteEntry.deleteMany({ where: { participantId: { in: partIds } } });
+    } else if (moduleId === 'P3_GAME') {
+      if (partIds.length) await tx.p3GrowGame.deleteMany({ where: { participantId: { in: partIds } } });
+    }
+    // 该模块的提交进度一并清掉（重新开始后 moduleStatus 回到 pending）
+    await tx.moduleProgress.deleteMany({ where: { sessionId, moduleId } });
+  });
+
+  // subState 回到该模块的第一步，让大屏/学生端/教师端统一回到起点
+  const initialSubState =
+    moduleId === 'A1_AVATAR' ? 'avatar:hook'
+    : moduleId === 'A0N_REVEAL' ? 'reveal:1'
+    : moduleId === 'P2_SITE' ? 'p2:hook'
+    : moduleId === 'P3_GAME' ? 'p3:hook'
+    : null;
+  if (initialSubState !== null) await writeModuleSubState(sessionId, initialSubState);
+
+  await audit(sessionId, 'teacher', 'module:reset', moduleId);
+  publish(sessionId, { type: 'module:reset', payload: { moduleId } });
+  publish(sessionId, { type: 'module:substate', payload: { subState: initialSubState } });
+  await emitProgress(sessionId);
+  return session;
+}
+
 // ---------- 学生入场 ----------
 
 export async function joinClassroom(

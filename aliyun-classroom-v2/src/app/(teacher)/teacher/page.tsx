@@ -5,6 +5,8 @@ import { STYLE_PROFILES, STYLE_ORDER } from '@/lib/styleProfiles';
 import TeacherFinale from '@/components/TeacherFinale';
 import TeacherClosing from '@/components/TeacherClosing';
 import AvatarTeacher from '@/components/AvatarTeacher';
+import MediaManager from '@/components/MediaManager';
+import SlotContentManager from '@/components/SlotContentManager';
 
 const pctOf = (n: number, base: number) => (base > 0 ? Math.round((n / base) * 100) : 0);
 
@@ -103,6 +105,8 @@ export default function TeacherPage() {
   const [showFinale, setShowFinale] = useState(false);
   const [showClosing, setShowClosing] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [showMedia, setShowMedia] = useState(false);
+  const [mediaInitialSlot, setMediaInitialSlot] = useState<string | undefined>(undefined);
   const [llmKey, setLlmKey] = useState('');
   const [llmBaseUrl, setLlmBaseUrl] = useState('https://api.deepseek.com/v1');
   const [llmModel, setLlmModel] = useState('deepseek-chat');
@@ -832,6 +836,13 @@ export default function TeacherPage() {
           >
             设置 ⚙️
           </button>
+          <button
+            className="secondary"
+            onClick={() => setShowMedia(true)}
+            title="课堂媒体库（视频/图片管理）"
+          >
+            媒体库 🎬
+          </button>
           <a href={`/screen?sessionId=${sessionId}`} target="_blank" rel="noreferrer">
             <button className="secondary">打开大屏 ↗</button>
           </a>
@@ -953,129 +964,165 @@ export default function TeacherPage() {
             </div>
           )}
 
-          <div style={{ marginTop: 18, paddingTop: 16, borderTop: '1px solid var(--border)' }}>
-            <div style={{ color: 'var(--muted)', fontSize: 13, marginBottom: 10 }}>
-              大屏入口（学生手机扫码时，请用局域网 IP 打开，否则二维码会生成 localhost，手机进不来）
-            </div>
-            <div className="row" style={{ gap: 10, flexWrap: 'wrap' }}>
-              <a href={`/screen?sessionId=${sessionId}`} target="_blank" rel="noreferrer">
-                <button className="secondary">本机打开 ↗</button>
-              </a>
-              {publicAppUrl && !new URL(publicAppUrl).hostname.includes('localhost') && (
-                <a href={`${publicAppUrl}/screen?sessionId=${sessionId}`} target="_blank" rel="noreferrer">
-                  <button className="secondary">我的网址打开 ↗</button>
-                </a>
-              )}
-              {ips.filter((ip) => ip !== 'localhost').map((ip) => (
-                <a key={ip} href={`http://${ip}:3000/screen?sessionId=${sessionId}`} target="_blank" rel="noreferrer">
-                  <button className="secondary">{ip}:3000 ↗</button>
-                </a>
-              ))}
-            </div>
-            {ips.length === 0 || ips.every((ip) => ip === 'localhost') ? (
-              <p style={{ color: 'var(--yellow)', fontSize: 13, marginTop: 10 }}>
-                未检测到局域网 IP，请确认本机已联网，否则学生手机无法扫码进入。
-              </p>
-            ) : null}
-          </div>
-
-          <div className="row">
-            <button className="secondary" disabled={status === 'closed' || busy} onClick={() => setShowThoughts(true)}>
-              查看想法 ({thoughts.length})
-            </button>
-            <button className="secondary" disabled={status === 'active' || status === 'closed' || busy} onClick={() => control('start')}>开始课堂</button>
-            {isA0 && typeof summary?.moduleSubState === 'string' && summary.moduleSubState.startsWith('story') ? (
-              <div className="story-control" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                <button
-                  className="secondary"
-                  disabled={busy || status === 'closed' || summary.moduleSubState === 'story:1'}
-                  onClick={() => control('setSubState', { subState: 'story:1' })}
-                >
-                  上页
-                </button>
-                <button
-                  className="secondary"
-                  disabled={busy || status === 'closed' || summary.moduleSubState === 'story:2'}
-                  onClick={() => control('setSubState', { subState: 'story:2' })}
-                >
-                  下页
-                </button>
-                <button
-                  className="secondary"
-                  disabled={busy || status === 'closed' || summary.moduleSubState === 'story:1'}
-                  onClick={() => control('setSubState', { subState: 'story:1' })}
-                >
-                  返回
-                </button>
-                <span className="story-hint">开场故事 · 大屏展示中，翻页引导</span>
-              </div>
-            ) : null}
-            {currentModuleId === 'A02_MIRROR' ? (
-              <div className="story-control" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                <button
-                  className="secondary"
-                  disabled={busy || status === 'closed' || (summary?.moduleSubState ?? 'mirror:1') === 'mirror:1'}
-                  onClick={() => {
-                    const cur = parseInt(String(summary?.moduleSubState ?? 'mirror:1').replace('mirror:', ''), 10) || 1;
-                    control('setSubState', { subState: `mirror:${Math.max(1, cur - 1)}` });
-                  }}
-                >
-                  上页
-                </button>
-                <button
-                  className="secondary"
-                  disabled={busy || status === 'closed' || (summary?.moduleSubState ?? 'mirror:1') === 'mirror:3'}
-                  onClick={() => {
-                    const cur = parseInt(String(summary?.moduleSubState ?? 'mirror:1').replace('mirror:', ''), 10) || 1;
-                    control('setSubState', { subState: `mirror:${Math.min(3, cur + 1)}` });
-                  }}
-                >
-                  下页
-                </button>
-                <span className="story-hint">大屏共 3 屏，翻页引导</span>
-              </div>
-            ) : null}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 14 }}>
             {isA0New ? (
-              <AvatarTeacher
-                moduleId={currentModuleId}
-                subState={summary?.moduleSubState ?? null}
-                busy={busy}
-                control={control}
-              />
-            ) : null}
-            <button disabled={busy || status === 'closed'} onClick={() => control('advance')}>
-              {isA0 && typeof summary?.moduleSubState === 'string' && summary.moduleSubState.startsWith('story') ? '下一步 → 进入测评' : '下一环节 →'}
-            </button>
-            <button className="secondary" disabled={busy || status === 'closed'} onClick={() => control('lock', { locked: !moduleLocked })}>
-              {isA0New ? (moduleLocked ? '解锁' : '锁定') : isA0 ? (moduleLocked ? '恢复标签（解锁）' : '揭晓全班标签') : currentModuleId === 'A03_REDO' ? (moduleLocked ? '解锁提交' : '暂停 / 锁定提交') : (moduleLocked ? '解锁' : '锁定')}
-            </button>
-            {currentModuleId === 'A03_REDO' ? (
-              <button className="primary" disabled={busy || status === 'closed' || summary?.moduleSubState === 'compare'} onClick={() => control('setSubState', { subState: 'compare' })}>
-                {summary?.moduleSubState === 'compare' ? '已揭晓（再次揭晓）' : '揭晓前后变化'}
+              <>
+                {/* 课堂操作区（一整行） */}
+                <div style={{ border: '1px solid var(--border)', borderRadius: 12, padding: 12, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 700, letterSpacing: '0.06em', flexShrink: 0 }}>课堂操作</span>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    <button className="secondary" disabled={status === 'active' || status === 'closed' || busy} onClick={() => control('start')}>开始课堂</button>
+                    <button
+                      className="danger"
+                      disabled={busy}
+                      onClick={() => {
+                        if (window.confirm('确定重置课堂吗？将清空所有学生信息、答题记录和邀请码，回到等待开始状态。')) {
+                          control('reset');
+                        }
+                      }}
+                    >
+                      重置课堂
+                    </button>
+                    <button
+                      className="danger"
+                      disabled={busy || status === 'closed'}
+                      onClick={() => {
+                        if (window.confirm('确定关闭本课堂吗？将释放所有学生并结束本场，之后可创建新课堂（新课堂码与之前互不影响）。')) {
+                          control('close');
+                        }
+                      }}
+                    >
+                      关闭课堂
+                    </button>
+                  </div>
+                </div>
+
+                {/* 环节操作区（一整行） */}
+                <div style={{ border: '1px solid rgba(124,58,237,0.5)', borderRadius: 12, padding: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 700, letterSpacing: '0.06em' }}>环节操作</span>
+                    <button
+                      className="danger"
+                      style={{ fontSize: 12, padding: '4px 10px' }}
+                      disabled={busy}
+                      onClick={() => {
+                        if (window.confirm('确定重置本环节吗？全班学生在本环节的进度将被清空，重新从第一步开始。')) {
+                          control('resetModule', { moduleId: currentModuleId });
+                        }
+                      }}
+                    >
+                      ⟲ 重置本环节
+                    </button>
+                  </div>
+                  <AvatarTeacher
+                    moduleId={currentModuleId}
+                    subState={summary?.moduleSubState ?? null}
+                    busy={busy}
+                    control={control}
+                  />
+                  <SlotContentManager
+                    moduleId={currentModuleId}
+                    onAdd={(slot) => {
+                      setMediaInitialSlot(slot);
+                      setShowMedia(true);
+                    }}
+                  />
+                  <button className="secondary" style={{ alignSelf: 'flex-start' }} disabled={busy || status === 'closed'} onClick={() => control('lock', { locked: !moduleLocked })}>
+                    {moduleLocked ? '解锁学员输入' : '锁定学员输入'}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <button className="secondary" disabled={status === 'active' || status === 'closed' || busy} onClick={() => control('start')}>开始课堂</button>
+                {isA0 && typeof summary?.moduleSubState === 'string' && summary.moduleSubState.startsWith('story') ? (
+                  <div className="story-control" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                    <button
+                      className="secondary"
+                      disabled={busy || status === 'closed' || summary.moduleSubState === 'story:1'}
+                      onClick={() => control('setSubState', { subState: 'story:1' })}
+                    >
+                      上页
+                    </button>
+                    <button
+                      className="secondary"
+                      disabled={busy || status === 'closed' || summary.moduleSubState === 'story:2'}
+                      onClick={() => control('setSubState', { subState: 'story:2' })}
+                    >
+                      下页
+                    </button>
+                    <button
+                      className="secondary"
+                      disabled={busy || status === 'closed' || summary.moduleSubState === 'story:1'}
+                      onClick={() => control('setSubState', { subState: 'story:1' })}
+                    >
+                      返回
+                    </button>
+                    <span className="story-hint">开场故事 · 大屏展示中，翻页引导</span>
+                  </div>
+                ) : null}
+                {currentModuleId === 'A02_MIRROR' ? (
+                  <div className="story-control" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                    <button
+                      className="secondary"
+                      disabled={busy || status === 'closed' || (summary?.moduleSubState ?? 'mirror:1') === 'mirror:1'}
+                      onClick={() => {
+                        const cur = parseInt(String(summary?.moduleSubState ?? 'mirror:1').replace('mirror:', ''), 10) || 1;
+                        control('setSubState', { subState: `mirror:${Math.max(1, cur - 1)}` });
+                      }}
+                    >
+                      上页
+                    </button>
+                    <button
+                      className="secondary"
+                      disabled={busy || status === 'closed' || (summary?.moduleSubState ?? 'mirror:1') === 'mirror:3'}
+                      onClick={() => {
+                        const cur = parseInt(String(summary?.moduleSubState ?? 'mirror:1').replace('mirror:', ''), 10) || 1;
+                        control('setSubState', { subState: `mirror:${Math.min(3, cur + 1)}` });
+                      }}
+                    >
+                      下页
+                    </button>
+                    <span className="story-hint">大屏共 3 屏，翻页引导</span>
+                  </div>
+                ) : null}
+                <button disabled={busy || status === 'closed'} onClick={() => control('advance')}>
+                  {isA0 && typeof summary?.moduleSubState === 'string' && summary.moduleSubState.startsWith('story') ? '下一步 → 进入测评' : '下一环节 →'}
+                </button>
+                <button className="secondary" disabled={busy || status === 'closed'} onClick={() => control('lock', { locked: !moduleLocked })}>
+                  {isA0New ? (moduleLocked ? '解锁' : '锁定') : isA0 ? (moduleLocked ? '恢复标签（解锁）' : '揭晓全班标签') : currentModuleId === 'A03_REDO' ? (moduleLocked ? '解锁提交' : '暂停 / 锁定提交') : (moduleLocked ? '解锁' : '锁定')}
+                </button>
+                {currentModuleId === 'A03_REDO' ? (
+                  <button className="primary" disabled={busy || status === 'closed' || summary?.moduleSubState === 'compare'} onClick={() => control('setSubState', { subState: 'compare' })}>
+                    {summary?.moduleSubState === 'compare' ? '已揭晓（再次揭晓）' : '揭晓前后变化'}
+                  </button>
+                ) : null}
+                <button
+                  className="danger"
+                  disabled={busy}
+                  onClick={() => {
+                    if (window.confirm('确定重置课堂吗？将清空所有学生信息、答题记录和邀请码，回到等待开始状态。')) {
+                      control('reset');
+                    }
+                  }}
+                >
+                  重置课堂
+                </button>
+              </>
+            )}
+            {!isA0New && (
+              <button
+                className="danger"
+                disabled={busy || status === 'closed'}
+                onClick={() => {
+                  if (window.confirm('确定关闭本课堂吗？将释放所有学生并结束本场，之后可创建新课堂（新课堂码与之前互不影响）。')) {
+                    control('close');
+                  }
+                }}
+              >
+                关闭课堂
               </button>
-            ) : null}
-            <button
-              className="danger"
-              disabled={busy}
-              onClick={() => {
-                if (window.confirm('确定重置课堂吗？将清空所有学生信息、答题记录和邀请码，回到等待开始状态。')) {
-                  control('reset');
-                }
-              }}
-            >
-              重置课堂
-            </button>
-            <button
-              className="danger"
-              disabled={busy || status === 'closed'}
-              onClick={() => {
-                if (window.confirm('确定关闭本课堂吗？将释放所有学生并结束本场，之后可创建新课堂（新课堂码与之前互不影响）。')) {
-                  control('close');
-                }
-              }}
-            >
-              关闭课堂
-            </button>
+            )}
             <button className="secondary" onClick={() => setShowClosing(true)}>
               收官阶段
             </button>
@@ -1093,43 +1140,48 @@ export default function TeacherPage() {
               学生第二轮提交差不多时，先点「暂停 / 锁定提交」收齐，再点「揭晓前后变化」，大屏将显示第一轮基线 → 第二轮 在“对象 / 任务 / 过程 / 检验”上的前后变化与路径迁移。
             </p>
           ) : null}
-          <div className="row" style={{ marginTop: 12 }}>
-            <label style={{ color: 'var(--muted)', fontSize: 13, whiteSpace: 'nowrap' }}>跳转至：</label>
-            <select value={jumpTarget} onChange={(e) => setJumpTarget(e.target.value)}>
-              <option value="">选择要切换到的环节…</option>
-              {modules.map((mm) => (
-                <option key={mm.id} value={mm.id}>{mm.id} · {mm.title}</option>
-              ))}
-            </select>
-            <button className="secondary" disabled={!jumpTarget || busy} onClick={() => control('jump', { targetModuleId: jumpTarget })}>切换到此环节</button>
-          </div>
-          <p className="note" style={{ marginTop: 6, fontSize: 12, color: 'var(--muted)' }}>
-            「跳转」仅用于把课堂切换到指定环节，不代表当前进度；当前环节以顶部状态栏与右侧「模块目录」高亮为准。
-          </p>
-          <p className="note" style={{ marginTop: 12 }}>
-            教师备注：开场强调"资料边界≠绝对保证"；挑选一名设置严格边界的学生现场测试。
-          </p>
         </div>
 
         <div className="card">
           <h3>模块目录</h3>
           <ul className="module-list">
-            {modules.map((mm, idx) => {
+            {(() => {
+              // 章节分组：A0（含 三问/判定/揭晓 三个子模块）合并为一个大章节
+              const a0Ids = ['A0N_QUESTIONS', 'A0N_VOTE', 'A0N_REVEAL'];
+              const groups: { id: string; title: string; sub: string[] }[] = [];
+              const seenA0 = { done: false };
+              for (const mm of modules) {
+                if (a0Ids.includes(mm.id)) {
+                  if (!seenA0.done) {
+                    groups.push({ id: mm.id, title: '你和 AI', sub: a0Ids });
+                    seenA0.done = true;
+                  }
+                } else {
+                  groups.push({ id: mm.id, title: mm.title, sub: [mm.id] });
+                }
+              }
               const activeIndex = currentModuleId ? modules.findIndex((m) => m.id === currentModuleId) : -1;
-              const isActive = mm.id === currentModuleId;
-              const isDone = activeIndex !== -1 && idx < activeIndex;
-              const isPending = !currentModuleId && idx === 0;
-              return (
-                <li key={mm.id} className={`${isActive ? 'active' : ''} ${isDone ? 'done' : ''} ${isPending ? 'pending' : ''}`}>
-                  <span className="title">{mm.id} · {mm.title}</span>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    {isActive && <span className="current-tag">当前</span>}
-                    {isPending && <span className="current-tag" style={{ background: 'var(--yellow)', color: '#0f172a' }}>待开始</span>}
-                    <span className="pill gray">{mm.type}</span>
-                  </div>
-                </li>
-              );
-            })}
+              return groups.map((g, idx) => {
+                const isActive = g.sub.includes(String(currentModuleId));
+                const isDone = activeIndex !== -1 && modules.findIndex((m) => m.id === g.id) < activeIndex;
+                const isPending = !currentModuleId && idx === 0;
+                return (
+                  <li
+                    key={g.id}
+                    className={`${isActive ? 'active' : ''} ${isDone ? 'done' : ''} ${isPending ? 'pending' : ''}`}
+                    onClick={() => control('jump', { targetModuleId: g.sub[0] })}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    <span className="title">{g.title}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      {g.sub.length > 1 ? <span className="pill blue">{g.sub.length} 步</span> : null}
+                      {isActive && <span className="current-tag">当前</span>}
+                      {isPending && <span className="current-tag" style={{ background: 'var(--yellow)', color: '#0f172a' }}>待开始</span>}
+                    </div>
+                  </li>
+                );
+              });
+            })()}
           </ul>
         </div>
       </div>
@@ -1191,6 +1243,8 @@ export default function TeacherPage() {
           </div>
         </div>
       </div>
+
+      {showMedia && <MediaManager onClose={() => setShowMedia(false)} initialSlot={mediaInitialSlot} />}
 
       {settingsOpen && (
         <div className="modal-backdrop" onClick={(e) => { if (e.target === e.currentTarget) setSettingsOpen(false); }}>

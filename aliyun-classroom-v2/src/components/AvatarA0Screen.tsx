@@ -5,6 +5,7 @@
 // =========================================================
 import { useEffect, useState } from 'react';
 import { A0_QUESTIONS, A0_VOTE_OPTIONS, A0_REVEAL } from '@/features/avatarLesson/config';
+import ContentSlot from './ContentSlot';
 
 interface A0Data {
   total: number;
@@ -13,6 +14,14 @@ interface A0Data {
   tool: number;
   partner: number;
   answerCountByQuestion: number[];
+}
+
+interface A0SlidersData {
+  total: number;
+  submitted: number;
+  byStep: { label: string; buckets: [number, number, number] }[];
+  avgHuman: number;
+  avgAi: number;
 }
 
 export default function AvatarA0Screen({
@@ -28,6 +37,7 @@ export default function AvatarA0Screen({
 }) {
   const [data, setData] = useState<A0Data | null>(null);
   const [imgFailed, setImgFailed] = useState<boolean[]>([false, false]);
+  const [sliders, setSliders] = useState<A0SlidersData | null>(null);
 
   useEffect(() => {
     let closed = false;
@@ -42,14 +52,31 @@ export default function AvatarA0Screen({
     return () => { closed = true; clearInterval(iv); };
   }, [sessionId]);
 
+  // reveal:4 时额外轮询滑杆分布
+  const isReveal4 = type === 'A0N_REVEAL' && /^reveal:4(?::\d+)?$/.test(String(subState ?? ''));
+  useEffect(() => {
+    if (!isReveal4) return;
+    let closed = false;
+    async function fetchSliders() {
+      try {
+        const r = await fetch(`/api/avatar/a0/sliders?sessionId=${sessionId}`);
+        if (!closed) setSliders(await r.json());
+      } catch { /* noop */ }
+    }
+    fetchSliders();
+    const iv = setInterval(fetchSliders, 4000);
+    return () => { closed = true; clearInterval(iv); };
+  }, [isReveal4, sessionId]);
+
   // 三问进行中
   if (type === 'A0N_QUESTIONS') {
     return (
       <div className="a0-live">
         <div className="a0-topbar">
-          <div className="a0-brand">A0 · 你和 AI</div>
+          <div className="a0-brand">你和 AI</div>
           <div className="a0-tag">三问进行中</div>
         </div>
+        <ContentSlot slot="a0_top" />
         <div className="a0-stage">
           <div className="a0-question" style={{ textAlign: 'center' }}>你平时会让 AI 帮你做什么？</div>
           <div className="a0-snap" style={{ maxWidth: 760 }}>
@@ -69,6 +96,7 @@ export default function AvatarA0Screen({
             </div>
           </div>
         </div>
+        <ContentSlot slot="a0_questions_after" />
         <div className="a0-foot">
           <div className="a0-status">正在读取每一位同学的真实回答…</div>
         </div>
@@ -76,7 +104,7 @@ export default function AvatarA0Screen({
     );
   }
 
-  // 关系题投票进行中
+  // 关系判定中（系统后台判定）
   if (type === 'A0N_VOTE') {
     const tool = data?.tool ?? 0;
     const partner = data?.partner ?? 0;
@@ -86,11 +114,12 @@ export default function AvatarA0Screen({
     return (
       <div className="a0-live">
         <div className="a0-topbar">
-          <div className="a0-brand">A0 · 你和 AI</div>
-          <div className="a0-tag">关系题投票中 · {voted}/{total}</div>
+          <div className="a0-brand">你和 AI</div>
+          <div className="a0-tag">系统判定中 · {voted}/{total}</div>
         </div>
+        <ContentSlot slot="a0_top" />
         <div className="a0-stage">
-          <div className="a0-question" style={{ textAlign: 'center' }}>在你的生活里，AI 更像是你的——</div>
+          <div className="a0-question" style={{ textAlign: 'center' }}>根据同学们的答案，AI 正在判断每一位同学——</div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, width: 'min(1100px, 92vw)', marginTop: 6 }}>
             {A0_VOTE_OPTIONS.map((o) => {
               const v = o.id === 'tool' ? tool : partner;
@@ -109,23 +138,34 @@ export default function AvatarA0Screen({
           </div>
         </div>
         <div className="a0-foot">
-          <div className="a0-status">每人只有一次选择 · 揭晓后我们再看「过去 vs 未来」</div>
+          <div className="a0-status">判定依据是同学们自己写的回答 · 揭晓后我们再看「工具 vs 伙伴」的三种形态</div>
         </div>
       </div>
     );
   }
 
-  // A0-3 揭晓 + 讲解（教师用 subState: reveal:1/2/3 控制）
+  // A0-3 揭晓 + 讲解（教师用 subState: reveal:1/2/3[:n]/4[:n] 控制）
   const tool = data?.tool ?? 0;
   const partner = data?.partner ?? 0;
   const voted = Math.max(1, data?.voted ?? 1);
   const lp = Math.round((tool / voted) * 100);
   const pp = Math.round((partner / voted) * 100);
   const reveal = subState ?? 'reveal:1';
-  const screen = reveal === 'reveal:2' ? 'pvf' : reveal === 'reveal:3' ? 'art' : 'result';
+  // 图序号：reveal:3 或 reveal:3:1 = 第1张，reveal:3:2 = 第2张（默认第1张）
+  const parseArtIdx = (prefix: string): number => {
+    const m = String(reveal).match(new RegExp(`^${prefix}(?::(\\d+))?$`));
+    const n = m ? parseInt(m[1] ?? '1', 10) : 1;
+    return Math.min(2, Math.max(1, n));
+  };
+  const isArt = /^reveal:3(?::\d+)?$/.test(String(reveal));
+  const isSliders = /^reveal:4(?::\d+)?$/.test(String(reveal));
+  const screen = isArt ? 'art' : isSliders ? 'sliders' : reveal === 'reveal:2' ? 'pvf' : 'result';
+  const artIdx = isArt ? parseArtIdx('reveal:3') : isSliders ? parseArtIdx('reveal:4') : 1;
+  const artImg = A0_REVEAL.artImages[artIdx - 1];
 
   return (
     <div className="a0-reveal">
+      <ContentSlot slot="a0_top" />
       {screen === 'result' && (
         <>
           <div className="a0-reveal-statement">{A0_REVEAL.headline}</div>
@@ -149,22 +189,27 @@ export default function AvatarA0Screen({
 
       {screen === 'pvf' && (
         <>
-          <div className="a0-reveal-statement" style={{ fontSize: 'clamp(24px,3vw,40px)' }}>过去 · 当工具 &nbsp;vs&nbsp; 未来 · 当伙伴</div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 26, width: 'min(1100px, 94vw)' }}>
-            <div style={{ background: 'rgba(148,163,184,0.1)', border: '1px solid var(--border)', borderRadius: 18, padding: 28 }}>
-              <div style={{ fontSize: 20, fontWeight: 800, color: '#fde047', marginBottom: 14 }}>{A0_REVEAL.pastVsFuture.past.title}</div>
-              {A0_REVEAL.pastVsFuture.past.flow.map((f, i) => (
-                <div key={i} style={{ fontSize: 18, color: '#e2e8f0', margin: '10px 0', display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <span style={{ fontSize: 22 }}>{['📤','⚡','🏃'][i] ?? '•'}</span> {f}
-                </div>
+          <div className="a0-reveal-statement" style={{ fontSize: 'clamp(24px,3vw,40px)' }}>{A0_REVEAL.formsTable.title}</div>
+          <div className="a0-forms-sub">{A0_REVEAL.formsTable.subtitle}</div>
+          <div className="a0-forms-table">
+            <div className="a0-forms-header">
+              <div className="a0-forms-dim" style={{ visibility: 'hidden' }}>维度</div>
+              {A0_REVEAL.formsTable.columns.map((c, i) => (
+                <div key={c} className={`a0-forms-col-h a0-forms-tone-${i}`}>{c}</div>
               ))}
             </div>
-            <div style={{ background: 'rgba(124,58,237,0.12)', border: '1px solid rgba(124,58,237,0.5)', borderRadius: 18, padding: 28 }}>
-              <div style={{ fontSize: 20, fontWeight: 800, color: '#c4b5fd', marginBottom: 14 }}>{A0_REVEAL.pastVsFuture.future.title}</div>
-              {A0_REVEAL.pastVsFuture.future.flow.map((f, i) => (
-                <div key={i} style={{ fontSize: 18, color: '#e2e8f0', margin: '10px 0', display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <span style={{ fontSize: 22 }}>{['👤','🔁','✓','🧠'][i] ?? '•'}</span> {f}
-                </div>
+            {A0_REVEAL.formsTable.rows.map((row) => (
+              <div className="a0-forms-row" key={row.dim}>
+                <div className="a0-forms-dim">{row.dim}</div>
+                {row.cells.map((cell, i) => (
+                  <div key={i} className={`a0-forms-cell a0-forms-tone-${i}`}>{cell}</div>
+                ))}
+              </div>
+            ))}
+            <div className="a0-forms-row a0-forms-punchline">
+              <div className="a0-forms-dim">{A0_REVEAL.formsTable.punchline.label}</div>
+              {A0_REVEAL.formsTable.punchline.cells.map((cell, i) => (
+                <div key={i} className={`a0-forms-cell a0-forms-tone-${i}`}><strong>{cell}</strong></div>
               ))}
             </div>
           </div>
@@ -174,25 +219,70 @@ export default function AvatarA0Screen({
       {screen === 'art' && (
         <>
           <div className="a0-reveal-statement" style={{ fontSize: 'clamp(24px,3vw,40px)' }}>接下来，我们一起把 AI 变成「伙伴」</div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 26, width: 'min(1400px, 96vw)' }}>
-            {A0_REVEAL.artImages.map((img, i) => (
-              <div key={i} style={{ borderRadius: 18, border: '1px solid rgba(124,58,237,0.35)', background: 'rgba(124,58,237,0.10)', minHeight: 320, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-                {imgFailed[i] ? (
-                  <>
-                    <div style={{ fontSize: 48 }}>{i === 0 ? '🛠️' : '🤝'}</div>
-                    <div style={{ fontSize: 16, color: '#c4b5fd', marginTop: 8 }}>{i === 0 ? '把 AI 当工具（过去）' : '把 AI 当伙伴（未来）'}</div>
-                    <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 6 }}>图片位 · 请把艺术图放到 /avatar/A0-art-{i + 1}.jpg</div>
-                  </>
-                ) : (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={img} alt={`A0-art-${i + 1}`} style={{ width: '100%', objectFit: 'contain', maxHeight: '60vh' }} onError={() => setImgFailed((f) => f.map((v, j) => (j === i ? true : v)))} />
-                )}
-              </div>
-            ))}
+          <div style={{ width: 'min(1200px, 88vw)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
+            <div style={{ borderRadius: 18, border: '1px solid rgba(124,58,237,0.35)', background: 'rgba(124,58,237,0.10)', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+              {imgFailed[artIdx - 1] ? (
+                <div style={{ padding: '10vh 0', textAlign: 'center' }}>
+                  <div style={{ fontSize: 56 }}>{artIdx === 1 ? '🛠️' : '🤝'}</div>
+                  <div style={{ fontSize: 18, color: '#c4b5fd', marginTop: 10 }}>{artIdx === 1 ? '把 AI 当工具（过去）' : '把 AI 当伙伴（未来）'}</div>
+                  <div style={{ fontSize: 13, color: 'var(--muted)', marginTop: 6 }}>图片位 · 请把艺术图放到 /story/A0-{artIdx}.jpg</div>
+                </div>
+              ) : (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={artImg} alt={`A0-${artIdx}`} style={{ width: '100%', objectFit: 'contain', maxHeight: '66vh' }} onError={() => setImgFailed((f) => f.map((v, j) => (j === artIdx - 1 ? true : v)))} />
+              )}
+            </div>
+            <div className="a0-sliders-progress">第 {artIdx} / 2 张 · 上一张/下一张由教师控制</div>
           </div>
           <div className="a0-next">下一环节 · 一起养一个「数字的你」</div>
         </>
       )}
+
+      {screen === 'sliders' && (
+        <>
+          <div className="a0-reveal-statement" style={{ fontSize: 'clamp(24px,3vw,40px)' }}>现在，每个人亲手滑一滑</div>
+          <div className="a0-sliders-progress">
+            已提交 {sliders?.submitted ?? 0} / {sliders?.total ?? total} 人 · 全体人机比例：人 {sliders?.avgHuman ?? 0}% · AI {sliders?.avgAi ?? 0}%
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.1fr', gap: 26, width: 'min(1400px, 96vw)' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div style={{ borderRadius: 16, border: '1px solid rgba(124,58,237,0.35)', background: 'rgba(124,58,237,0.10)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                {imgFailed[artIdx - 1] ? (
+                  <div style={{ padding: '12vh 0', textAlign: 'center' }}>
+                    <div style={{ fontSize: 48 }}>{artIdx === 1 ? '🛠️' : '🤝'}</div>
+                    <div style={{ fontSize: 15, color: '#c4b5fd', marginTop: 8 }}>{artIdx === 1 ? '把 AI 当工具（过去）' : '把 AI 当伙伴（未来）'}</div>
+                  </div>
+                ) : (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={artImg} alt={`A0-${artIdx}`} style={{ width: '100%', objectFit: 'contain', maxHeight: '52vh' }} onError={() => setImgFailed((f) => f.map((v, j) => (j === artIdx - 1 ? true : v)))} />
+                )}
+              </div>
+              <div style={{ fontSize: 13, color: 'var(--muted)', textAlign: 'center' }}>第 {artIdx} / 2 张 · 教师可切换</div>
+            </div>
+            <div className="a0-sliders-chart">
+              <div className="a0-sliders-chart-title">全班 6 步 · 人机分工分布</div>
+              {(sliders?.byStep ?? []).map((s) => (
+                <div key={s.label} className="a0-slider-bar-row">
+                  <div className="a0-slider-bar-label">{s.label}</div>
+                  <div className="a0-slider-bar-track">
+                    <span className="a0-slider-bar-seg a0-human" style={{ flex: s.buckets[0] }} title={`偏人 ${s.buckets[0]} 人`}>{s.buckets[0] > 0 ? s.buckets[0] : ''}</span>
+                    <span className="a0-slider-bar-seg a0-mid" style={{ flex: s.buckets[1] }} title={`中间 ${s.buckets[1]} 人`}>{s.buckets[1] > 0 ? s.buckets[1] : ''}</span>
+                    <span className="a0-slider-bar-seg a0-ai" style={{ flex: s.buckets[2] }} title={`偏AI ${s.buckets[2]} 人`}>{s.buckets[2] > 0 ? s.buckets[2] : ''}</span>
+                  </div>
+                </div>
+              ))}
+              <div className="a0-sliders-chart-legend">
+                <span><i className="lg lg-human" />偏人</span>
+                <span><i className="lg lg-mid" />中间</span>
+                <span><i className="lg lg-ai" />偏AI</span>
+              </div>
+            </div>
+          </div>
+          <div className="a0-next">大家滑完提交后，我们进入下一个环节</div>
+        </>
+      )}
+
+      <ContentSlot slot="a0_reveal_after" />
     </div>
   );
 }
