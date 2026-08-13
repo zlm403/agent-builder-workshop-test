@@ -65,6 +65,11 @@ export default function ContentSlot({
             <video key={it.id} src={it.url || ''} controls autoPlay playsInline style={{ width: 'min(900px, 86vw)', maxHeight: '52vh', borderRadius: 14, background: '#000' }} />
           );
         }
+        if (it.kind === 'embed') {
+          return (
+            <iframe key={it.id} src={it.url || ''} title={it.title} style={{ width: 'min(1100px, 92vw)', height: '58vh', border: '1px solid rgba(251,146,60,.3)', borderRadius: 14, background: '#fff' }} />
+          );
+        }
         return (
           <a key={it.id} href={it.url || ''} target="_blank" rel="noreferrer" style={{ fontSize: 'clamp(18px,2.2vw,28px)', color: '#93c5fd', fontWeight: 700 }}>
             {it.title || it.url}

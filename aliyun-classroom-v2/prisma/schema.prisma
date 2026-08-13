@@ -353,14 +353,14 @@ model P3GrowGame {
   @@map("p3_grow_game")
 }
 
-/// 课堂内容框架（教师端管理，无需改代码）：文字/图片/视频/链接，按 slot 插槽归类
+/// 课堂内容框架（教师端管理，无需改代码）：文字/图片/视频/链接/网页，按 slot 插槽归类
 model MediaItem {
   id        String   @id @default(uuid())
   title     String   // 显示名称
-  kind      String   @default("text") // text | image | video | link
+  kind      String   @default("text") // text | image | video | link | embed(网页 iframe)
   url       String?  // 可访问地址（/media/xxx.mp4 或完整 URL；kind=text 时可为空）
   content   String?  // 文字内容（kind=text 时使用）或补充说明
-  slot      String   // 插到哪个环节之后：a1_goal_after / a1_wall_after / finale_after …
+  slot      String   // 插到哪个环节之后：a1_goal_after / a1_wall_after / finale_after / page:{pageId}
   sort      Int      @default(0) // 排序
   hidden    Boolean  @default(false) // 隐藏：大屏/学生端不渲染，但媒体库保留可恢复
   createdAt DateTime @default(now())
@@ -368,4 +368,23 @@ model MediaItem {
 
   @@index([slot, sort])
   @@map("media_item")
+}
+
+/// 环节页面序列（PPT 式）：每个环节（A0/A1/P2/P3）由一串"页"组成
+/// kind=builtin：内置功能页（三问/判定/揭晓/滑块/共生缸…），对应某个 subState，可隐藏可排序不可删
+/// kind=content：内容页（文字/图片/视频/链接/网页），内容块存 MediaItem(slot=page:{pageId})
+model LessonPage {
+  id        String   @id @default(uuid())
+  group     String   // A0 | A1 | P2 | P3
+  moduleId  String   // 该页所属模块（跳转目标）：A0N_QUESTIONS / A0N_VOTE / A0N_REVEAL / A1_AVATAR / P2_SITE / P3_GAME
+  seq       Int      // 组内排序
+  kind      String   @default("builtin") // builtin | content
+  refKey    String?  // builtin 页的 subState（a0:intro1 / reveal:1 / avatar:c1 / p3:s1 …）；content 页为 null
+  title     String?  // content 页大标题（builtin 页可为空）
+  hidden    Boolean  @default(false) // 隐藏：大屏/学生端跳过该页
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([group, seq])
+  @@map("lesson_page")
 }

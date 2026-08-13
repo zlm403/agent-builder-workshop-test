@@ -65,6 +65,11 @@ export default function MediaPlayer({ slot, title }: { slot: string; title: stri
             <video key={it.id} src={it.url || ''} controls autoPlay playsInline style={{ width: 'min(1100px, 90vw)', maxHeight: '62vh', borderRadius: 16, background: '#000' }} />
           );
         }
+        if (it.kind === 'embed') {
+          return (
+            <iframe key={it.id} src={it.url || ''} title={it.title} style={{ width: 'min(1200px, 94vw)', height: '66vh', border: '1px solid rgba(251,146,60,.3)', borderRadius: 16, background: '#fff' }} />
+          );
+        }
         // link
         return (
           <a key={it.id} href={it.url || ''} target="_blank" rel="noreferrer" style={{ fontSize: 'clamp(20px,2.4vw,32px)', color: '#93c5fd', fontWeight: 700 }}>

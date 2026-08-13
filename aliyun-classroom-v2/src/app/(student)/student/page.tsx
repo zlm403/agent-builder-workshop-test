@@ -641,6 +641,11 @@ export default function StudentPage() {
         <StudentWaitingRoom anonymousId={anonymousId} sessionId={sessionId} />
       ) : current.type === 'hr_screening' && typeof subState === 'string' && subState.startsWith('story') ? (
         <StudentStoryWait />
+      ) : typeof subState === 'string' && subState.startsWith('page:') ? (
+        <div className="module-card" style={{ textAlign: 'center', paddingTop: '6vh' }}>
+          <div style={{ fontSize: 34, fontWeight: 800, marginBottom: 10 }}>请看大屏</div>
+          <p className="note">老师正在展示这一页，跟着大屏一起看。</p>
+        </div>
       ) : (
         <>
           <div className="status-bar">

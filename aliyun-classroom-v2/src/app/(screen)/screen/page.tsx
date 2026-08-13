@@ -11,6 +11,7 @@ import AvatarA0Screen from '@/components/AvatarA0Screen';
 import AvatarA1Screen from '@/components/AvatarA1Screen';
 import SiteEntryScreen from '@/components/SiteEntryScreen';
 import GrowGameScreen from '@/components/GrowGameScreen';
+import ContentPage from '@/components/ContentPage';
 
 interface Summary {
   status: string;
@@ -252,6 +253,8 @@ export default function ScreenPage() {
         <DanmakuScreen thoughts={thoughts} entered={summary?.totalStudents ?? 0} />
       ) : module.type === 'hr_screening' ? (
         <A0Screen module={module} screening={screening} summary={summary} locked={summary?.moduleLocked ?? false} subState={summary?.moduleSubState ?? null} />
+      ) : (summary?.moduleSubState ?? '').startsWith('page:') ? (
+        <ContentPageHost subState={summary?.moduleSubState ?? ''} />
       ) : module.type === 'a0_new' ? (
         <AvatarA0Screen type={module.id} sessionId={sessionId} subState={summary?.moduleSubState ?? null} total={summary?.totalStudents ?? 1} />
       ) : module.type === 'avatar_flow' ? (
@@ -296,6 +299,28 @@ function pct(n: number, total: number) {
 }
 
 type ChatTurn = { role: 'user' | 'assistant'; content: string };
+
+// 内容页宿主：subState = page:{pageId} 时渲染独立内容页（标题从页面序列拉取）
+function ContentPageHost({ subState }: { subState: string }) {
+  const pageId = subState.slice('page:'.length);
+  const [title, setTitle] = useState<string | null>(null);
+  useEffect(() => {
+    if (!pageId) return;
+    let closed = false;
+    (async () => {
+      for (const g of ['A0', 'A1', 'P2', 'P3']) {
+        try {
+          const r = await fetch(`/api/pages?group=${g}`);
+          const d = await r.json();
+          const p = (d.pages ?? []).find((x: any) => x.id === pageId);
+          if (p) { if (!closed) setTitle(p.title ?? ''); break; }
+        } catch { /* noop */ }
+      }
+    })();
+    return () => { closed = true; };
+  }, [pageId]);
+  return <ContentPage pageId={pageId} title={title} />;
+}
 
 function A01Screen({
   module,

@@ -1,43 +1,89 @@
 'use client';
 // =========================================================
-// A0 + A1 数字分身 + P2 快速入门网站 + P3 养成游戏 · 教师端环节控制面板
-// 环节内的分步骤统一用带序号按钮控制（点谁高亮），附 上一步/下一步
-// 锁定学员输入放在环节操作区
+// A0 + A1 + P2 + P3 · 教师端环节页面序列控制（PPT 式）
+// 每个环节由一串"页"组成：内置功能页（三问/判定/揭晓/滑块/共生缸…）+ 内容页（文字/图/视频/链接/网页）
+// 教师点某页 = 大屏切到该页；任意两页间可"插入新页"；每页可编辑/隐藏/上移/下移/删除（内置页不可删）。
+// 数据在 /api/pages，页面序列存在 DB，教师自助增删排序，无需改代码。
 // =========================================================
-import { A1_STAGES } from '@/features/avatarLesson/config';
-import { P2_STAGES } from '@/features/siteEntry/config';
-import { P3_STAGES } from '@/features/growGame/config';
+import { useCallback, useEffect, useState } from 'react';
 
-// 通用：一组带序号的步骤按钮，点谁谁高亮
-function StepButtons({
-  steps,
-  activeKey,
-  disabled,
-  onPick,
-}: {
-  steps: { key: string; label: string }[];
-  activeKey: string;
-  disabled: boolean;
-  onPick: (key: string) => void;
-}) {
-  return (
-    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-      {steps.map((s, i) => {
-        const active = activeKey === s.key;
-        return (
-          <button
-            key={s.key}
-            className={active ? 'primary' : 'secondary'}
-            disabled={disabled}
-            onClick={() => onPick(s.key)}
-            style={{ fontWeight: active ? 800 : 500, border: active ? '2px solid var(--purple)' : '1px solid var(--border)' }}
-          >
-            {i + 1} · {s.label}
-          </button>
-        );
-      })}
-    </div>
-  );
+// 模块 → 组 映射（纯函数，客户端内联，避免 import 含 prisma 的服务端模块）
+function groupOfModule(moduleId: string | null | undefined): 'A0' | 'A1' | 'P2' | 'P3' | null {
+  if (!moduleId) return null;
+  if (moduleId.startsWith('A0N_')) return 'A0';
+  if (moduleId === 'A1_AVATAR') return 'A1';
+  if (moduleId === 'P2_SITE') return 'P2';
+  if (moduleId === 'P3_GAME') return 'P3';
+  return null;
+}
+
+interface PageDef {
+  id: string;
+  group: string;
+  moduleId: string;
+  seq: number;
+  kind: 'builtin' | 'content';
+  refKey: string | null;
+  title: string | null;
+  hidden: boolean;
+}
+
+const BUILTIN_LABEL: Record<string, string> = {
+  // A0
+  'a0:intro1': '开场·手指图',
+  'a0:intro2': '开场·发展图',
+  'reveal:1': '揭晓结果',
+  'reveal:2': '三种形态',
+  'reveal:4': '六步滑块',
+  'reveal:3': '工具/伙伴两图',
+  'a0:mirror': '我们在哪儿',
+  'a0:closing': '收束·已经来了',
+  // A1
+  'avatar:hook': '钩子开场',
+  'avatar:wall': '作品墙',
+  'avatar:cog': '认知对比图',
+  'avatar:video': '视频·普通人的例子',
+  // P2
+  'p2:hook': '钩子开场',
+  'p2:wall': '作品墙',
+  // P3
+  'p3:hook': '钩子开场',
+  'p3:wall': '共生缸',
+};
+
+// A1 十七环节名（c1..c17）
+const A1_CN: Record<string, string> = {
+  c1: '发现问题', c2: '发布任务', c3: '选择真实任务', c4: 'AI 采访',
+  c5: '补充真实样本', c6: '生成分身档案', c7: '校准档案', c8: '第一次写朋友圈',
+  c9: '判断像不像', c10: '调整', c11: '最终验收', c12: '保存分身',
+  c13: '梦想', c14: '一个到一群', c15: '分析', c16: '现实与紧迫', c17: '结论',
+};
+const P2_CN: Record<string, string> = {
+  s1: '发布任务', s2: '明确目标', s3: '获取领域地图', s4: '判断与收缩',
+  s5: '生成可用内容', s6: '生成网页', s7: '第一轮自检', s8: '同伴测试',
+  s9: '根据反馈修改', s10: '能力迁移', s11: '提交与成果', s12: '升华',
+};
+const P3_CN: Record<string, string> = {
+  s1: '空世界', s2: '核心特质', s3: '设计规则', s4: 'AI翻译生成', s5: '投入共生缸',
+  s6: '观察', s7: '修改', s8: '二次运行', s9: '创造过程卡', s10: '认知收束',
+};
+
+function pageLabel(p: PageDef): string {
+  if (p.kind === 'content') return p.title || '新页面';
+  if (p.refKey === null) {
+    // 模块默认态：A0N_QUESTIONS→三问，A0N_VOTE→系统判定
+    if (p.moduleId === 'A0N_QUESTIONS') return '三问';
+    if (p.moduleId === 'A0N_VOTE') return '系统判定';
+    return '默认';
+  }
+  if (BUILTIN_LABEL[p.refKey]) return BUILTIN_LABEL[p.refKey];
+  const m = p.refKey.match(/^avatar:(c\d+)$/);
+  if (m) return A1_CN[m[1]] ?? p.refKey;
+  const m2 = p.refKey.match(/^p2:(s\d+)$/);
+  if (m2) return P2_CN[m2[1]] ?? p.refKey;
+  const m3 = p.refKey.match(/^p3:(s\d+)$/);
+  if (m3) return P3_CN[m3[1]] ?? p.refKey;
+  return p.refKey;
 }
 
 export default function AvatarTeacher({
@@ -45,164 +91,190 @@ export default function AvatarTeacher({
   subState,
   busy,
   control,
+  onEditContent,
 }: {
   moduleId: string;
   subState: string | null;
   busy: boolean;
   control: (action: string, payload?: any) => void;
+  onEditContent: (pageId: string) => void;
 }) {
-  const pick = (key: string) => control('setSubState', { subState: key });
+  const [pages, setPages] = useState<PageDef[]>([]);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState('');
+  const [busyLocal, setBusyLocal] = useState(false);
+  const group = groupOfModule(moduleId);
 
-  // ---------- A0 章节（开场/三问/判定/揭晓/形态/滑块/图/镜子/收束 一条条） ----------
-  if (moduleId === 'A0N_QUESTIONS' || moduleId === 'A0N_VOTE' || moduleId === 'A0N_REVEAL') {
-    // A0 流程：开场（手指图→二维图）→ 三问 → 判定 → 揭晓 → 三种形态 → 六步滑块 → 工具/伙伴两图 → 镜子 → 收束
-    const steps = [
-      { module: 'A0N_QUESTIONS', key: 'a0:intro1', label: '开场·手指图' },
-      { module: 'A0N_QUESTIONS', key: 'a0:intro2', label: '开场·发展图' },
-      { module: 'A0N_QUESTIONS', key: null, label: '三问' },
-      { module: 'A0N_VOTE', key: null, label: '系统判定' },
-      { module: 'A0N_REVEAL', key: 'reveal:1', label: '揭晓结果' },
-      { module: 'A0N_REVEAL', key: 'reveal:2', label: '三种形态' },
-      { module: 'A0N_REVEAL', key: 'reveal:4', label: '六步滑块' },
-      { module: 'A0N_REVEAL', key: 'reveal:3', label: '工具/伙伴两图' },
-      { module: 'A0N_REVEAL', key: 'a0:mirror', label: '我们在哪儿' },
-      { module: 'A0N_REVEAL', key: 'a0:closing', label: '收束·已经来了' },
-    ];
-    // 当前处于哪一步
-    const activeIdx = (() => {
-      if (moduleId === 'A0N_QUESTIONS') {
-        const s = String(subState ?? '');
-        if (s === 'a0:intro1') return 0;
-        if (s === 'a0:intro2') return 1;
-        return 2; // 三问
-      }
-      if (moduleId === 'A0N_VOTE') return 3;
-      const reveal = String(subState ?? 'reveal:1');
-      if (reveal.startsWith('a0:mirror')) return 8;
-      if (reveal.startsWith('a0:closing')) return 9;
-      if (reveal.startsWith('reveal:1')) return 4;
-      if (reveal.startsWith('reveal:2')) return 5;
-      if (reveal.startsWith('reveal:4')) return 6;
-      if (reveal.startsWith('reveal:3')) return 7;
-      return 4;
-    })();
-    // 跳到某一步：跨模块用 jump（可带 subState 直接落到指定子屏），同模块用 setSubState
-    const go = (idx: number) => {
-      const s = steps[idx];
-      if (!s) return;
-      if (s.module === moduleId) {
-        if (s.key) control('setSubState', { subState: s.key });
-      } else {
-        control('jump', { targetModuleId: s.module, subState: s.key });
-      }
-    };
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        <StepButtons
-          steps={steps.map((s, i) => ({ key: String(i), label: s.label }))}
-          activeKey={String(activeIdx)}
-          disabled={busy}
-          onPick={(k) => go(parseInt(k, 10))}
-        />
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-          <button className="secondary" disabled={busy || activeIdx <= 0} onClick={() => go(activeIdx - 1)}>◀ 上一步</button>
-          <button className="secondary" disabled={busy || activeIdx >= steps.length - 1} onClick={() => go(activeIdx + 1)}>下一步 →</button>
-        </div>
+  const load = useCallback(async () => {
+    if (!group) return;
+    try {
+      const r = await fetch(`/api/pages?group=${group}`);
+      const d = await r.json();
+      if (d.pages) setPages(d.pages);
+    } catch { /* noop */ }
+  }, [group]);
+
+  useEffect(() => { load(); }, [load]);
+
+  if (!group) return null;
+
+  // 当前高亮页：内置页比对 refKey，内容页比对 page:{id}
+  function isActive(p: PageDef): boolean {
+    if (p.kind === 'content') return subState === `page:${p.id}`;
+    if (p.refKey === null) {
+      // 模块默认态：当前模块等于该页模块，且 subState 为空或不是该模块的内置 subState
+      if (moduleId !== p.moduleId) return false;
+      const s = String(subState ?? '');
+      if (s === '' || s === 'null') return true;
+      // 若 subState 是别的内置页，则不是默认态
+      const builtins = pages.filter((x) => x.moduleId === p.moduleId && x.refKey !== null);
+      return !builtins.some((x) => s === x.refKey);
+    }
+    return moduleId === p.moduleId && subState === p.refKey;
+  }
+
+  function go(page: PageDef) {
+    if (busy || busyLocal) return;
+    if (page.moduleId !== moduleId) {
+      // 跨模块（A0 三个模块之间）：jump 并落到指定 subState
+      control('jump', { targetModuleId: page.moduleId, subState: page.kind === 'content' ? `page:${page.id}` : page.refKey ?? null });
+    } else {
+      control('setSubState', { subState: page.kind === 'content' ? `page:${page.id}` : page.refKey ?? null });
+    }
+  }
+
+  async function insertAfter(afterId: string | null) {
+    if (busyLocal) return;
+    setBusyLocal(true);
+    try {
+      await fetch('/api/pages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ group, afterId, title: '新页面' }),
+      });
+      await load();
+    } finally {
+      setBusyLocal(false);
+    }
+  }
+
+  async function toggleHidden(p: PageDef) {
+    await fetch('/api/pages', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: p.id, hidden: !p.hidden }),
+    });
+    await load();
+  }
+
+  async function move(p: PageDef, dir: -1 | 1) {
+    const idx = pages.findIndex((x) => x.id === p.id);
+    const j = idx + dir;
+    if (j < 0 || j >= pages.length) return;
+    const ids = pages.map((x) => x.id);
+    const t = ids[idx]; ids[idx] = ids[j]; ids[j] = t;
+    await fetch('/api/pages', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ group, order: ids }),
+    });
+    await load();
+  }
+
+  async function saveEdit() {
+    if (!editingId) return;
+    await fetch('/api/pages', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: editingId, title: editTitle }),
+    });
+    setEditingId(null);
+    await load();
+  }
+
+  async function remove(p: PageDef) {
+    if (!window.confirm(`确定删除「${pageLabel(p)}」这一页吗？`)) return;
+    await fetch(`/api/pages?id=${p.id}`, { method: 'DELETE' });
+    await load();
+  }
+
+  const visible = pages.filter((p) => !p.hidden);
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 }}>
+        <span style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 700, letterSpacing: '0.06em' }}>
+          页面序列（{pages.length} 页 · 点页即投大屏）
+        </span>
+        <button className="secondary" style={{ fontSize: 11, padding: '3px 10px' }} disabled={busyLocal} onClick={() => insertAfter(null)}>
+          ＋ 末尾加页
+        </button>
       </div>
-    );
-  }
 
-  // ---------- A0 揭晓 ----------
-  if (moduleId === 'A0N_REVEAL') {
-    const steps = [
-      { key: 'reveal:1', label: '揭晓结果' },
-      { key: 'reveal:2', label: '三种形态' },
-      { key: 'reveal:3', label: '艺术图' },
-      { key: 'reveal:4', label: '推送滑杆' },
-    ];
-    const order = ['reveal:1', 'reveal:2', 'reveal:3', 'reveal:4'];
-    const activeKey = String(subState ?? 'reveal:1');
-    const curIdx = order.indexOf(activeKey);
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        <StepButtons steps={steps} activeKey={activeKey} disabled={busy} onPick={pick} />
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-          <button className="secondary" disabled={busy || curIdx <= 0} onClick={() => control('setSubState', { subState: order[Math.max(0, curIdx - 1)] })}>◀ 上一步</button>
-          <button className="secondary" disabled={busy || curIdx >= order.length - 1} onClick={() => control('setSubState', { subState: order[Math.min(order.length - 1, curIdx + 1)] })}>下一步 →</button>
-        </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 4, maxHeight: 360, overflowY: 'auto' }}>
+        {pages.map((p) => {
+          const active = isActive(p);
+          const hidden = p.hidden;
+          const isContent = p.kind === 'content';
+          return (
+            <div key={p.id} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              {/* 插入点（每页上方） */}
+              <div style={{ display: 'flex', justifyContent: 'center' }}>
+                <button className="secondary" style={{ fontSize: 10, padding: '1px 10px', opacity: 0.7 }} disabled={busyLocal} onClick={() => insertAfter(p.id)}>
+                  ＋ 在此页前插入新页
+                </button>
+              </div>
+
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 6, padding: '7px 10px', borderRadius: 8,
+                border: active ? '2px solid var(--purple)' : '1px solid var(--border)',
+                background: active ? 'rgba(124,58,237,0.18)' : 'var(--card)',
+                opacity: hidden ? 0.45 : 1,
+                cursor: 'pointer',
+              }} onClick={() => go(p)}>
+                <span style={{ fontSize: 12, fontWeight: 800, color: active ? '#c4b5fd' : 'var(--muted)', minWidth: 22, textAlign: 'center' }}>
+                  {p.seq + 1}
+                </span>
+                <span style={{ flex: 1, fontSize: 13, fontWeight: active ? 700 : 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {pageLabel(p)}
+                </span>
+                <span style={{ fontSize: 10, color: isContent ? 'var(--blue)' : 'var(--muted)', border: '1px solid var(--border)', borderRadius: 4, padding: '0 5px' }}>
+                  {isContent ? '内容页' : '功能页'}
+                </span>
+                {hidden && <span style={{ fontSize: 10, color: '#f87171' }}>已隐藏</span>}
+
+                {/* 操作按钮（阻止冒泡） */}
+                <span onClick={(e) => e.stopPropagation()} style={{ display: 'inline-flex', gap: 3 }}>
+                  <button className="secondary" style={{ fontSize: 10, padding: '1px 6px' }} disabled={busyLocal} title="上移" onClick={() => move(p, -1)}>↑</button>
+                  <button className="secondary" style={{ fontSize: 10, padding: '1px 6px' }} disabled={busyLocal} title="下移" onClick={() => move(p, 1)}>↓</button>
+                  {isContent && (
+                    <>
+                      <button className="secondary" style={{ fontSize: 10, padding: '1px 6px' }} title="编辑内容" onClick={() => onEditContent(p.id)}>✎ 内容</button>
+                      <button className="secondary" style={{ fontSize: 10, padding: '1px 6px' }} title="改标题" onClick={() => { setEditingId(p.id); setEditTitle(p.title || ''); }}>改标题</button>
+                    </>
+                  )}
+                  <button className="secondary" style={{ fontSize: 10, padding: '1px 6px' }} title={hidden ? '显示' : '隐藏'} onClick={() => toggleHidden(p)}>{hidden ? '显示' : '隐藏'}</button>
+                  {isContent && (
+                    <button className="danger" style={{ fontSize: 10, padding: '1px 6px' }} title="删除" onClick={() => remove(p)}>删除</button>
+                  )}
+                </span>
+              </div>
+            </div>
+          );
+        })}
+
+        {pages.length === 0 && (
+          <div style={{ fontSize: 12, color: 'var(--muted)', padding: 8 }}>还没有页面，点上方「末尾加页」开始。</div>
+        )}
       </div>
-    );
-  }
 
-  // ---------- A1 数字分身 ----------
-  if (moduleId === 'A1_AVATAR') {
-    const steps = [
-      { key: 'avatar:hook', label: '钩子开场' },
-      ...A1_STAGES.map((s, i) => ({ key: `avatar:${s.key}`, label: `${i + 1}.${s.name}` })),
-      { key: 'avatar:wall', label: '作品墙' },
-    ];
-    const order = ['avatar:hook', ...A1_STAGES.map((s) => `avatar:${s.key}`), 'avatar:wall'];
-    const activeKey = String(subState ?? 'avatar:hook');
-    const curIdx = order.indexOf(activeKey);
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        <StepButtons steps={steps} activeKey={activeKey} disabled={busy} onPick={pick} />
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-          <button className="secondary" disabled={busy || curIdx <= 0} onClick={() => control('setSubState', { subState: order[Math.max(0, curIdx - 1)] })}>◀ 上一步</button>
-          <button className="secondary" disabled={busy || curIdx >= order.length - 1} onClick={() => control('setSubState', { subState: order[Math.min(order.length - 1, curIdx + 1)] })}>下一步 →</button>
+      {editingId && (
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 4 }}>
+          <input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} placeholder="页面标题" style={{ flex: 1 }} />
+          <button className="primary" style={{ fontSize: 12, padding: '4px 12px' }} onClick={saveEdit}>保存</button>
+          <button className="secondary" style={{ fontSize: 12, padding: '4px 12px' }} onClick={() => setEditingId(null)}>取消</button>
         </div>
-      </div>
-    );
-  }
-
-  // ---------- P2 快速入门网站 · 六座山十二阶段 ----------
-  if (moduleId === 'P2_SITE') {
-    const steps = [
-      { key: 'p2:hook', label: '钩子开场' },
-      ...P2_STAGES.map((s, i) => ({ key: `p2:${s.key}`, label: `${i + 1}.${s.name}` })),
-      { key: 'p2:wall', label: '作品墙' },
-    ];
-    const order = ['p2:hook', ...P2_STAGES.map((s) => `p2:${s.key}`), 'p2:wall'];
-    const activeKey = String(subState ?? 'p2:hook');
-    const curIdx = order.indexOf(activeKey);
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        <StepButtons steps={steps} activeKey={activeKey} disabled={busy} onPick={pick} />
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-          <button className="secondary" disabled={busy || curIdx <= 0} onClick={() => control('setSubState', { subState: order[Math.max(0, curIdx - 1)] })}>◀ 上一步</button>
-          <button className="secondary" disabled={busy || curIdx >= order.length - 1} onClick={() => control('setSubState', { subState: order[Math.min(order.length - 1, curIdx + 1)] })}>下一步 →</button>
-        </div>
-      </div>
-    );
-  }
-
-  // ---------- P3 养成游戏 ----------
-  if (moduleId === 'P3_GAME') {
-    const steps = [
-      { key: 'p3:hook', label: '钩子开场' },
-      ...P3_STAGES.map((s, i) => ({ key: `p3:${s.key}`, label: `${i + 1}.${s.name}` })),
-      { key: 'p3:wall', label: '共生缸' },
-    ];
-    const order = ['p3:hook', ...P3_STAGES.map((s) => `p3:${s.key}`), 'p3:wall'];
-    const activeKey = String(subState ?? 'p3:hook');
-    const curIdx = order.indexOf(activeKey);
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        <StepButtons steps={steps} activeKey={activeKey} disabled={busy} onPick={pick} />
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-          <button className="secondary" disabled={busy || curIdx <= 0} onClick={() => control('setSubState', { subState: order[Math.max(0, curIdx - 1)] })}>◀ 上一步</button>
-          <button className="secondary" disabled={busy || curIdx >= order.length - 1} onClick={() => control('setSubState', { subState: order[Math.min(order.length - 1, curIdx + 1)] })}>下一步 →</button>
-        </div>
-      </div>
-    );
-  }
-
-  // 其它 A0 模块
-  if (moduleId === 'A0N_QUESTIONS') {
-    return <span className="story-hint">学生回答三问，答得差不多进入系统判定。</span>;
-  }
-  if (moduleId === 'A0N_VOTE') {
-    return <span className="story-hint">系统后台判定每位学生的关系，大屏实时显示，收齐后进入揭晓。</span>;
-  }
-  return null;
+      )}
+    </div>
+  );
 }

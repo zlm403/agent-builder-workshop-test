@@ -7,6 +7,7 @@ import TeacherClosing from '@/components/TeacherClosing';
 import AvatarTeacher from '@/components/AvatarTeacher';
 import MediaManager from '@/components/MediaManager';
 import SlotContentManager from '@/components/SlotContentManager';
+import ContentPageEditor from '@/components/ContentPageEditor';
 
 const pctOf = (n: number, base: number) => (base > 0 ? Math.round((n / base) * 100) : 0);
 
@@ -107,6 +108,7 @@ export default function TeacherPage() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [showMedia, setShowMedia] = useState(false);
   const [mediaInitialSlot, setMediaInitialSlot] = useState<string | undefined>(undefined);
+  const [editingPageId, setEditingPageId] = useState<string | null>(null);
   const [llmKey, setLlmKey] = useState('');
   const [llmBaseUrl, setLlmBaseUrl] = useState('https://api.deepseek.com/v1');
   const [llmModel, setLlmModel] = useState('deepseek-chat');
@@ -1019,6 +1021,7 @@ export default function TeacherPage() {
                     subState={summary?.moduleSubState ?? null}
                     busy={busy}
                     control={control}
+                    onEditContent={(pageId) => setEditingPageId(pageId)}
                   />
                   <SlotContentManager
                     moduleId={currentModuleId}
@@ -1245,6 +1248,8 @@ export default function TeacherPage() {
       </div>
 
       {showMedia && <MediaManager onClose={() => setShowMedia(false)} initialSlot={mediaInitialSlot} />}
+
+      {editingPageId && <ContentPageEditor pageId={editingPageId} onClose={() => setEditingPageId(null)} />}
 
       {settingsOpen && (
         <div className="modal-backdrop" onClick={(e) => { if (e.target === e.currentTarget) setSettingsOpen(false); }}>
