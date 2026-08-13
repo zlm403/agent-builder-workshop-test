@@ -13,15 +13,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: { code: 'MISSING_ID' } }, { status: 400 });
     }
     const mode = String(body.mode ?? 'generate'); // generate | judge
+    const style = String(body.style ?? '');
     const rec = await ensureP2Record(sessionId, anonymousId);
 
     if (mode === 'generate') {
       const { code } = await generateP2Site({
-        field: String(rec.field ?? ''),
-        entryTask: String(rec.entryTask ?? ''),
-        skeleton: String(rec.skeleton ?? ''),
-        keyDiff: String(rec.keyDiff ?? ''),
-        sitePlan: String(rec.sitePlan ?? ''),
+        goalTask: String(rec.goalTask ?? rec.entryTask ?? ''),
+        knowledgeQs: String(rec.knowledgeQs ?? ''),
+        contentBlocks: String(rec.contentBlocks ?? ''),
+        style,
       });
       await updateP2(sessionId, anonymousId, { siteCode: code, step: 6 });
       return NextResponse.json({ code });

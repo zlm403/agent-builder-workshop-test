@@ -50,10 +50,10 @@ export async function updateP3(
   patch: Partial<{
     step: number;
     objectName: string;
-    growthDef: string;
-    coreRules: string;
-    events: string;
-    endings: string;
+    trait: string;
+    traitWhy: string;
+    lifeDesign: object;
+    lifeNotes: object;
     chatLog: P3ChatTurn[];
     gameCode: string;
     testNote: string;
@@ -63,6 +63,47 @@ export async function updateP3(
 ) {
   const rec = await ensureP3Record(sessionId, anonymousId);
   return prisma.p3GrowGame.update({ where: { id: rec.id }, data: patch as object });
+}
+
+/** 保存生命设计（含名字/特质/设计卡） */
+export async function saveLifeDesign(
+  sessionId: string,
+  anonymousId: string,
+  data: { objectName: string; trait: string; traitWhy: string; lifeDesign: object },
+) {
+  const rec = await ensureP3Record(sessionId, anonymousId);
+  return prisma.p3GrowGame.update({
+    where: { id: rec.id },
+    data: { objectName: data.objectName, trait: data.trait, traitWhy: data.traitWhy, lifeDesign: data.lifeDesign as object },
+  });
+}
+
+/** 标记已投入共生缸 */
+export async function markP3Submitted(sessionId: string, anonymousId: string, finalWork: string) {
+  const rec = await ensureP3Record(sessionId, anonymousId);
+  await updateP3(sessionId, anonymousId, {
+    finalWork,
+    step: 10,
+    submittedAt: new Date(),
+  });
+  await markP3Progress(sessionId, anonymousId, 'P3_GAME', { finalWork });
+  return rec;
+}
+
+/** 大屏共生缸：取全班已投入的生命 */
+export async function getTankLives(sessionId: string) {
+  const recs = await prisma.p3GrowGame.findMany({
+    where: { sessionId, submittedAt: { not: null } },
+    select: { anonymousId: true, objectName: true, trait: true, lifeDesign: true },
+  });
+  return recs
+    .filter((r) => r.lifeDesign)
+    .map((r) => ({
+      id: r.anonymousId,
+      name: r.objectName || '无名生命',
+      trait: r.trait || '',
+      design: r.lifeDesign as object,
+    }));
 }
 
 export interface P3WallRow {
@@ -86,21 +127,21 @@ export async function getP3Analytics(sessionId: string): Promise<P3Analytics> {
     prisma.participant.findMany({ where: { sessionId }, select: { anonymousId: true, nickname: true, wechatName: true } }),
     prisma.p3GrowGame.findMany({ where: { sessionId } }),
   ]);
-  const byStep = [0, 0, 0, 0, 0, 0];
+  const byStep = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
   for (const r of recs) {
-    const s = Math.min(6, Math.max(1, r.step));
-    for (let i = s; i <= 6; i++) byStep[i - 1]++;
+    const s = Math.min(10, Math.max(1, r.step));
+    for (let i = s; i <= 10; i++) byStep[i - 1]++;
   }
   const byName = new Map(parts.map((p) => [p.anonymousId, p.wechatName ?? p.nickname ?? null]));
   const rows: P3WallRow[] = recs.map((r) => ({
     anonymousId: r.anonymousId,
     nickname: byName.get(r.anonymousId) ?? null,
     step: r.step,
-    summary: r.objectName || r.growthDef || '',
+    summary: r.objectName || r.trait || '',
   }));
-  const finished = recs.filter((r) => r.step >= 6).length;
+  const finished = recs.filter((r) => r.step >= 10).length;
   const cols = recs
-    .map((r) => (r.finalWork ? r.finalWork.slice(0, 160) : r.objectName ? `养成对象：${r.objectName} · ${r.growthDef || ''}` : ''))
+    .map((r) => (r.finalWork ? r.finalWork.slice(0, 160) : r.objectName ? `生命：${r.objectName} · ${r.trait || ''}` : ''))
     .filter(Boolean)
     .slice(0, 40);
   return {

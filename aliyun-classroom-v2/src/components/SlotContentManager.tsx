@@ -89,13 +89,16 @@ export default function SlotContentManager({
 
       {slots.map((s) => {
         const list = bySlot[s.key] ?? [];
-        if (list.length === 0) return null;
+        const isEmpty = list.length === 0;
         return (
           <div key={s.key} style={{ marginBottom: 8, paddingLeft: 4, borderLeft: '2px solid rgba(124,58,237,0.4)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
               <span style={{ fontSize: 11, color: '#c4b5fd', fontWeight: 600 }}>{s.label}</span>
               <button className="secondary" style={{ fontSize: 10, padding: '2px 8px' }} onClick={() => onAdd(s.key)}>＋ 在此处增加</button>
             </div>
+            {isEmpty && (
+              <div style={{ fontSize: 11, color: 'var(--muted)', padding: '2px 8px', marginBottom: 4 }}>（暂无内容，点「在此处增加」添加）</div>
+            )}
             {list.map((it) => (
               <div key={it.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 8px', background: 'rgba(15,23,42,0.5)', border: '1px solid var(--border)', borderRadius: 6, marginBottom: 4, opacity: it.hidden ? 0.5 : 1 }}>
                 <span style={{ fontSize: 13 }}>{KIND_ICONS[it.kind] ?? '📦'}</span>
@@ -112,10 +115,6 @@ export default function SlotContentManager({
           </div>
         );
       })}
-
-      {slots.every((s) => (bySlot[s.key] ?? []).length === 0) && (
-        <p style={{ color: 'var(--muted)', fontSize: 12, margin: 0 }}>本环节还没有内容块，点上方「＋ 增加内容」从媒体库添加。</p>
-      )}
     </div>
   );
 }

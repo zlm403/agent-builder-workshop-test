@@ -51,6 +51,9 @@ export async function updateP2(
     step: number;
     field: string;
     entryTask: string;
+    goalTask: string;
+    knowledgeQs: string;
+    contentBlocks: string;
     skeleton: string;
     keyDiff: string;
     sitePlan: string;

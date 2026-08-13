@@ -59,6 +59,7 @@ export default function StudentPage() {
   const [locked, setLocked] = useState(false);
   const [subState, setSubState] = useState<string | null>(null);
   const [sessionId, setSessionId] = useState('');
+  const [reloadKey, setReloadKey] = useState(0); // 模块进度被教师重置时 ++ 强制重挂载
 
   // 连接建立即拉取收官状态：SSE 不回放历史事件，学生端若晚于 enter 连上需自愈
   useEffect(() => {
@@ -161,6 +162,10 @@ export default function StudentPage() {
           const evt = JSON.parse(e.data);
           if (evt.type === 'module:advanced' || evt.type === 'module:locked' || evt.type === 'module:substate') {
             refreshCurrent();
+          } else if (evt.type === 'module:reset') {
+            // 教师重置了某模块进度：刷新状态并强制重挂载当前模块组件，回到初始
+            refreshCurrent();
+            setReloadKey((k) => k + 1);
           } else if (evt.type === 'classroom:reset') {
             // 课堂被重置：清除本地恢复凭证 + 所有标签状态，回到"加入课堂"
             localStorage.removeItem('studentResumeToken');
@@ -738,19 +743,20 @@ export default function StudentPage() {
                 submitted={moduleStatus === 'submitted'}
                 onSubmitted={() => refreshRef.current()}
                 currentTitle={current.title}
+                subState={subState}
               />
             )}
 
             {current.type === 'avatar_flow' && (
-              <AvatarA1Student anonymousId={anonymousId} sessionId={sessionId} locked={locked} />
+              <AvatarA1Student key={reloadKey} anonymousId={anonymousId} sessionId={sessionId} locked={locked} subState={subState} />
             )}
 
             {current.type === 'site_entry' && (
-              <SiteEntryStudent anonymousId={anonymousId} sessionId={sessionId} locked={locked} />
+              <SiteEntryStudent anonymousId={anonymousId} sessionId={sessionId} locked={locked} subState={subState} />
             )}
 
             {current.type === 'grow_game' && (
-              <GrowGameStudent anonymousId={anonymousId} sessionId={sessionId} locked={locked} />
+              <GrowGameStudent anonymousId={anonymousId} sessionId={sessionId} locked={locked} subState={subState} />
             )}
 
             {isAiTask && (

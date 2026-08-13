@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
-import { startClassroom, advanceClassroom, jumpClassroom, setLock, resetClassroom, endClassroom, setModuleSubState, invalidateSessionCache } from '@/lib/classroom';
+import { startClassroom, advanceClassroom, jumpClassroom, setLock, resetClassroom, endClassroom, setModuleSubState, resetModuleProgress, invalidateSessionCache } from '@/lib/classroom';
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   try {
@@ -19,6 +19,10 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
           return NextResponse.json({ error: { code: 'BAD_REQUEST', message: 'targetModuleId required' } }, { status: 400 });
         }
         result = await jumpClassroom(params.id, body.targetModuleId);
+        // jump 后立即设置子屏（A0 章节跨模块跳转时指定 reveal:N）
+        if (typeof body.subState === 'string' && body.subState) {
+          await setModuleSubState(params.id, body.subState);
+        }
         break;
       case 'lock':
         result = await setLock(params.id, body.locked === true);
@@ -28,6 +32,12 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
           return NextResponse.json({ error: { code: 'BAD_REQUEST', message: 'subState required' } }, { status: 400 });
         }
         result = await setModuleSubState(params.id, body.subState);
+        break;
+      case 'resetModule':
+        if (typeof body.moduleId !== 'string') {
+          return NextResponse.json({ error: { code: 'BAD_REQUEST', message: 'moduleId required' } }, { status: 400 });
+        }
+        result = await resetModuleProgress(params.id, body.moduleId);
         break;
       case 'reset':
         result = await resetClassroom(params.id);

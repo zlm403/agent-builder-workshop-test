@@ -704,6 +704,66 @@ select {
 .a0-bar-pct { width: auto; min-width: 100px; white-space: nowrap; text-align: left; font-size: 16px; font-weight: 700; color: #e2e8f0; }
 .a0-snap-note { font-size: 12px; color: var(--muted); margin-top: 12px; }
 
+/* A0-3 三种形态 · 本质区别表（大屏） */
+.a0-forms-sub { font-size: clamp(15px, 1.6vw, 22px); color: var(--muted); letter-spacing: 0.04em; }
+.a0-forms-table { width: min(1280px, 94vw); display: flex; flex-direction: column; gap: 8px; }
+.a0-forms-header, .a0-forms-row { display: grid; grid-template-columns: 1fr 1.5fr 1.5fr 1.5fr; gap: 10px; }
+.a0-forms-header { margin-bottom: 2px; }
+.a0-forms-col-h { font-size: clamp(18px, 2vw, 28px); font-weight: 800; padding: 12px 16px; border-radius: 14px; text-align: center; letter-spacing: 0.06em; }
+.a0-forms-dim { display: flex; align-items: center; justify-content: center; font-size: clamp(15px, 1.5vw, 20px); font-weight: 700; color: #e2e8f0; background: rgba(15,23,42,0.45); border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; }
+.a0-forms-cell { font-size: clamp(15px, 1.6vw, 22px); line-height: 1.45; color: #e2e8f0; padding: 10px 14px; border-radius: 12px; text-align: center; display: flex; align-items: center; justify-content: center; min-height: 48px; }
+.a0-forms-cell strong { font-size: clamp(17px, 1.9vw, 26px); }
+.a0-forms-tone-0 { background: rgba(100,116,139,0.16); border: 1px solid rgba(148,163,184,0.35); }
+.a0-forms-col-h.a0-forms-tone-0 { background: rgba(100,116,139,0.30); color: #e2e8f0; border-color: rgba(148,163,184,0.5); }
+.a0-forms-tone-1 { background: rgba(37,99,235,0.14); border: 1px solid rgba(96,165,250,0.4); }
+.a0-forms-col-h.a0-forms-tone-1 { background: rgba(37,99,235,0.28); color: #93c5fd; border-color: rgba(96,165,250,0.55); }
+.a0-forms-tone-2 { background: rgba(124,58,237,0.15); border: 1px solid rgba(167,139,250,0.45); }
+.a0-forms-col-h.a0-forms-tone-2 { background: rgba(124,58,237,0.30); color: #c4b5fd; border-color: rgba(167,139,250,0.6); }
+.a0-forms-punchline .a0-forms-dim { background: rgba(124,58,237,0.22); border-color: rgba(167,139,250,0.6); color: #c4b5fd; }
+.a0-forms-punchline .a0-forms-cell { font-weight: 800; }
+
+/* A0-3 学生滑杆（reveal:4） */
+.a0-slider-wrap { display: flex; flex-direction: column; gap: 14px; }
+.a0-slider-title { font-size: 20px; font-weight: 800; text-align: center; color: #f8fafc; }
+.a0-slider-sub { font-size: 13px; color: var(--muted); text-align: center; line-height: 1.6; }
+.a0-slider-row { background: rgba(15,23,42,0.5); border: 1px solid var(--border); border-radius: 14px; padding: 12px 16px; }
+.a0-slider-label { font-size: 14px; font-weight: 700; color: #e2e8f0; }
+.a0-slider-hint { font-size: 11px; color: var(--muted); margin-bottom: 6px; }
+.a0-slider-track { display: flex; align-items: center; gap: 10px; }
+.a0-slider-end { font-size: 13px; font-weight: 700; flex-shrink: 0; padding: 2px 8px; border-radius: 8px; }
+.a0-slider-end-human { color: #60a5fa; background: rgba(37,99,235,0.18); border: 1px solid rgba(96,165,250,0.4); }
+.a0-slider-end-ai { color: #c4b5fd; background: rgba(124,58,237,0.18); border: 1px solid rgba(167,139,250,0.4); }
+.a0-range { flex: 1; height: 28px; -webkit-appearance: none; appearance: none; background: transparent; cursor: pointer; }
+.a0-range::-webkit-slider-runnable-track {
+  height: 8px; border-radius: 999px;
+  background: linear-gradient(90deg, #2563eb var(--val, 50%), #7c3aed var(--val, 50%));
+}
+.a0-range::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none; width: 22px; height: 22px; margin-top: -7px; border-radius: 50%;
+  background: #f8fafc; border: 3px solid #7c3aed; box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+}
+.a0-range::-moz-range-track { height: 8px; border-radius: 999px; background: linear-gradient(90deg, #2563eb var(--val, 50%), #7c3aed var(--val, 50%)); }
+.a0-range::-moz-range-thumb { width: 22px; height: 22px; border-radius: 50%; background: #f8fafc; border: 3px solid #7c3aed; }
+.a0-slider-readout { font-size: 12px; color: #c4b5fd; margin-top: 6px; text-align: right; }
+
+/* A0-3 大屏滑杆柱状图 */
+.a0-sliders-progress { font-size: 16px; color: #fde047; border: 1px dashed rgba(234,179,8,0.45); border-radius: 12px; padding: 10px 18px; }
+.a0-sliders-chart { background: rgba(15,23,42,0.55); border: 1px solid var(--border); border-radius: 18px; padding: 22px 26px; }
+.a0-sliders-chart-title { font-size: 15px; color: var(--muted); letter-spacing: 0.08em; margin-bottom: 14px; }
+.a0-slider-bar-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.a0-slider-bar-label { width: 76px; font-size: 13px; font-weight: 700; color: #e2e8f0; flex-shrink: 0; text-align: right; }
+.a0-slider-bar-track { flex: 1; display: flex; height: 30px; border-radius: 8px; overflow: hidden; background: rgba(148,163,184,0.12); min-width: 0; }
+.a0-slider-bar-seg { display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800; color: rgba(0,0,0,0); min-width: 0; transition: flex 0.6s ease; }
+.a0-slider-bar-seg:not(:empty) { color: #0f172a; }
+.a0-human { background: linear-gradient(180deg, #60a5fa, #2563eb); }
+.a0-mid { background: linear-gradient(180deg, #94a3b8, #64748b); }
+.a0-ai { background: linear-gradient(180deg, #c4b5fd, #7c3aed); }
+.a0-sliders-chart-legend { display: flex; gap: 18px; margin-top: 14px; justify-content: center; font-size: 12px; color: var(--muted); }
+.a0-sliders-chart-legend .lg { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+.lg-human { background: #2563eb; }
+.lg-mid { background: #64748b; }
+.lg-ai { background: #7c3aed; }
+
 .a0-samples { width: 100%; max-width: 920px; }
 .a0-samples-title { font-size: 14px; color: var(--muted); letter-spacing: 0.08em; margin-bottom: 12px; }
 .a0-sample { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; background: rgba(15,23,42,0.5); border: 1px solid var(--border); border-radius: 12px; padding: 12px 16px; margin-bottom: 10px; }

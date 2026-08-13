@@ -1,11 +1,13 @@
 'use client';
 // =========================================================
-// P3 养成游戏 · 学生端组件（六步连续对话）
-// 手机端：一个连续对话框，不停地问、不停地说；最后生成游戏、试玩修改、发布。
-// 大屏端：六格点亮由教师控制，与手机端解耦。
+// P3 数字生命共生缸 · 学生端（十阶段）
+// 小屏：当前任务 / 我的生命 / AI 助手 / 观察记录 / 提交
+// 阶段由教师控制推进（subState p3:s1..s10 / p3:wall）
+// 核心：选特质 → 设计规则 → AI 翻译 + 实验缸试运行 → 投入共生缸 → 观察 → 修改 → 二次运行
 // =========================================================
 import { useEffect, useRef, useState } from 'react';
-import { P3_STEPS } from '@/features/growGame/config';
+import { P3_STAGES, P3_TRAITS, P3_SHAPES, P3_TRAILS, P3_MOVEMENTS, P3_INTERACTIONS, P3_ABILITIES, P3_COSTS, P3_DEFAULT_DESIGN } from '@/features/growGame/config';
+import LabTank from './LabTank';
 
 interface Bubble {
   role: 'ai' | 'user';
@@ -16,44 +18,60 @@ export default function GrowGameStudent({
   anonymousId,
   sessionId,
   locked,
+  subState,
 }: {
   anonymousId: string;
   sessionId: string;
   locked: boolean;
+  subState?: string | null;
 }) {
-  const [stepIdx, setStepIdx] = useState(0); // 0..5
   const [bubbles, setBubbles] = useState<Bubble[]>([]);
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
-  const [gameCode, setGameCode] = useState<string | null>(null);
-  const [testNote, setTestNote] = useState<string | null>(null);
-  const [finalWork, setFinalWork] = useState('');
-  const [showGame, setShowGame] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(true);
   const logRef = useRef<HTMLDivElement>(null);
+  const initRef = useRef(false);
 
-  const step = P3_STEPS[stepIdx];
+  // 当前阶段
+  const stageIdx = (() => {
+    const m = String(subState ?? '').match(/^p3:(s\d+)$/);
+    return m ? P3_STAGES.findIndex((s) => s.key === m[1]) : -1;
+  })();
+  const inTank = String(subState ?? '') === 'p3:wall';
+  const inHook = String(subState ?? '') === 'p3:hook' || stageIdx < 0;
+  const stage = stageIdx >= 0 ? P3_STAGES[stageIdx] : null;
 
+  // 生命设计状态
+  const [objectName, setObjectName] = useState('');
+  const [trait, setTrait] = useState('');
+  const [traitWhy, setTraitWhy] = useState('');
+  const [traitKind, setTraitKind] = useState('真实的我');
+  const [design, setDesign] = useState<any>({ ...P3_DEFAULT_DESIGN });
+  const [submitted, setSubmitted] = useState(false);
+  const [note, setNote] = useState('');
+  const [observeText, setObserveText] = useState('');
+  const [observeProblem, setObserveProblem] = useState('');
+  const [modifyChoice, setModifyChoice] = useState('');
+  const [compare, setCompare] = useState('');
+  const [finalLine, setFinalLine] = useState('');
+
+  // 加载已保存状态
   useEffect(() => {
     if (!anonymousId || !sessionId) return;
     (async () => {
       try {
-        const res = await fetch(`/api/grow-game/state?sessionId=${sessionId}&anonymousId=${anonymousId}`);
+        const res = await fetch(`/api/grow-game/life?sessionId=${sessionId}&anonymousId=${anonymousId}`);
         const d = await res.json();
-        if (d.chatLog && Array.isArray(d.chatLog)) {
-          setBubbles(d.chatLog.filter((m: any) => m.role === 'ai' || m.role === 'user'));
-        }
-        if (d.gameCode) setGameCode(d.gameCode);
-        if (d.testNote) setTestNote(d.testNote);
-        if (d.finalWork) setFinalWork(d.finalWork);
+        if (d.objectName) setObjectName(d.objectName);
+        if (d.trait) setTrait(d.trait);
+        if (d.traitWhy) setTraitWhy(d.traitWhy);
+        if (d.lifeDesign) setDesign({ ...P3_DEFAULT_DESIGN, ...d.lifeDesign });
         if (d.submittedAt) setSubmitted(true);
-        const s = Math.min(6, Math.max(1, Number(d.step) || 1));
-        if (d.finalWork || d.submittedAt) setStepIdx(5);
-        else if (d.gameCode) setStepIdx(5);
-        else setStepIdx(s - 1);
-        if (!d.chatLog || d.chatLog.length === 0) {
-          setBubbles([{ role: 'ai', content: P3_STEPS[0].aiAsk }]);
+        if (!initRef.current) {
+          initRef.current = true;
+          if (!d.chatLog || (Array.isArray(d.chatLog) && d.chatLog.length === 0)) {
+            setBubbles([{ role: 'ai', content: '欢迎来到共生缸！你想创造一个怎样的数字生命？\n\n它可以代表真实的你，也可以代表你想成为的某一部分。选一个你想表达的特点。' }]);
+          }
         }
       } finally {
         setLoading(false);
@@ -63,11 +81,11 @@ export default function GrowGameStudent({
 
   useEffect(() => {
     logRef.current?.scrollTo({ top: logRef.current.scrollHeight, behavior: 'smooth' });
-  }, [bubbles, gameCode, testNote]);
+  }, [bubbles]);
 
   async function send() {
     const text = input.trim();
-    if (!text || busy || locked) return;
+    if (!text || busy || locked || !stage) return;
     setBusy(true);
     setInput('');
     setBubbles((b) => [...b, { role: 'user', content: text }]);
@@ -75,7 +93,7 @@ export default function GrowGameStudent({
       const res = await fetch('/api/grow-game/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ anonymousId, sessionId, stepKey: step.key, message: text }),
+        body: JSON.stringify({ anonymousId, sessionId, stage: stage.key, message: text }),
       });
       const d = await res.json();
       if (!res.ok || d.error) {
@@ -83,169 +101,249 @@ export default function GrowGameStudent({
         return;
       }
       if (d.reply) setBubbles((b) => [...b, { role: 'ai', content: d.reply }]);
-      if (step.key === 'rules' && d.done) {
-        // 核心规则建立完成：自动推进到「设计事件」(3→4)
-        setStepIdx(3);
-        setBubbles((b) => [...b, { role: 'ai', content: P3_STEPS[3].aiAsk }]);
-      }
     } finally {
       setBusy(false);
     }
   }
 
-  async function goNextStep() {
-    if (stepIdx >= 5) return;
-    const ni = stepIdx + 1;
-    const oldStep = step.key;
-    setStepIdx(ni);
+  // 保存设计
+  async function saveLife() {
+    if (!objectName.trim() || !trait || !design || busy) return;
     setBusy(true);
     try {
-      const res = await fetch('/api/grow-game/chat', {
+      await fetch('/api/grow-game/life', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ anonymousId, sessionId, stepKey: oldStep, message: '我准备好了，进入下一步。' }),
+        body: JSON.stringify({ anonymousId, sessionId, mode: 'save', objectName, trait, traitWhy, lifeDesign: design }),
       });
-      const d = await res.json();
-      if (d.reply) setBubbles((b) => [...b, { role: 'ai', content: d.reply }]);
-      else setBubbles((b) => [...b, { role: 'ai', content: P3_STEPS[ni].aiAsk }]);
-    } catch {
-      setBubbles((b) => [...b, { role: 'ai', content: P3_STEPS[ni].aiAsk }]);
+      setBubbles((b) => [...b, { role: 'ai', content: '你的生命设计已保存！接下来让 AI 把它翻译成规则，在实验缸里试试。' }]);
     } finally {
       setBusy(false);
     }
   }
 
-  async function generateGame() {
+  // 投入共生缸
+  async function launchLife() {
     if (busy) return;
     setBusy(true);
     try {
-      const res = await fetch('/api/grow-game/generate', {
+      const finalWork = `我想创造一个${trait}的生命；设计：${objectName}`;
+      await fetch('/api/grow-game/life', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ anonymousId, sessionId, mode: 'generate' }),
+        body: JSON.stringify({ anonymousId, sessionId, mode: 'launch', finalWork }),
       });
-      const d = await res.json();
-      if (d.code) {
-        setGameCode(d.code);
-        setBubbles((b) => [...b, { role: 'ai', content: '游戏第一版已经生成。点「试玩游戏」把一局打完：选择是否有效？冲突是否好玩？结局是否合理？' }]);
-      }
+      setSubmitted(true);
+      setBubbles((b) => [...b, { role: 'ai', content: `🎉 ${objectName} 已经投入共生缸了！去看看它在里面怎么动吧。` }]);
     } finally {
       setBusy(false);
     }
   }
 
-  async function judgeWork() {
-    if (busy || !finalWork) return;
-    setBusy(true);
-    try {
-      const res = await fetch('/api/grow-game/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ anonymousId, sessionId, mode: 'judge', finalWork, testNote }),
-      });
-      const d = await res.json();
-      setTestNote(d.note || '');
-      setBubbles((b) => [...b, { role: 'user', content: finalWork }, { role: 'ai', content: d.note || '' }]);
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function submitFinal() {
-    if (busy || !finalWork) return;
-    setBusy(true);
-    try {
-      const res = await fetch('/api/grow-game/submit', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ anonymousId, sessionId, finalWork }),
-      });
-      if (res.ok) setSubmitted(true);
-    } finally {
-      setBusy(false);
-    }
+  // 提交观察/修改
+  async function saveNote(n: object) {
+    await fetch('/api/grow-game/life', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ anonymousId, sessionId, mode: 'note', note: n }),
+    });
   }
 
   if (loading) {
-    return <p className="note">正在加载你的养成游戏…</p>;
+    return <p className="note">正在加载共生缸…</p>;
+  }
+
+  // 钩子/未进入：看大屏
+  if (inHook && !inTank) {
+    return (
+      <div className="module-card" style={{ textAlign: 'center', paddingTop: '6vh' }}>
+        <div style={{ fontSize: 34, fontWeight: 800, marginBottom: 10 }}>请看大屏</div>
+        <p className="note">今天我们要创造一个数字生命，把它放进全班共同的共生缸。听老师讲开场。</p>
+      </div>
+    );
+  }
+
+  if (inTank) {
+    return (
+      <div className="module-card" style={{ textAlign: 'center', paddingTop: '6vh' }}>
+        <div style={{ fontSize: 34, fontWeight: 800, marginBottom: 10 }}>请看大屏 · 共生缸</div>
+        <p className="note">你的生命已经投进去了，全班的生命都在大屏的共生缸里运行。观察它实际做了什么。</p>
+      </div>
+    );
   }
 
   return (
     <div className="ai-workspace">
-      <div className="zone">
-        <h3 style={{ color: '#38bdf8' }}>
-          P3 养成游戏 · {step.name}
-          <span style={{ float: 'right', fontSize: 12, color: 'var(--muted)', fontWeight: 400 }}>
-            {stepIdx + 1} / {P3_STEPS.length}
-          </span>
-        </h3>
-        <p className="task-hint" style={{ color: '#bae6fd', lineHeight: 1.6, margin: '6px 0 0' }}>{step.title}</p>
+      {/* 当前任务卡 */}
+      <div className="zone" style={{ borderLeft: '4px solid #fb923c' }}>
+        <h3 style={{ color: '#fb923c', margin: 0 }}>阶段 {stageIdx + 1} · {stage?.name}</h3>
+        <p className="task-hint" style={{ color: '#fde047', fontWeight: 600, lineHeight: 1.6, margin: '8px 0 4px' }}>{stage?.screenTitle}</p>
+        <p className="task-hint" style={{ color: '#cbd5e1', lineHeight: 1.6, margin: 0 }}>{stage?.studentTask}</p>
       </div>
 
+      {/* 生命设计器（s2-s4） */}
+      {(stage?.key === 's2' || stage?.key === 's3' || stage?.key === 's4') && (
+        <div className="zone" style={{ border: '1px solid rgba(251,146,60,.3)', background: 'rgba(251,146,60,.05)' }}>
+          <h3 style={{ color: '#fb923c', margin: '0 0 10px' }}>我的生命</h3>
+
+          {/* 名字 */}
+          <input placeholder="给它起个名字（如：慢慢光）" value={objectName} onChange={(e) => setObjectName(e.target.value)} style={{ fontSize: 13, marginBottom: 8 }} />
+
+          {/* s2 特质 */}
+          {stage?.key === 's2' && (
+            <>
+              <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 6 }}>我想创造一个____的生命：</div>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
+                {P3_TRAITS.map((t) => (
+                  <button key={t} className={trait === t ? 'primary' : 'secondary'} style={{ fontSize: 12, padding: '6px 10px' }} onClick={() => setTrait(t)}>{t}</button>
+                ))}
+              </div>
+              <input placeholder="为什么选这个特点？（一句话）" value={traitWhy} onChange={(e) => setTraitWhy(e.target.value)} style={{ fontSize: 13, marginBottom: 8 }} />
+              <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 6 }}>它更接近：</div>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
+                {['真实的我', '想成为的自己', '两者都有', '完全虚构'].map((k) => (
+                  <button key={k} className={traitKind === k ? 'primary' : 'secondary'} style={{ fontSize: 12, padding: '6px 10px' }} onClick={() => setTraitKind(k)}>{k}</button>
+                ))}
+              </div>
+            </>
+          )}
+
+          {/* s3 设计卡 */}
+          {stage?.key === 's3' && (
+            <>
+              <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 6 }}>外形（形状 / 轨迹）：</div>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 4 }}>
+                {P3_SHAPES.map((s) => (
+                  <button key={s} className={design.shape === s ? 'primary' : 'secondary'} style={{ fontSize: 12, padding: '5px 9px' }} onClick={() => setDesign((d: any) => ({ ...d, shape: s }))}>{s}</button>
+                ))}
+              </div>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
+                {P3_TRAILS.map((t) => (
+                  <button key={t} className={design.trail === t ? 'primary' : 'secondary'} style={{ fontSize: 12, padding: '5px 9px' }} onClick={() => setDesign((d: any) => ({ ...d, trail: t }))}>{t}</button>
+                ))}
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 6 }}>它怎样移动？</div>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
+                {P3_MOVEMENTS.map((m) => (
+                  <button key={m.v} className={design.movement === m.v ? 'primary' : 'secondary'} style={{ fontSize: 12, padding: '6px 10px' }} onClick={() => setDesign((d: any) => ({ ...d, movement: m.v }))}>{m.label}</button>
+                ))}
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 6 }}>它遇到其他生命会怎样？</div>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
+                {P3_INTERACTIONS.map((m) => (
+                  <button key={m.v} className={design.interaction === m.v ? 'primary' : 'secondary'} style={{ fontSize: 12, padding: '6px 10px' }} onClick={() => setDesign((d: any) => ({ ...d, interaction: m.v }))}>{m.label}</button>
+                ))}
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 6 }}>它的特殊能力：</div>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
+                {P3_ABILITIES.map((m) => (
+                  <button key={m.v} className={design.ability === m.v ? 'primary' : 'secondary'} style={{ fontSize: 12, padding: '6px 10px' }} onClick={() => setDesign((d: any) => ({ ...d, ability: m.v }))}>{m.label}</button>
+                ))}
+              </div>
+              <div style={{ fontSize: 12, color: '#f87171', marginBottom: 6 }}>使用能力的代价（每个能力必须有限制）：</div>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
+                {P3_COSTS.map((m) => (
+                  <button key={m.v} className={design.cost === m.v ? 'primary' : 'secondary'} style={{ fontSize: 12, padding: '6px 10px' }} onClick={() => setDesign((d: any) => ({ ...d, cost: m.v }))}>{m.label}</button>
+                ))}
+              </div>
+            </>
+          )}
+
+          <button className="primary" style={{ width: '100%' }} disabled={!objectName.trim() || !trait || busy} onClick={saveLife}>
+            {busy ? '保存中…' : '💾 保存我的生命设计'}
+          </button>
+        </div>
+      )}
+
+      {/* s4 实验缸试运行 */}
+      {stage?.key === 's4' && objectName && trait && (
+        <div className="zone" style={{ border: '1px solid rgba(56,189,248,.3)', background: 'rgba(56,189,248,.04)' }}>
+          <h3 style={{ color: '#38bdf8', margin: '0 0 8px' }}>🧪 个人实验缸</h3>
+          <p style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.6, margin: '0 0 8px' }}>
+            先在这里试试你的生命：它会怎么动？被事件撞一下什么感觉？跟邻居碰一下什么感觉？试完满意再投进全班共生缸。
+          </p>
+          <LabTank name={objectName} trait={trait} design={design} hue={design.hue ?? 190} />
+          <button className="primary" style={{ width: '100%', marginTop: 8 }} disabled={submitted || busy} onClick={launchLife}>
+            {submitted ? '✅ 已投入共生缸' : '🚀 投入共生缸'}
+          </button>
+        </div>
+      )}
+
+      {/* s6 观察 */}
+      {stage?.key === 's6' && (
+        <div className="zone" style={{ border: '1px solid rgba(124,58,237,.3)', background: 'rgba(124,58,237,.05)' }}>
+          <h3 style={{ color: '#c4b5fd', margin: '0 0 8px' }}>🔍 观察记录</h3>
+          <textarea placeholder="我实际看到的是…（它移动/相遇/能力发挥得怎么样）" value={observeText} onChange={(e) => setObserveText(e.target.value)} style={{ fontSize: 13, minHeight: 60 }} />
+          <textarea placeholder="我认为需要解决的问题是…" value={observeProblem} onChange={(e) => setObserveProblem(e.target.value)} style={{ fontSize: 13, minHeight: 60, marginTop: 6 }} />
+          <button className="secondary" style={{ width: '100%', marginTop: 8 }} disabled={!observeProblem || busy} onClick={async () => { await saveNote({ observe: observeText, problem: observeProblem }); setBubbles((b) => [...b, { role: 'ai', content: '观察已记录。下一步修改它。' }]); }}>
+            记录我的观察
+          </button>
+        </div>
+      )}
+
+      {/* s7 修改 */}
+      {stage?.key === 's7' && (
+        <div className="zone" style={{ border: '1px solid rgba(250,204,21,.3)', background: 'rgba(250,204,21,.05)' }}>
+          <h3 style={{ color: '#fde047', margin: '0 0 8px' }}>✏️ 修改我的生命</h3>
+          <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 6 }}>修改方向（只改一个最关键的）：</div>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
+            {['移动规则', '相遇规则', '特殊能力', '能力代价', '外形', '增加行为条件'].map((c) => (
+              <button key={c} className={modifyChoice === c ? 'primary' : 'secondary'} style={{ fontSize: 12, padding: '6px 10px' }} onClick={() => setModifyChoice(c)}>{c}</button>
+            ))}
+          </div>
+          <p style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.6, margin: 0 }}>
+            在对话框告诉 AI："我原来希望它____，但实际运行时____，所以我要把____改成____。" AI 会给你两个方案，你选一个。
+          </p>
+        </div>
+      )}
+
+      {/* s8 二次运行判断 */}
+      {stage?.key === 's8' && (
+        <div className="zone" style={{ border: '1px solid rgba(134,239,172,.3)', background: 'rgba(134,239,172,.05)' }}>
+          <h3 style={{ color: '#86efac', margin: '0 0 8px' }}>🔁 修改后，更接近你的想法吗？</h3>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
+            {['更接近我的想法', '问题解决了一部分', '没有明显改善', '出现了新的问题', '第一版反而更好'].map((c) => (
+              <button key={c} className={compare === c ? 'primary' : 'secondary'} style={{ fontSize: 12, padding: '6px 10px' }} onClick={() => setCompare(c)}>{c}</button>
+            ))}
+          </div>
+          <input placeholder="我最终保留这个版本，因为…" value={finalLine} onChange={(e) => setFinalLine(e.target.value)} style={{ fontSize: 13 }} />
+        </div>
+      )}
+
+      {/* s9 过程卡 */}
+      {stage?.key === 's9' && (
+        <div className="zone" style={{ border: '1px solid rgba(56,189,248,.3)', background: 'rgba(56,189,248,.05)' }}>
+          <h3 style={{ color: '#38bdf8', margin: '0 0 8px' }}>📋 我的创造过程卡</h3>
+          <p style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.8, margin: 0, whiteSpace: 'pre-wrap' }}>
+            我想创造一个<strong style={{ color: '#fde047' }}>{trait || '____'}</strong>的生命；
+            <br />AI 帮助我把它变成了<strong style={{ color: '#fde047' }}>{objectName || '____'}</strong>；
+            <br />第一次运行时，我发现<strong style={{ color: '#fde047' }}>{observeProblem || '____'}</strong>；
+            <br />所以我把<strong style={{ color: '#fde047' }}>{modifyChoice || '____'}</strong>改成了<strong style={{ color: '#fde047' }}>____</strong>；
+            <br />最终我保留这个版本，因为<strong style={{ color: '#fde047' }}>{finalLine || '____'}</strong>。
+          </p>
+        </div>
+      )}
+
+      {/* AI 对话 */}
       <div className="zone ai-zone">
-        <h3>{stepIdx === 5 ? '和 AI 一起打磨你的养成游戏' : '和游戏设计教练对话'}</h3>
-        <div className="chat-log" ref={logRef} style={{ maxHeight: 320, overflowY: 'auto' }}>
+        <h3>和 AI 聊</h3>
+        <div className="chat-log" ref={logRef} style={{ maxHeight: 220, overflowY: 'auto' }}>
           {bubbles.map((b, i) => (
             <div key={i} className={`bubble ${b.role}`}>
               <span className="who">{b.role === 'user' ? '你' : 'AI'}</span>
               <span className="text">{b.content}</span>
             </div>
           ))}
-
-          {/* 游戏生成 + 试玩（步6） */}
-          {step.key === 'iterate' && gameCode && !submitted && (
-            <div style={{ marginTop: 14 }}>
-              <p className="note" style={{ margin: '0 0 6px' }}>AI 已为你生成手游第一版。</p>
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                <button className="primary" onClick={() => setShowGame(true)}>🕹 试玩游戏（打一局）</button>
-              </div>
-              <p className="note" style={{ margin: '10px 0 4px' }}>把试玩结果记下来：选择是否有效？冲突是否好玩？结局是否合理？</p>
-              <textarea
-                placeholder="试玩结果…（例：两个选项没有真正的取舍，建议让每个选项都同时加一项减一项）"
-                value={finalWork}
-                disabled={locked || busy}
-                onChange={(e) => setFinalWork(e.target.value)}
-                style={{ minHeight: 80 }}
-              />
-              {finalWork && (
-                <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-                  <button className="secondary" disabled={busy} onClick={judgeWork}>
-                    {busy ? '评审中…' : '让 AI 评审可发布性'}
-                  </button>
-                  <button className="primary" disabled={busy || !testNote} onClick={submitFinal}>
-                    完成 · 发布我的养成游戏
-                  </button>
-                </div>
-              )}
-              {testNote && (
-                <div style={{ marginTop: 10, padding: 12, borderRadius: 10, background: 'rgba(250,204,21,0.08)', border: '1px solid rgba(250,204,21,0.4)' }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: '#fde047', marginBottom: 4 }}>AI 评估</div>
-                  <div style={{ fontSize: 13, lineHeight: 1.6 }}>{testNote}</div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {submitted && (
-            <div className="bubble final">
-              <span className="who">✅</span>
-              <div>
-                <div style={{ fontWeight: 700, marginBottom: 6 }}>游戏已发布</div>
-                <pre>{finalWork}</pre>
-                <div style={{ marginTop: 8, fontSize: 12, color: 'var(--muted)' }}>你的养成游戏已同步到大屏。</div>
-              </div>
-            </div>
-          )}
         </div>
-
         {!submitted && (
-          <div className="row" style={{ marginTop: 10 }}>
+          <div className="row" style={{ marginTop: 8 }}>
             <textarea
-              placeholder={step.key === 'rules' ? '告诉教练你的核心属性和冲突…' : '继续告诉 AI…'}
+              placeholder={stage?.key === 's7' ? '告诉我：你原来希望它____，但看到____，所以要改成____' : '跟 AI 说…'}
               value={input}
               disabled={locked || busy}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) send(); }}
+              style={{ minHeight: 48 }}
             />
             <button className="secondary" disabled={busy || locked || !input.trim()} onClick={send}>
               {busy ? '思考中…' : '发送'}
@@ -253,42 +351,6 @@ export default function GrowGameStudent({
           </div>
         )}
       </div>
-
-      {/* 步进按钮 */}
-      {step.key === 'iterate' && !gameCode && !submitted && (
-        <div style={{ textAlign: 'center', marginTop: 12 }}>
-          <button className="primary" disabled={busy || locked} onClick={generateGame} style={{ padding: '10px 26px', borderRadius: 8 }}>
-            {busy ? '生成中…' : '✦ 生成游戏第一版'}
-          </button>
-        </div>
-      )}
-      {!submitted && !['rules', 'iterate'].includes(step.key) && (
-        <div style={{ textAlign: 'center', marginTop: 12 }}>
-          <button className="primary" disabled={busy || locked} onClick={goNextStep} style={{ padding: '10px 26px', borderRadius: 8 }}>
-            进入下一步（{P3_STEPS[stepIdx + 1]?.name ?? ''}）→
-          </button>
-        </div>
-      )}
-
-      {/* 游戏预览弹层（试玩） */}
-      {showGame && gameCode && (
-        <div
-          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', flexDirection: 'column', zIndex: 999 }}
-          onClick={() => setShowGame(false)}
-        >
-          <div style={{ position: 'absolute', top: 12, right: 16, zIndex: 2 }}>
-            <button className="primary" onClick={() => setShowGame(false)} style={{ padding: '8px 18px', borderRadius: 8 }}>
-              关闭预览
-            </button>
-          </div>
-          <iframe
-            srcDoc={gameCode}
-            title="养成游戏试玩"
-            style={{ width: '100%', height: '100%', border: 'none', background: '#0f172a' }}
-            onClick={(e) => e.stopPropagation()}
-          />
-        </div>
-      )}
     </div>
   );
 }

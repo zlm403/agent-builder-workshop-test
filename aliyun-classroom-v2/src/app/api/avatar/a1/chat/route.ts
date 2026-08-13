@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ensureA1Record, updateA1, withA1Lock } from '@/features/avatarLesson/store';
-import { a1ChatReply, a1BuildReply, generateAvatar } from '@/features/avatarLesson/ai';
+import { a1StageReply, a1BuildReply, generateAvatar } from '@/features/avatarLesson/ai';
 import type { A1ChatTurn } from '@/features/avatarLesson/store';
-import { A1_STEPS } from '@/features/avatarLesson/config';
+import { A1_STAGES } from '@/features/avatarLesson/config';
 import { publish } from '@/lib/realtime';
 
 export const dynamic = 'force-dynamic';
@@ -10,9 +10,8 @@ export const dynamic = 'force-dynamic';
 interface Body {
   anonymousId?: string;
   sessionId?: string;
-  stepKey?: string; // dream | path | build | task | plan | iterate
+  stage?: string; // c1..c17
   message?: string;
-  planKey?: string; // 方案 key（plan 步选择时传入，如 life/attitude/contrast）
 }
 
 export async function POST(req: NextRequest) {
@@ -23,7 +22,7 @@ export async function POST(req: NextRequest) {
     if (!anonymousId || !sessionId) {
       return NextResponse.json({ error: { code: 'MISSING_ID' } }, { status: 400 });
     }
-    const stepKey = body.stepKey || 'dream';
+    const stage = body.stage || 'c1';
     const message = String(body.message ?? '').trim();
     if (!message) return NextResponse.json({ error: { code: 'EMPTY_MSG' } }, { status: 400 });
 
@@ -32,59 +31,48 @@ export async function POST(req: NextRequest) {
       const chatLog: A1ChatTurn[] = (rec.chatLog as A1ChatTurn[] | null) ?? [];
 
       let reply = '';
-      let advanceKey: string | null = null;
       let done = false;
+      let makeProfile = false; // c4 采访完成 → 生成档案
 
-      if (stepKey === 'build') {
+      if (stage === 'c4') {
         const b = await a1BuildReply(chatLog, message);
         reply = b.reply || '';
         done = b.done;
         if (b.done) {
-          advanceKey = 'task';
-          // 生成数字分身画像 + Skill
+          makeProfile = true;
           const fullLog: A1ChatTurn[] = [...chatLog, { role: 'user', content: message }, { role: 'ai', content: reply }];
           const g = await generateAvatar(fullLog);
           await updateA1(sessionId, anonymousId, { profileJson: g.profile as object, skillText: g.skill });
         }
       } else {
-        const nextIdx = A1_STEPS.findIndex((s) => s.key === stepKey);
-        const idx = nextIdx === -1 ? 0 : nextIdx;
-        const hintText = A1_STEPS[idx]?.title ?? '';
-        reply = await a1ChatReply(stepKey, chatLog, hintText);
+        const idx = A1_STAGES.findIndex((s) => s.key === stage);
+        const hintText = A1_STAGES[Math.max(0, idx)]?.studentTask ?? '';
+        reply = await a1StageReply(stage, chatLog, hintText);
       }
 
-      // 追加本轮对话
       const newLog: A1ChatTurn[] = [...chatLog, { role: 'user', content: message }, { role: 'ai', content: reply }];
 
-      // step 语义：学生当前所在的步骤（1..6，对应 A1_STEPS 的 1-based 下标）。
-      // 普通对话 = 当前步；「进入下一步」= 推进到下一步；build 完成 = 推进到 task(4)。
-      const stepIdx = A1_STEPS.findIndex((s) => s.key === stepKey);
-      const isAdvance = /进入下一步|我准备好了/.test(message);
-      let dbStep: number;
-      if (isAdvance) dbStep = Math.min(6, stepIdx + 2);
-      else if (advanceKey === 'task') dbStep = 4;
-      else dbStep = Math.min(6, Math.max(1, stepIdx + 1));
+      // 环节推进：由教师控制 subState（avatar:c1..c17），这里只记录当前环节和产出
+      const stageIdx = A1_STAGES.findIndex((s) => s.key === stage);
+      const dbStep = Math.min(17, Math.max(1, stageIdx + 1));
 
-      const patch: any = { chatLog: newLog as object };
+      const patch: any = { chatLog: newLog as object, step: dbStep };
 
-      // 记录关键字段（“进入下一步”占位消息不覆盖真实内容）
-      if (stepKey === 'dream' && !isAdvance) patch.dream = message;
-      if (stepKey === 'path' && !isAdvance) patch.path = message;
-      if (stepKey === 'task' && !isAdvance) patch.task = message;
-      if (stepKey === 'plan') patch.planChoice = String(body.planKey || message);
-
-      if (stepKey === 'iterate' && done) {
-        // iterate 步：提交最终作品
+      // 记录关键字段
+      if (stage === 'c2') patch.dream = message; // 分身名字
+      if (stage === 'c3') patch.task = message; // 朋友圈任务
+      if (stage === 'c4' && !done) patch.profileJson = rec.profileJson; // 采访中
+      if (stage === 'c6') patch.skillText = rec.skillText; // 档案（profile 已存）
+      if (stage === 'c8' || stage === 'c10') patch.drafts = rec.drafts; // 草稿
+      if (stage === 'c11' || stage === 'c12') {
         patch.finalText = message;
         patch.submittedAt = new Date();
-        patch.step = 6;
-      } else {
-        patch.step = dbStep;
       }
+
       await updateA1(sessionId, anonymousId, patch);
 
       publish(sessionId, { type: 'analytics:update', payload: {} });
-      return { reply, advanceKey, done, stepKey, step: patch.step };
+      return { reply, done, makeProfile, stage, step: dbStep };
     });
 
     return NextResponse.json(result);

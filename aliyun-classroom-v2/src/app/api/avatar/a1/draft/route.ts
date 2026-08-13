@@ -24,11 +24,13 @@ export async function POST(req: NextRequest) {
     const profile = (rec.profileJson as any) ?? {};
     const plan = String(rec.planChoice ?? 'life');
     const task = String(rec.task ?? '');
+    const skillText = String(rec.skillText ?? '');
 
     if (mode === 'generate') {
-      const texts = await generateDrafts(plan, task, profile);
+      const texts = await generateDrafts(plan, task, profile, skillText);
       const drafts: DraftItem[] = texts.map((t, i) => ({ id: 'd' + (i + 1), text: t }));
-      await updateA1(sessionId, anonymousId, { drafts: drafts as object, step: 6 });
+      // check 步生成草稿（step 5），提交时才到 iterate(6)
+      await updateA1(sessionId, anonymousId, { drafts: drafts as object, step: 5 });
       return NextResponse.json({ drafts });
     }
 
@@ -39,7 +41,7 @@ export async function POST(req: NextRequest) {
     await updateA1(sessionId, anonymousId, {
       feedback: judgment.note,
       finalText,
-      step: 6,
+      step: 5,
     });
     return NextResponse.json(judgment);
   } catch (e: any) {

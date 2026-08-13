@@ -31,6 +31,29 @@ export interface A0Answers {
   q3?: string;
 }
 
+/**
+ * 系统判定：基于三问回答，从行为判断学生与 AI 的关系（工具 / 伙伴）。
+ * 两分类：有“一起做成事”的行为信号（具体任务 + 成果 + 亲自动作 / 长期深入）→ 伙伴；否则 → 工具。
+ * 规则可调，改这里的信号词即可。
+ */
+const PARTNER_ACTION_KW = [
+  '搭建', '部署', '上线', '发布', '自动化', '流程', '系统', '迭代', '配置', '调试', '训练',
+  '我让', '我设计', '复现', '可复用', '沉淀', '持续', '长期', '一直', '每天', '一起', '协作',
+  '共创', '改进', '优化', '磨合', '配合',
+];
+const PARTNER_RESULT_KW = ['成果', '做完', '完成', '做出了', '跑通', '学会了', '效果', '用户', '别人用', '给别人', '真正解决'];
+
+export function judgeRelationFromQuestions(answers: A0Answers): 'tool' | 'partner' {
+  const text = [answers.q1, answers.q2, answers.q3].filter(Boolean).join(' ');
+  if (!text.trim()) return 'tool';
+  let score = 0;
+  for (const k of PARTNER_ACTION_KW) if (text.includes(k)) score++;
+  for (const k of PARTNER_RESULT_KW) if (text.includes(k)) score++;
+  // 明确表达想更深入 / 想改变关系
+  if (/(想|希望).*(一起|长期|深入|真正|更懂|做成)/.test(text)) score++;
+  return score >= 2 ? 'partner' : 'tool';
+}
+
 export async function saveA0Questions(anonymousId: string, answers: A0Answers) {
   const p = await prisma.participant.findUnique({ where: { anonymousId } });
   if (!p) throw new Error('INVALID_TOKEN');
@@ -39,17 +62,19 @@ export async function saveA0Questions(anonymousId: string, answers: A0Answers) {
   if (session.moduleLocked) throw new Error('MODULE_LOCKED');
   if (session.currentModuleId !== 'A0N_QUESTIONS') throw new Error('MODULE_NOT_ACTIVE');
 
+  const relation = judgeRelationFromQuestions(answers);
   await prisma.a0New.upsert({
     where: { sessionId_anonymousId: { sessionId: p.sessionId, anonymousId } },
-    update: { answers: answers as object },
+    update: { answers: answers as object, relation },
     create: {
       sessionId: p.sessionId,
       anonymousId,
       participantId: p.id,
       answers: answers as object,
+      relation,
     },
   });
-  await markProgress(p.sessionId, anonymousId, 'A0N_QUESTIONS', { answers });
+  await markProgress(p.sessionId, anonymousId, 'A0N_QUESTIONS', { answers, relation });
   return { ok: true };
 }
 
@@ -84,6 +109,85 @@ export interface A0Analytics {
   tool: number;
   partner: number;
   answerCountByQuestion: number[]; // 每问作答人数
+}
+
+// 滑杆：6 步的人机比例（0=全人, 100=全AI），key 对应 A0_SLIDER_STEPS
+export type A0Sliders = Record<string, number>;
+
+export async function saveA0Sliders(anonymousId: string, sliders: A0Sliders) {
+  const p = await prisma.participant.findUnique({ where: { anonymousId } });
+  if (!p) throw new Error('INVALID_TOKEN');
+  const session = await prisma.classSession.findUnique({ where: { id: p.sessionId } });
+  if (!session) throw new Error('SESSION_NOT_FOUND');
+  if (session.moduleLocked) throw new Error('MODULE_LOCKED');
+  if (session.currentModuleId !== 'A0N_REVEAL') throw new Error('MODULE_NOT_ACTIVE');
+
+  const exists = await prisma.a0New.findUnique({
+    where: { sessionId_anonymousId: { sessionId: p.sessionId, anonymousId } },
+  });
+  if (exists) {
+    await prisma.a0New.update({
+      where: { id: exists.id },
+      data: { sliders: sliders as object },
+    });
+  } else {
+    await prisma.a0New.create({
+      data: {
+        sessionId: p.sessionId,
+        anonymousId,
+        participantId: p.id,
+        answers: {},
+        sliders: sliders as object,
+      },
+    });
+  }
+  await markProgress(p.sessionId, anonymousId, 'A0N_REVEAL', { sliders });
+  return { ok: true };
+}
+
+export interface A0SlidersAnalytics {
+  total: number; // 全班人数
+  submitted: number; // 已提交滑杆人数
+  // 每步分布：{ label, buckets: [偏人, 中间, 偏AI] 人数 }（<40 偏人, 40-60 中间, >60 偏AI）
+  byStep: { label: string; buckets: [number, number, number] }[];
+  avgHuman: number; // 全体平均"人"占比 0-100
+  avgAi: number; // 全体平均"AI"占比 0-100
+}
+
+export async function getA0SlidersAnalytics(sessionId: string): Promise<A0SlidersAnalytics> {
+  const [total, rows] = await Promise.all([
+    prisma.participant.count({ where: { sessionId } }),
+    prisma.a0New.findMany({ where: { sessionId } }),
+  ]);
+  const labels = ['目标定义', '方案设计', '能力调动', '执行创造', '结果验证', '迭代优化'];
+  const byStep = labels.map(() => [0, 0, 0] as [number, number, number]);
+  let sumHuman = 0;
+  let sumCount = 0;
+  let submitted = 0;
+  for (const r of rows) {
+    const s = r.sliders as A0Sliders | null;
+    if (!s) continue;
+    submitted++;
+    const keys = ['target', 'plan', 'skill', 'make', 'check', 'iterate'];
+    keys.forEach((k, i) => {
+      const v = Number(s[k]);
+      if (Number.isFinite(v) && byStep[i]) {
+        const human = 100 - v;
+        sumHuman += human;
+        sumCount++;
+        if (v < 40) byStep[i][0]++;
+        else if (v <= 60) byStep[i][1]++;
+        else byStep[i][2]++;
+      }
+    });
+  }
+  return {
+    total,
+    submitted,
+    byStep: byStep.map((b, i) => ({ label: labels[i], buckets: b })),
+    avgHuman: sumCount > 0 ? Math.round(sumHuman / sumCount) : 0,
+    avgAi: sumCount > 0 ? 100 - Math.round(sumHuman / sumCount) : 0,
+  };
 }
 
 export async function getA0Analytics(sessionId: string): Promise<A0Analytics> {

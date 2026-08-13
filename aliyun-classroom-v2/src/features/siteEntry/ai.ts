@@ -17,22 +17,86 @@ function buildHistory(history: P2ChatTurn[]): ChatMessage[] {
   return history.map((h) => ({ role: asRole(h), content: h.content }));
 }
 
-// 对话通用入口（步1/2/4/5 的引导式对话）
-export async function p2ChatReply(
-  stepKey: string,
+// 对话通用入口（s1-s12 各阶段引导）
+// 每阶段有明确的"要达成什么 / 铁律"，防止 AI 跑偏
+const STAGE_GUIDES: Record<string, { goal: string; avoid: string; temp?: number }> = {
+  s1: {
+    temp: 0.3,
+    goal:
+      '你正在和一位学员对话，他要为"零基础的人"做一个陌生领域的入门网站。' +
+      '你要做的：① 如果他说了想帮别人进入哪个领域，就用一句话热情地接住它（例："帮完全不懂的人快速入门咖啡，这个想法很好！"）；' +
+      '② 如果他还没说，就自然地问一句"你想帮别人进入哪个领域？"；' +
+      '③ 如果他问"怎么做"，你就说"没关系，我们一步一步来"。不要提"下一步"这类词，就像正常聊天。',
+    avoid: '铁律：1. 不要复述/照抄本段文字。2. 不要在这个阶段展开领域知识。3. 学生说什么就接什么。4. 每句要短。',
+  },
+  s2: {
+    temp: 0.3,
+    goal:
+      '这一步要帮学员把愿望变成一句明确的任务句。问三个问题，逐个来：①这个网站帮助谁？②他现在遇到什么困难？③看完网站后能做什么？' +
+      '学生答完后，你帮他把三个答案拼成一句任务句："我要为____，做一个关于____的网站，帮助他____。" 然后问"这句可以吗？"。',
+    avoid: '铁律：1. 不要复述/照抄本段。2. 一次只问一个问题。3. 不要展开领域内容。4. 每句要短。',
+  },
+  s3: {
+    goal:
+      '这一步：让 AI 为学员的领域列出"零基础者最先要解决的 5 个问题"，并说明优先顺序。' +
+      '如果学员还没给任务，就先把他的任务句复述一句，然后请他确认，再去列问题。' +
+      '列问题时用"1. 2. 3. 4. 5."编号，简短，每个问题说清"新手想知道什么"。',
+    avoid: '不要一次问太多，不要展开长篇。列出 5 个问题后，提示学员"可以选 3 个最关键的"。',
+  },
+  s4: {
+    goal:
+      '这一步：学员从 5 个问题里选 3 个最关键的。你帮他把选中的 3 个问题整理清楚。' +
+      '如果学员说"删除太专业的"，就删掉太靠后的、不是第一次行动必需的问题。' +
+      '最后确认："这就是你的 3 个核心问题，对吗？"',
+    avoid: '不要添加新问题，只做选择和删减。',
+  },
+  s5: {
+    goal:
+      '这一步：把 3 个问题分别写成"零基础者看得懂、能行动"的内容。' +
+      '学员给出一个问题，你回答：一段简短说明 + 3 个具体步骤 + 1 个例子。' +
+      '如果学员说"太长/不具体/看不懂/第一步不明"，就按他的反馈改短、改具体、换日常语言、让第一步更明确。',
+    avoid: '不要堆知识，不要默认读者懂专业概念。内容要短、听得懂、有动作、有例子。',
+  },
+  s6: {
+    goal:
+      '这一步：帮学员选网站风格，然后生成网页。' +
+      '学员说"列一些风格"，你就列出 4-6 种适合入门网站的风格（如：温暖手作/清爽极简/专业杂志/活泼插画…），每种一句话。' +
+      '学员选风格后，你确认，然后引导他把内容和任务交给你生成网页。',
+    avoid: '风格列表要简短；不要一次生成网页，等学员选好风格。',
+  },
+  s9: {
+    goal:
+      '这一步：学员把同伴测试的反馈转给你，请先判断具体问题，再修改网页。' +
+      '学员给反馈后，你回应："我来判断一下这个反馈说的是哪个具体问题"，然后说明判断，再给出修改建议或直接改。' +
+      '不要改动无关内容。',
+    avoid: '不要无脑接受模糊评价；要先把"哪看不懂/哪步不会"变成具体问题。',
+  },
+  s10: {
+    goal:
+      '这一步：学员做一个很小的新变化（改主题/加FAQ/换读者/加行动清单），独立完成。' +
+      '学员说想做什么，你只提供目标框架帮助（我要增加____；帮助____；完成标准____），让他自己组织，你帮他实现。',
+    avoid: '不要替学员决定，不要给完整步骤；鼓励他自己走"目标→问题→提问→判断"。',
+  },
+};
+
+export async function p2StageReply(
+  stageKey: string,
   history: P2ChatTurn[],
   extraContext?: string,
 ): Promise<string> {
+  const g = STAGE_GUIDES[stageKey];
   const sys =
     '你是一位"领域入门教练"，正在手机上和一位学员一对一对话，帮他做一款"帮助别人快速进入一个领域"的手机网站。' +
-    '你说话自然、口语化、有温度，一次只问一个明确的问题。避免长篇大论，避免空洞鼓励。' +
-    '当前阶段：' + stepKey + '。' + (extraContext ? '\n背景：' + extraContext : '') +
-    '\n请根据学生最近的回答，给出下一步引导。一定要推动对话往前走，不要重复已经问过的问题。';
+    '你说话自然、口语化、有温度，一次只问一个明确的问题。避免长篇大论。' +
+    '当前阶段：' + stageKey + '。' +
+    (g ? '\n本步目标：' + g.goal + '\n铁律：' + g.avoid : '') +
+    (extraContext ? '\n背景：' + extraContext : '') +
+    '\n请根据学生最近的回答，给出下一步引导。';
   const messages = [...buildHistory(history)];
   try {
-    return await chatWithLLM(messages, sys, { temperature: 0.8, maxTokens: 500 });
+    return await chatWithLLM(messages, sys, { temperature: g?.temp ?? 0.8, maxTokens: 500 });
   } catch {
-    return p2MockReply(stepKey, history);
+    return p2MockReply(stageKey, history);
   }
 }
 
@@ -77,29 +141,34 @@ export async function p2SkeletonReply(history: P2ChatTurn[], userText: string): 
   }
 }
 
-// 生成网站第一版（步6）
+// 生成网站第一版（s6 生成网页：用任务句 + 3 个核心问题 + 内容模块 + 风格）
 export async function generateP2Site(rec: {
-  field: string;
-  entryTask: string;
-  skeleton: string;
-  keyDiff: string;
-  sitePlan: string;
+  goalTask: string;
+  knowledgeQs: string;
+  contentBlocks: string;
+  style?: string;
 }): Promise<{ code: string }> {
   const sys =
     '你是一个擅长做"新手入门网站"的网页设计师，尤其擅长把一个陌生领域讲得让人看得懂、做得出选择。' +
     '请为一个手机端快速入门网站生成完整 HTML 代码（单文件，内联 CSS/JS，中文界面，适合手机竖屏，5-7 分钟走完）。' +
-    '结构按五屏：①兴趣入口 ②新手误区 ③关键门道 ④真实挑战（让用户做一次选择并给反馈）⑤入场卡（汇总他的偏好与下一步）。' +
-    '用对比卡片和选择交互代替长文章。';
+    '页面视觉风格按学生选择的："' + (rec.style || '清爽极简') + '"。' +
+    '结构要求：①开头一句话说清"这个网站帮谁、带你进入什么领域"；②依次展示 3 个核心问题对应的内容；③最后一步让读者能完成第一次选择/行动。' +
+    '用对比卡片和简单交互代替长文章，手机上阅读舒服。';
   const context =
-    '领域：' + (rec.field || '（待定）') +
-    '\n目标用户与入场任务：' + (rec.entryTask || '（待定）') +
-    '\n知识骨架：' + (rec.skeleton || '（待定）') +
-    '\n关键区别与判断标准：' + (rec.keyDiff || '（待定）') +
-    '\n五屏规划：' + (rec.sitePlan || '（待定）');
+    '任务句：' + (rec.goalTask || '（待定）') +
+    '\n3 个核心问题：' + (rec.knowledgeQs || '（待定）') +
+    '\n内容模块：' + (rec.contentBlocks || '（待定）');
   try {
-    const raw = await chatWithLLM([{ role: 'user', content: context }], sys, { temperature: 0.7, maxTokens: 2500 });
-    const code = raw.includes('<html') || raw.includes('<!DOCTYPE') ? raw : wrapHtml(raw);
-    return { code };
+    let raw = await chatWithLLM([{ role: 'user', content: context }], sys, { temperature: 0.7, maxTokens: 2500 });
+    // 去掉 markdown 代码块包裹（```html ... ```）
+    raw = raw.replace(/^```[a-zA-Z]*\s*\n?/, '').replace(/\n?```\s*$/, '').trim();
+    // 只保留从 <html 或 <!DOCTYPE 开始的 HTML 部分（AI 常在前面加一段中文说明）
+    const htmlStart = Math.min(
+      raw.indexOf('<!DOCTYPE'),
+      raw.indexOf('<html'),
+    );
+    const code = htmlStart >= 0 ? raw.slice(htmlStart) : raw;
+    return { code: code.includes('<html') || code.includes('<!DOCTYPE') ? code : wrapHtml(code) };
   } catch {
     return { code: mockSite(rec) };
   }
@@ -109,16 +178,18 @@ function wrapHtml(text: string): string {
   return '<!DOCTYPE html><html lang="zh"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>快速入门</title><style>body{font-family:sans-serif;padding:16px;line-height:1.7}code{white-space:pre-wrap;background:#f1f5f9;padding:8px;display:block}</style></head><body><h2>快速入门网站（初稿）</h2><pre>' + text.replace(/</g, '&lt;') + '</pre></body></html>';
 }
 
-function mockSite(rec: { field: string; entryTask: string; keyDiff: string }): string {
-  const field = rec.field || '这个领域';
-  const entry = rec.entryTask || '帮你完成第一次判断和选择';
-  const diff = (rec.keyDiff || 'A vs B').split(/\n/).slice(0, 3).join('；');
-  return `<!DOCTYPE html><html lang="zh"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${field}入门</title><style>body{font-family:sans-serif;margin:0;background:#f8fafc}section{padding:24px 18px;border-bottom:1px solid #e2e8f0}button{width:100%;padding:14px;margin-top:8px;border-radius:10px;border:1px solid #cbd5e1;background:#fff;font-size:15px}button:focus{outline:2px solid #3b82f6}</style></head><body>
-<section><h1>${field} · 快速入门</h1><p>${entry}</p></section>
-<section><h2>新手误区</h2><p>新手最容易误解的两件事，先把它放下。</p></section>
-<section><h2>三个关键区别</h2><ul><li>${diff || 'A 与 B 的区别'}</li></ul></section>
-<section><h2>做一次选择</h2><button onclick="document.getElementById('r').innerText='你完成了第一次判断！'">A</button><button onclick="document.getElementById('r').innerText='你完成了第一次判断！'">B</button><p id="r"></p></section>
-<section><h2>我的入场卡</h2><p>你知道了看什么、怎么选、下一步做什么。</p></section>
+function mockSite(rec: { goalTask: string; knowledgeQs: string }): string {
+  const goal = rec.goalTask || '带你快速进入这个领域';
+  const qs = (rec.knowledgeQs || 'A vs B').split(/\n/).slice(0, 3);
+  const q1 = qs[0] || '第一次需要准备什么？';
+  const q2 = qs[1] || '用量放多少？';
+  const q3 = qs[2] || '按什么步骤做？';
+  return `<!DOCTYPE html><html lang="zh"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>快速入门</title><style>body{font-family:sans-serif;margin:0;background:#f8fafc}section{padding:24px 18px;border-bottom:1px solid #e2e8f0}button{width:100%;padding:14px;margin-top:8px;border-radius:10px;border:1px solid #cbd5e1;background:#fff;font-size:15px}button:focus{outline:2px solid #3b82f6}</style></head><body>
+<section><h1>快速入门</h1><p>${goal}</p></section>
+<section><h2>${q1}</h2><p>这里放第一段新手看得懂的内容。</p></section>
+<section><h2>${q2}</h2><p>这里放第二段新手看得懂的内容。</p></section>
+<section><h2>${q3}</h2><p>这里放第三段新手看得懂的内容。</p></section>
+<section><h2>试一试</h2><button onclick="document.getElementById('r').innerText='你完成了第一次判断！'">开始第一次尝试</button><p id="r"></p></section>
 </body></html>`;
 }
 
@@ -140,15 +211,23 @@ export async function p2JudgeWork(finalText: string): Promise<{ ok: boolean; not
 function p2MockReply(stepKey: string, history: P2ChatTurn[]): string {
   const last = [...history].reverse().find((h) => h.role === 'user')?.content || '';
   switch (stepKey) {
-    case 'field':
-      return '听起来很有意思。那我们就聚焦这个领域——先把它说具体：你熟悉它到什么程度？你身边有"完全不懂"的朋友吗？他们的困惑一般是什么？';
-    case 'entry':
-      return '很好，入口已经变小了。为了让内容更聚焦，再补两个信息：这个"新人"最怕遇到什么？你希望他看完网站后，5 分钟内能做出的那个选择具体是什么？';
-    case 'judge':
-      return '这组区别很关键。为了帮新手真正作判断，告诉我：每组区别里，新手"以为对但其实是错"的常见误区是什么？我可以帮你补对比案例。';
-    case 'design':
-      return '五屏结构很合适。最后确认一点：你的"第4屏·真实挑战"里，给新手出的那道选择题具体是什么？（比如一份陌生菜单 / 一组选项）';
+    case 's1':
+      return '听起来很有意思。那我们就一起把这个入门网站做出来，帮不懂的人快速进入这个领域。你想帮别人进入哪个领域？';
+    case 's2':
+      return '好，我们把它说具体。先告诉我：这个网站帮助谁？他遇到什么困难？看完网站能做什么？';
+    case 's3':
+      return '明白。针对你的领域，零基础者最先要解决的 5 个问题大概是：\n1. ...\n2. ...\n3. ...\n4. ...\n5. ...\n\n你可以从里面选 3 个最关键的。';
+    case 's4':
+      return '好，那你的 3 个核心问题就是这些。接下来我们把它写成新手看得懂的内容。';
+    case 's5':
+      return '好的，我来把这个问题写成新手看得懂的内容：一段简短说明 + 3 个具体步骤 + 1 个例子。';
+    case 's6':
+      return '好的，适合这个网站的风格有几种：温暖手作 / 清爽极简 / 专业杂志 / 活泼插画……你选一个，我就把内容和任务交给你生成网页。';
+    case 's9':
+      return '我来判断一下这个反馈说的是哪个具体问题，然后给出修改建议。';
+    case 's10':
+      return '好的，你自己想清楚要增加什么、帮助谁、完成标准是什么，我来帮你实现这个小变化。';
     default:
-      return '收到。想说更多就继续告诉我；想往前推进，就点下方对应的按钮。';
+      return '收到。继续说，我帮你推进。';
   }
 }
