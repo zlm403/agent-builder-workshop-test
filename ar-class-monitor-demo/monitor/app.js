@@ -284,14 +284,20 @@ $('btnLibDel').addEventListener('click', async () => {
 });
 loadLibrary();
 function renderUnlock(unlock){
-  const labels = { '1': '🎮 项目一', '2': '🔋 项目二', '4': '🤖 项目三' };
-  Object.keys(labels).forEach(k => {
+  // 项目锁定状态 → 已加载课程卡片绿/红（学生端可见/不可见）
+  ['1','2','4'].forEach(k => {
+    const item = $('li' + k);
+    if (item) {
+      const on = !!unlock[k];
+      item.classList.toggle('off', !on);
+    }
     const btn = $('up' + k);
-    if (!btn) return;
-    const on = !!unlock[k];
-    btn.textContent = (on ? '🔓 已解锁 · ' : '🔒 已锁定 · ') + labels[k];
-    btn.classList.toggle('unlock-on', on);
-    btn.classList.toggle('unlock-off', !on);
+    if (btn) {
+      const on = !!unlock[k];
+      btn.textContent = on ? '🔓 学生可见' : '🔒 学生不可见';
+      btn.classList.toggle('unlock-on', on);
+      btn.classList.toggle('unlock-off', !on);
+    }
   });
 }
 window.unlockProject = async function(k){
@@ -304,19 +310,47 @@ window.unlockProject = async function(k){
   }).catch(() => {});
   renderUnlock(unlock);
 };
+// 点击已加载课程 → 从课程库加载对应课程任务并显示
+const PROJECT_LESSON = { '1': '接金币游戏课', '2': '心情电量课', '4': '内心戏课' };
+let selectedLoaded = null;
+window.selectLoaded = async function(pid){
+  const name = PROJECT_LESSON[pid];
+  if (!name) return;
+  const r = await fetch('/api/library/load', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name }),
+  });
+  const res = await r.json();
+  if (res.ok) {
+    lessonName = name;
+    lessonTasks = res.lesson.tasks || [];
+    selectedLoaded = pid;
+    ['1','2','4'].forEach(k => {
+      const item = $('li' + k);
+      if (item) item.classList.toggle('on', k === pid);
+    });
+    renderLessonTasks();
+    loadScreenBlocks();
+    const hint = $('loadedHint');
+    if (hint) hint.textContent = '已加载：' + name + ' · ' + lessonTasks.length + ' 个任务';
+  } else {
+    const hint = $('loadedHint');
+    if (hint) hint.textContent = '⚠️ ' + (res.reason || '加载失败');
+  }
+};
 function renderLessonTasks(){
   const box = $('lessonTasks');
   if (!box) return;
   if (!lessonTasks.length) {
-    box.innerHTML = '<div class="lesson-empty">还没有任务——上传课程文件，点「AI 拆解任务」生成</div>';
+    box.innerHTML = '<div class="lesson-empty">点击上方「已加载的课程」查看它的课堂任务</div>';
     return;
   }
   const allPushed = lessonTasks.every(t => t.pushed);
   const pushBtn = allPushed
     ? '<span class="ltask-all pushed">✅ 全部已推送</span>'
     : '<button class="ghost ghost-mini" onclick="pushAllTasks()">📨 一键全部推送</button>';
-  box.innerHTML = `<div class="ltask-all-row"><span class="f-label">共 ${lessonTasks.length} 个任务：</span>${pushBtn}
-    <span class="hint">全部推送后，逐个在下方「解锁/推送」当前任务</span></div>` +
+  box.innerHTML = `<div class="ltask-all-row"><span class="f-label">${esc(lessonName || '')} · 共 ${lessonTasks.length} 个任务：</span>${pushBtn}
+    <span class="hint">全部推送后，逐个「设为当前」推进</span></div>` +
     lessonTasks.map((t, i) => `
     <div class="ltask">
       <div class="ltask-head">
@@ -481,8 +515,8 @@ async function loadScreenBlocks(){
         });
       });
     } catch(e){}
-    // 2) 读全部块（含课堂任务块）
-    const r = await fetch('/api/screen', { cache: 'no-store' });
+    // 2) 读全部块（含课堂任务块；?all=1 含隐藏块，便于管理）
+    const r = await fetch('/api/screen?all=1', { cache: 'no-store' });
     const d = await r.json();
     screenBlocks = d.blocks || [];
     screenActive = d.activeId;
@@ -630,17 +664,6 @@ loadScreenBlocks();
 setInterval(loadScreenBlocks, 4000);
 
 /* ---------- 课程筛选 ---------- */
-document.querySelectorAll('.cbtn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.cbtn').forEach(b => b.classList.remove('on'));
-    btn.classList.add('on');
-    courseFilter = btn.dataset.course;
-    const pct = $('pushCourseTag');
-    if (pct) pct.textContent = '（推送给' + (courseFilter === 'all' ? '全部课程' : COURSE_NAME[courseFilter]) + '）';
-    renderAll();
-  });
-});
-
 /* ---------- 学生列表（含清晰度分数环 + 缺口数） ---------- */
 function renderStudents(){
   const map = {};

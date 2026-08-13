@@ -321,7 +321,7 @@ def ensure_screen_dir():
     os.makedirs(SCREEN_DIR, exist_ok=True)
 
 
-def list_screen_blocks():
+def list_screen_blocks(include_hidden=False):
     ensure_screen_dir()
     out = []
     for fn in os.listdir(SCREEN_DIR):
@@ -331,6 +331,8 @@ def list_screen_blocks():
             with open(os.path.join(SCREEN_DIR, fn), 'r', encoding='utf-8') as f:
                 b = json.load(f)
             if isinstance(b, dict) and b.get('id'):
+                if b.get('hidden') and not include_hidden:
+                    continue
                 out.append(b)
         except Exception:
             pass
@@ -633,8 +635,10 @@ class Handler(SimpleHTTPRequestHandler):
             self._json(200, load_lessons())
             return
         if parsed.path == '/api/screen':
+            q = parse_qs(parsed.query)
+            allb = (q.get('all', ['0'])[0] == '1')
             self._json(200, {
-                'blocks': list_screen_blocks(),
+                'blocks': list_screen_blocks(include_hidden=allb),
                 'activeId': get_active_screen(),
             })
             return
@@ -762,6 +766,27 @@ class Handler(SimpleHTTPRequestHandler):
                 data = json.loads(raw.decode('utf-8')) if raw else {}
                 delete_screen_block(data.get('id'))
                 if get_active_screen() == data.get('id'):
+                    set_active_screen(None)
+                self._json(200, {'ok': True})
+            except Exception as ex:
+                self._json(400, {'ok': False, 'reason': str(ex)})
+            return
+        if parsed.path == '/api/screen/hide':
+            try:
+                length = int(self.headers.get('Content-Length', 0))
+                raw = self.rfile.read(length) if length else b''
+                data = json.loads(raw.decode('utf-8')) if raw else {}
+                bid = data.get('id')
+                if not bid:
+                    self._json(400, {'ok': False, 'reason': 'id 为空'})
+                    return
+                p = os.path.join(SCREEN_DIR, bid + '.json')
+                with open(p, 'r', encoding='utf-8') as f:
+                    b = json.load(f)
+                b['hidden'] = bool(data.get('hidden'))
+                with open(p, 'w', encoding='utf-8') as f:
+                    json.dump(b, f, ensure_ascii=False)
+                if b.get('hidden') and get_active_screen() == bid:
                     set_active_screen(None)
                 self._json(200, {'ok': True})
             except Exception as ex:

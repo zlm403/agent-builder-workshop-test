@@ -20,15 +20,6 @@
     </div>
   </header>
 
-  <!-- 项目筛选 -->
-  <div class="coursebar">
-    <span class="c-label">项目：</span>
-    <button class="cbtn on" data-course="all" type="button">全部</button>
-    <button class="cbtn" data-course="1" type="button">🎮 项目一 · 接金币游戏</button>
-    <button class="cbtn" data-course="2" type="button">🔋 项目二 · 心情电量</button>
-    <button class="cbtn" data-course="4" type="button">🤖 项目三 · 内心戏</button>
-  </div>
-
   <!-- 课堂场次与签到 -->
   <div class="pushcard" id="sessionCard">
     <div class="pushhead session-head">
@@ -50,35 +41,55 @@
     </div>
   </div>
 
-  <!-- 课堂任务（课程框架） -->
+  <!-- 课堂任务：生成课堂 + 已加载课程 -->
   <div class="pushcard">
-    <div class="pushhead">📋 课堂任务 <span class="dim">（上传课程/支撑点/流程文件，AI 拆解成任务；逐个推送+锁定）</span></div>
-    <div class="row add-block">
-      <input type="file" id="lessonFiles" multiple accept=".txt,.md,.doc,.docx,.pdf,.png,.jpg,.jpeg" class="lesson-file">
-      <span class="hint">可传多个：课程方案 / 支撑点 / 流程文档等</span>
+    <div class="pushhead">📋 课堂任务 <span class="dim">（先"生成课堂"，再加载课程，点课程看任务）</span></div>
+
+    <!-- ① 生成课堂（选文件拆解 → 存库 → 加载） -->
+    <div class="gen-box">
+      <div class="gen-title">🔧 生成课堂</div>
+      <div class="row add-block">
+        <input type="file" id="lessonFiles" multiple accept=".txt,.md,.doc,.docx,.pdf,.png,.jpg,.jpeg" class="lesson-file">
+        <span class="hint">可传多个：课程方案 / 支撑点 / 流程文档</span>
+      </div>
+      <div class="hint" id="fileListHint">还没选文件</div>
+      <div class="row">
+        <button id="btnSplit" class="primary">🤖 拆解成课堂任务</button>
+        <span class="hint" id="splitHint"></span>
+      </div>
+      <div class="row lib-row">
+        <input id="libName" class="tno" placeholder="存为课程名" maxlength="30">
+        <button id="btnLibSave" class="ghost">💾 存入课程库</button>
+        <select id="libSelect" class="tno"></select>
+        <button id="btnLibLoad" class="ghost">📂 加载课程</button>
+        <button id="btnLibDel" class="ghost">🗑 删除</button>
+        <span class="hint" id="libHint"></span>
+      </div>
     </div>
-    <div class="hint" id="fileListHint">还没选文件</div>
-    <div class="row">
-      <button id="btnSplit" class="primary">🤖 AI 拆解任务</button>
-      <span class="hint" id="splitHint"></span>
+
+    <!-- ② 已加载的课程（项目一/二/三，绿色学生端可见、红色不可见） -->
+    <div class="loaded-box">
+      <div class="loaded-title">📚 已加载的课程 <span class="dim" id="loadedHint">（绿=学生端可见，红=学生端看不到；点击看任务）</span></div>
+      <div class="loaded-grid">
+        <div class="loaded-item" id="li1" onclick="selectLoaded('1')">
+          <div class="li-name">🎮 项目一 · 接金币游戏</div>
+          <div class="li-sub">游戏 · 练完整闭环</div>
+          <button class="ghost ghost-mini" onclick="event.stopPropagation();unlockProject('1')" id="up1">🔒 解锁</button>
+        </div>
+        <div class="loaded-item" id="li2" onclick="selectLoaded('2')">
+          <div class="li-name">🔋 项目二 · 心情电量</div>
+          <div class="li-sub">工具 · 让想法落地</div>
+          <button class="ghost ghost-mini" onclick="event.stopPropagation();unlockProject('2')" id="up2">🔒 解锁</button>
+        </div>
+        <div class="loaded-item" id="li4" onclick="selectLoaded('4')">
+          <div class="li-name">🤖 项目三 · 内心戏</div>
+          <div class="li-sub">综合 AI 应用</div>
+          <button class="ghost ghost-mini" onclick="event.stopPropagation();unlockProject('4')" id="up4">🔒 解锁</button>
+        </div>
+      </div>
     </div>
-    <div class="row lib-row">
-      <span class="f-label">课程库：</span>
-      <select id="libSelect" class="tno"></select>
-      <button id="btnLibLoad" class="ghost">📂 加载课程</button>
-      <input id="libName" class="tno" placeholder="存为课程名" maxlength="30">
-      <button id="btnLibSave" class="ghost">💾 存入课程库</button>
-      <button id="btnLibDel" class="ghost">🗑 删除</button>
-      <span class="hint" id="libHint"></span>
-    </div>
+
     <div id="lessonTasks" class="lesson-tasks"></div>
-    <div class="unlock-row">
-      <span class="f-label">项目解锁：</span>
-      <button class="ghost ghost-mini" onclick="unlockProject('1')" id="up1">🎮 项目一</button>
-      <button class="ghost ghost-mini" onclick="unlockProject('2')" id="up2">🔋 项目二</button>
-      <button class="ghost ghost-mini" onclick="unlockProject('4')" id="up4">🤖 项目三</button>
-      <span class="hint">点亮的项目学生端才能打开</span>
-    </div>
   </div>
 
   <!-- 大屏内容控制台 -->
