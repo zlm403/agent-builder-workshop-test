@@ -24,8 +24,6 @@ export const A0_INTRO = {
   intro1: {
     eyebrow: '开头',
     title: '我们和 AI 第一次相遇的瞬间',
-    body1: '从电脑屏幕里，出来了一个东西——那是我们第一次碰到它。',
-    body2: '你还记得，你第一次用 AI 是什么时候吗？当时你在做什么？',
     image: '/story/A0-1.jpg',
   },
   // P2 二维发展图 · 横轴时间 / 纵轴"人们开始用 AI 做什么"

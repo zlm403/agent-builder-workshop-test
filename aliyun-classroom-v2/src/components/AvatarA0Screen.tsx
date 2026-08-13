@@ -80,10 +80,8 @@ export default function AvatarA0Screen({
           <div style={{ fontSize: 'clamp(30px,4vw,52px)', fontWeight: 900, lineHeight: 1.3, background: 'linear-gradient(180deg,#f8fafc,#fbbf24)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent', maxWidth: 1000 }}>
             {A0_INTRO.intro1.title}
           </div>
-          <div style={{ fontSize: 'clamp(18px,2.2vw,28px)', color: '#e2e8f0', lineHeight: 1.7, maxWidth: 900 }}>{A0_INTRO.intro1.body1}</div>
-          <div style={{ fontSize: 'clamp(18px,2.2vw,28px)', color: '#fde047', fontWeight: 700, lineHeight: 1.7, maxWidth: 900 }}>{A0_INTRO.intro1.body2}</div>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={A0_INTRO.intro1.image} alt="手指接触 AI 的瞬间" style={{ maxWidth: 'min(900px, 80vw)', maxHeight: '48vh', objectFit: 'contain', borderRadius: 16 }} />
+          <img src={A0_INTRO.intro1.image} alt="手指接触 AI 的瞬间" style={{ maxWidth: 'min(1100px, 90vw)', maxHeight: '64vh', objectFit: 'contain', borderRadius: 16 }} />
           <ContentSlot slot="a0_top" />
         </div>
       );
