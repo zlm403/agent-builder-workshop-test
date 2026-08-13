@@ -7,6 +7,7 @@ import {
   FUNNEL_STAGES,
   type CompanyTypeKey,
 } from '@/lib/finaleConfig';
+import ContentSlot from './ContentSlot';
 
 /* ---------- CSS Variables ---------- */
 const cssVars = {
@@ -109,6 +110,8 @@ export default function ScreenFinale() {
           <button onClick={() => setMode('dash')} style={modeBtnStyle(mode === 'dash')}>作战</button>
         </div>
       </div>
+
+      <ContentSlot slot="finale_top" />
 
       {/* ====== 讲解态 ====== */}
       {mode === 'brief' && (
@@ -287,6 +290,8 @@ export default function ScreenFinale() {
           </div>
         </div>
       )}
+
+      <ContentSlot slot="finale_sale_after" />
     </div>
   );
 }

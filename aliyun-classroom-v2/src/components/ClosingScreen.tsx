@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, type CSSProperties, type ReactNode } 
 import { CLOSING_BEATS, CLOSING_QUESTIONS, QINGWU, type GapRow } from '@/lib/closingConfig';
 import type { ClosingAnswer } from '@/lib/closing';
 import ClosingQAScreen from '@/components/ClosingQAScreen';
+import ContentSlot from './ContentSlot';
 
 const C = {
   bg: '#0b1120',
@@ -349,6 +350,7 @@ export default function ClosingScreen({
 
   return (
     <div style={{ minHeight: '100vh', background: C.bg, color: C.txt, fontFamily: '-apple-system,"PingFang SC","Microsoft YaHei",sans-serif', padding: '24px 32px 40px' }}>
+      <ContentSlot slot="finale_top" />
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 22 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
           <div style={{ fontSize: 22, fontWeight: 800 }}>我的<span style={{ color: C.yellow }}>AI</span>公司</div>
@@ -360,6 +362,8 @@ export default function ClosingScreen({
       </div>
 
       {body}
+
+      <ContentSlot slot="finale_after" />
 
       {/* 集中答疑解答层：讲师点「我要讲这个」后全屏覆盖显示，平时返回 null */}
       <ClosingQAScreen sessionId={qSession} />

@@ -213,6 +213,7 @@ export default function AvatarA0Screen({
               ))}
             </div>
           </div>
+          <ContentSlot slot="a0_forms_after" />
         </>
       )}
 
@@ -235,6 +236,7 @@ export default function AvatarA0Screen({
             <div className="a0-sliders-progress">第 {artIdx} / 2 张 · 上一张/下一张由教师控制</div>
           </div>
           <div className="a0-next">下一环节 · 一起养一个「数字的你」</div>
+          <ContentSlot slot="a0_art_after" />
         </>
       )}
 
@@ -279,6 +281,7 @@ export default function AvatarA0Screen({
             </div>
           </div>
           <div className="a0-next">大家滑完提交后，我们进入下一个环节</div>
+          <ContentSlot slot="a0_slider_after" />
         </>
       )}
 
