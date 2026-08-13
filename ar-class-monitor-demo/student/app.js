@@ -292,6 +292,53 @@ $('btnAsk').addEventListener('click', sendAsk);
 $('askInput').addEventListener('keydown', e => { if (e.key === 'Enter') sendAsk(); });
 setInterval(refreshChat, 4000);   // 轮询老师回复
 
+/* ---------- 老师投屏（老师投到大屏的内容，学生桌面同步显示） ---------- */
+let lastScreenId = null;
+async function refreshStudentScreen(){
+  const box = $('studentScreen');
+  if (!box) return;
+  try {
+    const r = await fetch('/api/screen', { cache: 'no-store' });
+    const d = await r.json();
+    const activeId = d.activeId;
+    if (!activeId) {
+      if (lastScreenId !== null) {
+        box.innerHTML = '<div class="screen-empty">老师还没投内容，投了会显示在这里</div>';
+        lastScreenId = null;
+      }
+      return;
+    }
+    if (activeId === lastScreenId) return;   // 没变不刷新
+    lastScreenId = activeId;
+    const blk = d.blocks.find(x => x.id === activeId);
+    if (!blk) { box.innerHTML = '<div class="screen-empty">老师投的内容暂不可用</div>'; return; }
+    renderStudentScreen(box, blk);
+  } catch(e){}
+}
+function renderStudentScreen(box, b){
+  const esc = s => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const title = b.title ? `<div class="ss-title">${esc(b.title)}</div>` : '';
+  if (b.type === 'text') {
+    box.innerHTML = title + `<div class="ss-text">${esc(b.content).replace(/\n/g,'<br>')}</div>`;
+  } else if (b.type === 'image') {
+    box.innerHTML = title + `<img class="ss-img" src="${esc(b.content)}" alt="${esc(b.title)}">`;
+  } else if (b.type === 'video') {
+    box.innerHTML = title + `<video class="ss-img" controls src="${esc(b.content)}"></video>`;
+  } else if (b.type === 'page') {
+    box.innerHTML = title + `<iframe class="ss-frame" src="${esc(b.content)}"></iframe>`;
+  } else if (b.type === 'task') {
+    const c = b.content || {};
+    box.innerHTML = `<div class="ss-task">
+      <div class="ss-task-title">${esc(c.title || b.title || '课堂任务')}</div>
+      ${c.steps ? `<div class="ss-steps"><b>📌 步骤：</b><br>${esc(c.steps).replace(/\n/g,'<br>')}</div>` : ''}
+      ${c.points ? `<div class="ss-points"><b>💡 注意：</b><br>${esc(c.points).replace(/\n/g,'<br>')}</div>` : ''}
+    </div>`;
+  } else {
+    box.innerHTML = title + `<div class="ss-text">${esc(b.content)}</div>`;
+  }
+}
+setInterval(refreshStudentScreen, 3000);   // 轮询老师投屏
+
 /* ---------- 我的学习水位（6 大知识点：水满 = 学得好；点击柱子看分析） ---------- */
 /* 分析由 water-analyzer.py 常驻服务生成，学生端从 /api/water 读取 */
 window.showWaterDetail = function(key){
@@ -383,6 +430,7 @@ function bindReset(){
   renderCourse();
   loadTask();
   renderMirror();
+  refreshStudentScreen();
   loadUnlock();
   setInterval(() => { loadTask(); renderMirror(); }, 4000);
   setInterval(loadUnlock, 5000);

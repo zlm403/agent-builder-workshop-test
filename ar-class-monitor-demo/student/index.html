@@ -41,9 +41,17 @@
     </div>
   </section>
 
-  <!-- ② 交流区：有问题和老师聊 -->
+  <!-- ② 老师投屏：老师投到大屏的内容，学生桌面同步显示，可直接参考/复制 -->
+  <section class="pane" id="screenPane">
+    <div class="pane-title"><span class="pane-num">②</span> 老师投屏 <span class="dim">（老师投到大屏的内容会同步到这里，可直接参考复制）</span></div>
+    <div id="studentScreen" class="student-screen">
+      <div class="screen-empty">老师还没投内容，投了会显示在这里</div>
+    </div>
+  </section>
+
+  <!-- ③ 交流区：有问题和老师聊 -->
   <section class="pane" id="chatPane">
-    <div class="pane-title"><span class="pane-num">②</span> 交流区 <span class="dim" id="chatTitle">（有问题直接说，老师回复会出现在这里）</span></div>
+    <div class="pane-title"><span class="pane-num">③</span> 交流区 <span class="dim" id="chatTitle">（有问题直接说，老师回复会出现在这里）</span></div>
     <div class="chat-log" id="chatLog"><div class="chat-empty">还没有消息，遇到问题就发一条吧</div></div>
     <div class="row ask-row">
       <input id="askInput" class="ask-input" placeholder="遇到问题打出来，比如：AI 不按我说的做…" maxlength="200">
@@ -52,9 +60,9 @@
     <span class="hint" id="askHint"></span>
   </section>
 
-  <!-- ③ 水平区：我学得怎么样 -->
+  <!-- ④ 水平区：我学得怎么样 -->
   <section class="pane">
-    <div class="pane-title"><span class="pane-num">③</span> 水平区 <span class="dim" id="mirrorCourse">（6 块知识，水满了就说明这块学会了）</span></div>
+    <div class="pane-title"><span class="pane-num">④</span> 水平区 <span class="dim" id="mirrorCourse">（6 块知识，水满了就说明这块学会了）</span></div>
     <div id="mirrorBody">
       <div class="mirror-empty">📝 你开始动手后，这里会显示你在 6 块知识上各学到哪了——<br><span class="dim">哪块水满了（学会了），哪块还是浅的（还要练）。</span></div>
     </div>
