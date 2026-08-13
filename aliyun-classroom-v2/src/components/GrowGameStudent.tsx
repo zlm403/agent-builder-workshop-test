@@ -8,6 +8,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { P3_STAGES, P3_TRAITS, P3_SHAPES, P3_TRAILS, P3_MOVEMENTS, P3_INTERACTIONS, P3_ABILITIES, P3_COSTS, P3_DEFAULT_DESIGN } from '@/features/growGame/config';
 import LabTank from './LabTank';
+import { usePageOverrides } from '@/lib/usePageText';
 
 interface Bubble {
   role: 'ai' | 'user';
@@ -29,6 +30,7 @@ export default function GrowGameStudent({
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
+  const ov = usePageOverrides(subState);
   const logRef = useRef<HTMLDivElement>(null);
   const initRef = useRef(false);
 
@@ -177,8 +179,8 @@ export default function GrowGameStudent({
       {/* 当前任务卡 */}
       <div className="zone" style={{ borderLeft: '4px solid #fb923c' }}>
         <h3 style={{ color: '#fb923c', margin: 0 }}>阶段 {stageIdx + 1} · {stage?.name}</h3>
-        <p className="task-hint" style={{ color: '#fde047', fontWeight: 600, lineHeight: 1.6, margin: '8px 0 4px' }}>{stage?.screenTitle}</p>
-        <p className="task-hint" style={{ color: '#cbd5e1', lineHeight: 1.6, margin: 0 }}>{stage?.studentTask}</p>
+        <p className="task-hint" style={{ color: '#fde047', fontWeight: 600, lineHeight: 1.6, margin: '8px 0 4px' }}>{ov.screenTitle ?? stage?.screenTitle}</p>
+        <p className="task-hint" style={{ color: '#cbd5e1', lineHeight: 1.6, margin: 0 }}>{ov.studentTask ?? stage?.studentTask}</p>
       </div>
 
       {/* 生命设计器（s2-s4） */}
