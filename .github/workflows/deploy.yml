@@ -1,0 +1,38 @@
+name: Deploy classroom-v2
+
+# push 到 master 自动部署试听课（aliyun-classroom-v2）到 8.130.70.114
+# 前提：仓库 Secrets 需配置 DEPLOY_SSH_KEY（能 SSH 到服务器的私钥）与 DEPLOY_HOST
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'aliyun-classroom-v2/**'
+  workflow_dispatch: {}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 打包源码（排除 node_modules / .next / .git / 密钥文件）
+        run: |
+          cd aliyun-classroom-v2
+          tar --exclude=node_modules --exclude=.next --exclude=.git --exclude=*.log -czf /tmp/classroom-v2.tar.gz .
+
+      - name: 配置 SSH
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$DEPLOY_SSH_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: 上传并执行部署
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+        run: |
+          scp -o StrictHostKeyChecking=no /tmp/classroom-v2.tar.gz root@"$DEPLOY_HOST":/root/classroom-v2.tar.gz
+          ssh -o StrictHostKeyChecking=no root@"$DEPLOY_HOST" "bash /root/classroom-v2/update.sh"
