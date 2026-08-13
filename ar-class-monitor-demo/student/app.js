@@ -292,52 +292,52 @@ $('btnAsk').addEventListener('click', sendAsk);
 $('askInput').addEventListener('keydown', e => { if (e.key === 'Enter') sendAsk(); });
 setInterval(refreshChat, 4000);   // 轮询老师回复
 
-/* ---------- 老师投屏（老师投到大屏的内容，学生桌面同步显示） ---------- */
-let lastScreenId = null;
+/* ---------- 老师投喂（老师发给所有人的内容，可复制，不进大屏） ---------- */
+let lastFeedTs = null;
 async function refreshStudentScreen(){
   const box = $('studentScreen');
   if (!box) return;
   try {
-    const r = await fetch('/api/screen', { cache: 'no-store' });
+    const r = await fetch('/api/feed', { cache: 'no-store' });
     const d = await r.json();
-    const activeId = d.activeId;
-    if (!activeId) {
-      if (lastScreenId !== null) {
-        box.innerHTML = '<div class="screen-empty">老师还没投内容，投了会显示在这里</div>';
-        lastScreenId = null;
+    const content = d.content;
+    if (!content) {
+      if (lastFeedTs !== null) {
+        box.innerHTML = '<div class="screen-empty">老师还没投喂内容，投了会显示在这里</div>';
+        lastFeedTs = null;
       }
       return;
     }
-    if (activeId === lastScreenId) return;   // 没变不刷新
-    lastScreenId = activeId;
-    const blk = d.blocks.find(x => x.id === activeId);
-    if (!blk) { box.innerHTML = '<div class="screen-empty">老师投的内容暂不可用</div>'; return; }
-    renderStudentScreen(box, blk);
+    if (d.ts === lastFeedTs) return;   // 没变不刷新
+    lastFeedTs = d.ts;
+    renderFeed(box, content);
   } catch(e){}
 }
-function renderStudentScreen(box, b){
+function renderFeed(box, content){
   const esc = s => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-  const title = b.title ? `<div class="ss-title">${esc(b.title)}</div>` : '';
-  if (b.type === 'text') {
-    box.innerHTML = title + `<div class="ss-text">${esc(b.content).replace(/\n/g,'<br>')}</div>`;
-  } else if (b.type === 'image') {
-    box.innerHTML = title + `<img class="ss-img" src="${esc(b.content)}" alt="${esc(b.title)}">`;
-  } else if (b.type === 'video') {
-    box.innerHTML = title + `<video class="ss-img" controls src="${esc(b.content)}"></video>`;
-  } else if (b.type === 'page') {
-    box.innerHTML = title + `<iframe class="ss-frame" src="${esc(b.content)}"></iframe>`;
-  } else if (b.type === 'task') {
-    const c = b.content || {};
-    box.innerHTML = `<div class="ss-task">
-      <div class="ss-task-title">${esc(c.title || b.title || '课堂任务')}</div>
-      ${c.steps ? `<div class="ss-steps"><b>📌 步骤：</b><br>${esc(c.steps).replace(/\n/g,'<br>')}</div>` : ''}
-      ${c.points ? `<div class="ss-points"><b>💡 注意：</b><br>${esc(c.points).replace(/\n/g,'<br>')}</div>` : ''}
-    </div>`;
+  const isCode = /[{};=<>()\[\]]/.test(content) && content.indexOf('\n') >= 0;
+  if (isCode) {
+    box.innerHTML = `<div class="ss-code"><pre>${esc(content)}</pre><button class="ghost ss-copy" onclick="copyFeed(this)">📋 复制</button></div>`;
   } else {
-    box.innerHTML = title + `<div class="ss-text">${esc(b.content)}</div>`;
+    box.innerHTML = `<div class="ss-text">${esc(content).replace(/\n/g,'<br>')}</div><button class="ghost ss-copy" onclick="copyFeed(this)">📋 复制</button>`;
   }
 }
-setInterval(refreshStudentScreen, 3000);   // 轮询老师投屏
+window.copyFeed = function(btn){
+  const pre = btn.parentNode.querySelector('pre');
+  const text = pre ? pre.textContent : (btn.parentNode.querySelector('.ss-text') ? btn.parentNode.querySelector('.ss-text').innerText : '');
+  try {
+    navigator.clipboard.writeText(text).then(() => {
+      const old = btn.textContent;
+      btn.textContent = '✅ 已复制';
+      setTimeout(() => { btn.textContent = old; }, 2000);
+    });
+  } catch(e) {
+    const old = btn.textContent;
+    btn.textContent = '✅ 已复制';
+    setTimeout(() => { btn.textContent = old; }, 2000);
+  }
+};
+setInterval(refreshStudentScreen, 3000);   // 轮询老师投喂
 
 /* ---------- 我的学习水位（6 大知识点：水满 = 学得好；点击柱子看分析） ---------- */
 /* 分析由 water-analyzer.py 常驻服务生成，学生端从 /api/water 读取 */

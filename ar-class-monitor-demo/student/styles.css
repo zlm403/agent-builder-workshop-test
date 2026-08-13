@@ -147,6 +147,11 @@ button.ghost:hover { background: var(--blue); color: #04263a; }
 .ss-task-title { font-size: 15px; font-weight: 800; margin-bottom: 8px; }
 .ss-steps, .ss-points { margin-top: 6px; }
 .ss-points { color: var(--orange); }
+.ss-code pre {
+  background: #0a1120; border: 1px solid var(--line); border-radius: 9px; padding: 12px;
+  font-family: Consolas, monospace; font-size: 12.5px; line-height: 1.6; overflow-x: auto; color: #d1fae5;
+}
+.ss-copy { margin-top: 8px; font-size: 12px; }
 
 /* 点击柱子的分析弹窗 */
 .wmodal {

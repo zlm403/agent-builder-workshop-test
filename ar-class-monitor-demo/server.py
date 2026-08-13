@@ -30,6 +30,7 @@ IDENTITY_FILE = os.path.join(BASE_DIR, 'agent-live', 'identity.json')
 WATER_FILE = os.path.join(BASE_DIR, 'agent-live', 'water.json')
 SCREEN_DIR = os.path.join(BASE_DIR, 'agent-live', 'screen')
 SCREEN_ACTIVE = os.path.join(SCREEN_DIR, 'active.json')
+FEED_FILE = os.path.join(BASE_DIR, 'agent-live', 'feed.json')
 UPLOAD_DIR = os.path.join(BASE_DIR, 'agent-live', 'uploads')
 LIBRARY_DIR = os.path.join(BASE_DIR, 'agent-live', 'library')
 LESSON_FILE = os.path.join(BASE_DIR, 'agent-live', 'lessons.json')
@@ -481,6 +482,33 @@ def delete_library_lesson(name):
     shutil.rmtree(os.path.join(LIBRARY_DIR, name), ignore_errors=True)
 
 
+# ============================================================
+# 老师投喂（给所有学生发内容，学生端显示可复制，不进大屏）
+#   feed.json: {"content": "...", "ts": ...}
+# ============================================================
+def get_feed():
+    try:
+        with open(FEED_FILE, 'r', encoding='utf-8') as f:
+            d = json.load(f)
+        if isinstance(d, dict) and d.get('content'):
+            return d
+    except Exception:
+        pass
+    return {'content': None, 'ts': None}
+
+
+def set_feed(content):
+    with open(FEED_FILE, 'w', encoding='utf-8') as f:
+        json.dump({'content': content, 'ts': int(time.time() * 1000)}, f, ensure_ascii=False)
+
+
+def clear_feed():
+    try:
+        os.remove(FEED_FILE)
+    except Exception:
+        pass
+
+
 def load_api_key():
     key = os.environ.get('DEEPSEEK_API_KEY', '')
     if not key:
@@ -609,6 +637,9 @@ class Handler(SimpleHTTPRequestHandler):
                 'blocks': list_screen_blocks(),
                 'activeId': get_active_screen(),
             })
+            return
+        if parsed.path == '/api/feed':
+            self._json(200, get_feed())
             return
         if parsed.path == '/api/library':
             self._json(200, {'courses': list_library()})
@@ -745,6 +776,24 @@ class Handler(SimpleHTTPRequestHandler):
                 self._json(200, {'ok': True, 'url': url})
             except Exception as ex:
                 self._json(400, {'ok': False, 'reason': str(ex)})
+            return
+        if parsed.path == '/api/feed':
+            try:
+                length = int(self.headers.get('Content-Length', 0))
+                raw = self.rfile.read(length) if length else b''
+                data = json.loads(raw.decode('utf-8')) if raw else {}
+                content = (data.get('content') or '').strip()
+                if not content:
+                    self._json(400, {'ok': False, 'reason': '内容为空'})
+                    return
+                set_feed(content)
+                self._json(200, {'ok': True})
+            except Exception as ex:
+                self._json(400, {'ok': False, 'reason': str(ex)})
+            return
+        if parsed.path == '/api/feed/clear':
+            clear_feed()
+            self._json(200, {'ok': True})
             return
         if parsed.path == '/api/library/save':
             try:

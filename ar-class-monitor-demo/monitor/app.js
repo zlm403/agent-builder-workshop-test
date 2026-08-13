@@ -560,6 +560,21 @@ $('btnClearScreen').addEventListener('click', () => {
   if (!confirm('去掉当前大屏投放？内容块还在，只是大屏回到等待状态。')) return;
   clearScreenActive();
 });
+$('btnFeed').addEventListener('click', async () => {
+  const content = $('feedInput').value.trim();
+  if (!content) { $('feedHint').textContent = '⚠️ 先写点内容'; return; }
+  const r = await fetch('/api/feed', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ content }),
+  }).catch(() => {});
+  $('feedHint').textContent = '✅ 已投喂给全班，学生端可复制';
+  setTimeout(() => { $('feedHint').textContent = ''; }, 4000);
+});
+$('btnFeedClear').addEventListener('click', async () => {
+  await fetch('/api/feed/clear', { method: 'POST' }).catch(() => {});
+  $('feedHint').textContent = '✋ 已收回，学生端投喂内容清空';
+  setTimeout(() => { $('feedHint').textContent = ''; }, 4000);
+});
 $('btnAddBlock').addEventListener('click', async () => {
   const type = $('blkType').value;
   const title = $('blkTitle').value.trim();

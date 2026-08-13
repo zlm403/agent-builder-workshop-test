@@ -108,6 +108,17 @@
     <div id="screenBlocks" class="screen-blocks"></div>
   </div>
 
+  <!-- 老师投喂：给所有学生发内容（文字/代码），学生端可复制，不进大屏 -->
+  <div class="pushcard">
+    <div class="pushhead">📨 老师投喂 <span class="dim">（给所有学生发文字/代码，学生端显示可复制，不占大屏）</span></div>
+    <textarea id="feedInput" class="lesson-input" rows="3" placeholder="要发给学生的内容/代码…（学生可直接复制）"></textarea>
+    <div class="row">
+      <button id="btnFeed" class="primary">📨 投喂给全班</button>
+      <button id="btnFeedClear" class="ghost">✋ 收回</button>
+      <span class="hint" id="feedHint"></span>
+    </div>
+  </div>
+
   <div class="pushcard chatcard">
     <div class="pushhead">💬 消息 <span class="dim">（点左侧会话，右侧对话记录按时间排列，回复实时到学生端）</span></div>
     <div class="chat-wrap">
