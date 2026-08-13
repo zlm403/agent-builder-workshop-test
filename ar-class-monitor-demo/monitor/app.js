@@ -506,20 +506,28 @@ function renderScreenBlocks(){
     if (!at && bt) return 1;
     return (a.order ?? a.ts ?? 0) - (b.order ?? b.ts ?? 0);
   });
-  // 每一行后面都能插入（except 自动任务块不可插）
+  // 每一行后面都能插入（except 自动任务块不可插）；投屏中的块有"去掉"
   box.innerHTML = sorted.map(b => {
     const on = b.id === screenActive;
     const src = b.source === 'external' ? ' · 外部' : (b.source === 'auto' ? ' · 自动' : '');
     const del = isTask(b.id) ? '' : `<span class="sblk-del" onclick="event.stopPropagation();delScreenBlock('${b.id}')">✕</span>`;
     const ins = isTask(b.id) ? '' : `<span class="sblk-ins" onclick="event.stopPropagation();addAfter('${b.id}')" title="在此块后添加">＋</span>`;
+    const off = on ? `<span class="sblk-off" onclick="event.stopPropagation();clearScreenActive()" title="去掉此块的投放">✋去掉</span>` : '';
     return `<div class="sblk ${on ? 'on' : ''}" onclick="setScreenActive('${b.id}')" title="点击投到大屏">
       <span class="sblk-icon">${icons[b.type] || '📄'}</span>
       <span class="sblk-title">${esc(b.title)}${src}</span>
       <span class="sblk-state">${on ? '● 投屏中' : '点击投放'}</span>
-      ${del}${ins}
+      ${off}${del}${ins}
     </div>`;
   }).join('');
 }
+window.clearScreenActive = async function(){
+  await fetch('/api/screen/active', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id: null }),
+  }).catch(() => {});
+  loadScreenBlocks();
+};
 // 记录要插入的位置：点某块的"＋" → 打开添加框，新块插到它后面
 let insertAfterId = null;
 window.addAfter = function(id){
@@ -547,6 +555,11 @@ window.delScreenBlock = async function(id){
   }).catch(() => {});
   loadScreenBlocks();
 };
+$('btnClearScreen').addEventListener('click', () => {
+  if (!screenActive) { return; }
+  if (!confirm('去掉当前大屏投放？内容块还在，只是大屏回到等待状态。')) return;
+  clearScreenActive();
+});
 $('btnAddBlock').addEventListener('click', async () => {
   const type = $('blkType').value;
   const title = $('blkTitle').value.trim();

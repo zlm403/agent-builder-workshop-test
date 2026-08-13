@@ -84,6 +84,10 @@ button.primary:hover{filter:brightness(1.1)}
 .sblk-del:hover { color: var(--red); }
 .sblk-ins { color: var(--blue); padding: 0 4px; font-weight: 900; }
 .sblk-ins:hover { color: var(--green); }
+.sblk-off { color: var(--orange); font-size: 11px; padding: 2px 7px; border-radius: 6px; border: 1px solid rgba(251,146,60,.4); cursor: pointer; }
+.sblk-off:hover { background: rgba(251,146,60,.15); }
+.screen-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.screen-head .dim { font-weight: 400; }
 .ltask {
   background: var(--panel2); border: 1px solid var(--line); border-radius: 11px; padding: 10px 12px;
 }

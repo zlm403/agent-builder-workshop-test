@@ -83,7 +83,10 @@
 
   <!-- 大屏内容控制台 -->
   <div class="pushcard">
-    <div class="pushhead">🖥 大屏内容 <span class="dim">（点某块投到大屏，投中的块高亮；内容存成独立文件）</span></div>
+    <div class="pushhead screen-head">
+      <span>🖥 大屏内容 <span class="dim">（点某块投到大屏，投中的块高亮；可单独/全部去掉投放）</span></span>
+      <button id="btnClearScreen" class="ghost ghost-mini" type="button">✋ 全部去掉</button>
+    </div>
     <div class="row add-block">
       <select id="blkType" class="tno">
         <option value="text">文字</option>
