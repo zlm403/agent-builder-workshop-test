@@ -6,6 +6,7 @@
 // 教师端按此序列渲染页卡片列表，大屏/学生端按 subState 逐页展示。
 // =========================================================
 import { prisma } from '@/lib/db';
+import { Prisma } from '@prisma/client';
 
 export const PAGE_GROUPS = ['A0', 'A1', 'P2', 'P3'] as const;
 export type PageGroup = (typeof PAGE_GROUPS)[number];
@@ -189,14 +190,20 @@ function defaultModuleOf(group: PageGroup): string {
   if (group === 'A1') return 'A1_AVATAR';
   if (group === 'P2') return 'P2_SITE';
   return 'P3_GAME';
-}
-
-// 更新页：改标题 / 隐藏 / 排序（seq 重排）
+}// 更新页：改标题 / 隐藏 / 排序（seq 重排）/ 文字覆盖 overrides
 export async function updatePage(
   id: string,
-  patch: Partial<{ title: string; hidden: boolean; seq: number }>,
+  patch: Partial<{ title: string; hidden: boolean; seq: number; overrides: Record<string, string> | null }>,
 ) {
-  return prisma.lessonPage.update({ where: { id }, data: patch });
+  return prisma.lessonPage.update({
+    where: { id },
+    data: {
+      ...(patch.title !== undefined ? { title: patch.title } : {}),
+      ...(patch.hidden !== undefined ? { hidden: patch.hidden } : {}),
+      ...(patch.seq !== undefined ? { seq: patch.seq } : {}),
+      ...(patch.overrides !== undefined ? { overrides: patch.overrides === null ? Prisma.JsonNull : (patch.overrides as object) } : {}),
+    },
+  });
 }
 
 // 重排：按 ids 顺序重写 seq（0..n-1）
@@ -217,4 +224,12 @@ export async function deletePage(id: string) {
     prisma.lessonPage.delete({ where: { id } }),
   ]);
   return { ok: true };
+}
+
+// 某内置页的文字覆盖（大屏按 subState 取；无覆盖返回 null）
+export async function getBuiltinOverrides(group: PageGroup, refKey: string): Promise<Record<string, string> | null> {
+  const page = await prisma.lessonPage.findFirst({
+    where: { group, kind: 'builtin', refKey },
+  });
+  return (page?.overrides as Record<string, string> | null) ?? null;
 }

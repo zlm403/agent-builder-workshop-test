@@ -8,6 +8,7 @@ import AvatarTeacher from '@/components/AvatarTeacher';
 import MediaManager from '@/components/MediaManager';
 import SlotContentManager from '@/components/SlotContentManager';
 import ContentPageEditor from '@/components/ContentPageEditor';
+import BuiltinTextEditor from '@/components/BuiltinTextEditor';
 
 const pctOf = (n: number, base: number) => (base > 0 ? Math.round((n / base) * 100) : 0);
 
@@ -109,6 +110,7 @@ export default function TeacherPage() {
   const [showMedia, setShowMedia] = useState(false);
   const [mediaInitialSlot, setMediaInitialSlot] = useState<string | undefined>(undefined);
   const [editingPageId, setEditingPageId] = useState<string | null>(null);
+  const [editingBuiltin, setEditingBuiltin] = useState<{ id: string; kind: string; refKey: string | null; overrides?: Record<string, string> | null } | null>(null);
   const [llmKey, setLlmKey] = useState('');
   const [llmBaseUrl, setLlmBaseUrl] = useState('https://api.deepseek.com/v1');
   const [llmModel, setLlmModel] = useState('deepseek-chat');
@@ -1022,6 +1024,7 @@ export default function TeacherPage() {
                     busy={busy}
                     control={control}
                     onEditContent={(pageId) => setEditingPageId(pageId)}
+                    onEditText={(page) => setEditingBuiltin({ id: page.id, kind: page.kind, refKey: page.refKey, overrides: page.overrides })}
                   />
                   <SlotContentManager
                     moduleId={currentModuleId}
@@ -1250,6 +1253,14 @@ export default function TeacherPage() {
       {showMedia && <MediaManager onClose={() => setShowMedia(false)} initialSlot={mediaInitialSlot} />}
 
       {editingPageId && <ContentPageEditor pageId={editingPageId} onClose={() => setEditingPageId(null)} />}
+
+      {editingBuiltin && (
+        <BuiltinTextEditor
+          page={editingBuiltin}
+          onClose={() => setEditingBuiltin(null)}
+          onSaved={() => setEditingBuiltin(null)}
+        />
+      )}
 
       {settingsOpen && (
         <div className="modal-backdrop" onClick={(e) => { if (e.target === e.currentTarget) setSettingsOpen(false); }}>

@@ -6,6 +6,7 @@
 import { useEffect, useState } from 'react';
 import { A0_INTRO, A0_QUESTIONS, A0_VOTE_OPTIONS, A0_REVEAL } from '@/features/avatarLesson/config';
 import ContentSlot from './ContentSlot';
+import { usePageOverrides } from '@/lib/usePageText';
 
 interface A0Data {
   total: number;
@@ -38,6 +39,7 @@ export default function AvatarA0Screen({
   const [data, setData] = useState<A0Data | null>(null);
   const [imgFailed, setImgFailed] = useState<boolean[]>([false, false]);
   const [sliders, setSliders] = useState<A0SlidersData | null>(null);
+  const ov = usePageOverrides(subState);
 
   useEffect(() => {
     let closed = false;
@@ -76,9 +78,9 @@ export default function AvatarA0Screen({
     if (s === 'a0:intro1') {
       return (
         <div style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 22, textAlign: 'center', padding: '0 6vw' }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: '#fbbf24', letterSpacing: '0.12em' }}>{A0_INTRO.intro1.eyebrow}</div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: '#fbbf24', letterSpacing: '0.12em' }}>{ov.eyebrow ?? A0_INTRO.intro1.eyebrow}</div>
           <div style={{ fontSize: 'clamp(30px,4vw,52px)', fontWeight: 900, lineHeight: 1.3, background: 'linear-gradient(180deg,#f8fafc,#fbbf24)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent', maxWidth: 1000 }}>
-            {A0_INTRO.intro1.title}
+            {ov.title ?? A0_INTRO.intro1.title}
           </div>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={A0_INTRO.intro1.image} alt="手指接触 AI 的瞬间" style={{ maxWidth: 'min(1100px, 90vw)', maxHeight: '64vh', objectFit: 'contain', borderRadius: 16 }} />
@@ -91,11 +93,11 @@ export default function AvatarA0Screen({
     if (s === 'a0:intro2') {
       return (
         <div style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 18, textAlign: 'center', padding: '0 4vw' }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: '#fbbf24', letterSpacing: '0.12em' }}>{A0_INTRO.intro2.eyebrow}</div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: '#fbbf24', letterSpacing: '0.12em' }}>{ov.eyebrow ?? A0_INTRO.intro2.eyebrow}</div>
           <div style={{ fontSize: 'clamp(26px,3.4vw,44px)', fontWeight: 900, lineHeight: 1.3, background: 'linear-gradient(180deg,#f8fafc,#fbbf24)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent', maxWidth: 1100 }}>
-            {A0_INTRO.intro2.title}
+            {ov.title ?? A0_INTRO.intro2.title}
           </div>
-          <div style={{ fontSize: 'clamp(16px,1.9vw,24px)', color: '#e2e8f0', lineHeight: 1.7, maxWidth: 900 }}>{A0_INTRO.intro2.body1}</div>
+          <div style={{ fontSize: 'clamp(16px,1.9vw,24px)', color: '#e2e8f0', lineHeight: 1.7, maxWidth: 900 }}>{ov.body1 ?? A0_INTRO.intro2.body1}</div>
           <iframe src={A0_INTRO.intro2.image} title="AI 发展时间线" style={{ width: 'min(1300px, 94vw)', height: '62vh', border: '1px solid rgba(251,146,60,.3)', borderRadius: 16, background: '#0b1120' }} />
         </div>
       );
@@ -189,12 +191,12 @@ export default function AvatarA0Screen({
   if (rs === 'a0:mirror') {
     return (
       <div style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 22, textAlign: 'center', padding: '0 6vw' }}>
-        <div style={{ fontSize: 14, fontWeight: 700, color: '#fbbf24', letterSpacing: '0.12em' }}>{A0_INTRO.mirror.eyebrow}</div>
+        <div style={{ fontSize: 14, fontWeight: 700, color: '#fbbf24', letterSpacing: '0.12em' }}>{ov.eyebrow ?? A0_INTRO.mirror.eyebrow}</div>
         <div style={{ fontSize: 'clamp(40px,6vw,80px)', fontWeight: 900, background: 'linear-gradient(180deg,#f8fafc,#fbbf24)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent' }}>
-          {A0_INTRO.mirror.title}
+          {ov.title ?? A0_INTRO.mirror.title}
         </div>
-        <div style={{ fontSize: 'clamp(20px,2.6vw,34px)', color: '#e2e8f0', lineHeight: 1.7, maxWidth: 1000 }}>{A0_INTRO.mirror.body1}</div>
-        <div style={{ fontSize: 'clamp(20px,2.6vw,34px)', color: '#fde047', fontWeight: 800, lineHeight: 1.7, maxWidth: 1000 }}>{A0_INTRO.mirror.body2}</div>
+        <div style={{ fontSize: 'clamp(20px,2.6vw,34px)', color: '#e2e8f0', lineHeight: 1.7, maxWidth: 1000 }}>{ov.body1 ?? A0_INTRO.mirror.body1}</div>
+        <div style={{ fontSize: 'clamp(20px,2.6vw,34px)', color: '#fde047', fontWeight: 800, lineHeight: 1.7, maxWidth: 1000 }}>{ov.body2 ?? A0_INTRO.mirror.body2}</div>
       </div>
     );
   }
@@ -203,12 +205,12 @@ export default function AvatarA0Screen({
   if (rs === 'a0:closing') {
     return (
       <div style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 18, textAlign: 'center', padding: '0 4vw', overflowY: 'auto' }}>
-        <div style={{ fontSize: 14, fontWeight: 700, color: '#fbbf24', letterSpacing: '0.12em' }}>{A0_INTRO.closing.eyebrow}</div>
+        <div style={{ fontSize: 14, fontWeight: 700, color: '#fbbf24', letterSpacing: '0.12em' }}>{ov.eyebrow ?? A0_INTRO.closing.eyebrow}</div>
         <div style={{ fontSize: 'clamp(30px,4vw,52px)', fontWeight: 900, lineHeight: 1.3, background: 'linear-gradient(180deg,#f8fafc,#fb923c)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent', maxWidth: 1000 }}>
-          {A0_INTRO.closing.title}
+          {ov.title ?? A0_INTRO.closing.title}
         </div>
-        <div style={{ fontSize: 'clamp(17px,2.1vw,28px)', color: '#e2e8f0', lineHeight: 1.7, maxWidth: 900 }}>{A0_INTRO.closing.body1}</div>
-        <div style={{ fontSize: 'clamp(17px,2.1vw,28px)', color: '#fde047', fontWeight: 700, lineHeight: 1.7, maxWidth: 900 }}>{A0_INTRO.closing.body2}</div>
+        <div style={{ fontSize: 'clamp(17px,2.1vw,28px)', color: '#e2e8f0', lineHeight: 1.7, maxWidth: 900 }}>{ov.body1 ?? A0_INTRO.closing.body1}</div>
+        <div style={{ fontSize: 'clamp(17px,2.1vw,28px)', color: '#fde047', fontWeight: 700, lineHeight: 1.7, maxWidth: 900 }}>{ov.body2 ?? A0_INTRO.closing.body2}</div>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={A0_INTRO.closing.image} alt="AI 就在我们身边" style={{ maxWidth: 'min(900px, 80vw)', maxHeight: '34vh', objectFit: 'contain', borderRadius: 16 }} />
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, justifyContent: 'center' }}>
@@ -240,7 +242,7 @@ export default function AvatarA0Screen({
       <ContentSlot slot="a0_top" />
       {screen === 'result' && (
         <>
-          <div className="a0-reveal-statement">{A0_REVEAL.headline}</div>
+          <div className="a0-reveal-statement">{ov.headline ?? A0_REVEAL.headline}</div>
           <div className="a0-snap" style={{ maxWidth: 900 }}>
             <div className="a0-bars">
               {[
@@ -261,8 +263,8 @@ export default function AvatarA0Screen({
 
       {screen === 'pvf' && (
         <>
-          <div className="a0-reveal-statement" style={{ fontSize: 'clamp(24px,3vw,40px)' }}>{A0_REVEAL.formsTable.title}</div>
-          <div className="a0-forms-sub">{A0_REVEAL.formsTable.subtitle}</div>
+          <div className="a0-reveal-statement" style={{ fontSize: 'clamp(24px,3vw,40px)' }}>{ov.screenTitle ?? A0_REVEAL.formsTable.title}</div>
+          <div className="a0-forms-sub">{ov.screenQuestion ?? A0_REVEAL.formsTable.subtitle}</div>
           <div className="a0-forms-table">
             <div className="a0-forms-header">
               <div className="a0-forms-dim" style={{ visibility: 'hidden' }}>维度</div>

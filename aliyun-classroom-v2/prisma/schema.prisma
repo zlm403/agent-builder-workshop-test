@@ -381,6 +381,7 @@ model LessonPage {
   kind      String   @default("builtin") // builtin | content
   refKey    String?  // builtin 页的 subState（a0:intro1 / reveal:1 / avatar:c1 / p3:s1 …）；content 页为 null
   title     String?  // content 页大标题（builtin 页可为空）
+  overrides Json?    // builtin 页文字覆盖：{ eyebrow, title, body1, body2, bridge, banner, screenTitle, screenQuestion, studentTask }
   hidden    Boolean  @default(false) // 隐藏：大屏/学生端跳过该页
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

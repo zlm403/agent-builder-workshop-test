@@ -8,6 +8,7 @@ import { useEffect, useState } from 'react';
 import { P3_STAGES, P3_HOOK, P3_GOAL } from '@/features/growGame/config';
 import ContentSlot from './ContentSlot';
 import Tank from './Tank';
+import { usePageOverrides } from '@/lib/usePageText';
 
 export default function GrowGameScreen({
   sessionId,
@@ -17,6 +18,7 @@ export default function GrowGameScreen({
   subState: string | null;
 }) {
   const [ready, setReady] = useState(0);
+  const ov = usePageOverrides(subState);
 
   useEffect(() => {
     let closed = false;
@@ -37,11 +39,11 @@ export default function GrowGameScreen({
     return (
       <div style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 22, textAlign: 'center', padding: '0 6vw' }}>
         <ContentSlot slot="p3_top" />
-        <div style={{ fontSize: 14, fontWeight: 700, color: '#fb923c', letterSpacing: '0.12em' }}>{P3_HOOK.eyebrow}</div>
-        <div style={{ fontSize: 'clamp(30px,4vw,52px)', fontWeight: 900, lineHeight: 1.3, background: 'linear-gradient(180deg,#f8fafc,#fb923c)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent', maxWidth: 1000 }}>{P3_HOOK.title}</div>
-        <div style={{ fontSize: 'clamp(18px,2.2vw,28px)', color: '#e2e8f0', lineHeight: 1.7, maxWidth: 900 }}>{P3_HOOK.body1}</div>
-        <div style={{ fontSize: 'clamp(18px,2.2vw,28px)', color: '#fde047', fontWeight: 700, lineHeight: 1.7, maxWidth: 900 }}>{P3_HOOK.body2}</div>
-        <div style={{ fontSize: 'clamp(16px,1.9vw,24px)', color: '#fdba74', lineHeight: 1.7, maxWidth: 900, marginTop: 8 }}>{P3_HOOK.bridge}</div>
+        <div style={{ fontSize: 14, fontWeight: 700, color: '#fb923c', letterSpacing: '0.12em' }}>{ov.eyebrow ?? P3_HOOK.eyebrow}</div>
+        <div style={{ fontSize: 'clamp(30px,4vw,52px)', fontWeight: 900, lineHeight: 1.3, background: 'linear-gradient(180deg,#f8fafc,#fb923c)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent', maxWidth: 1000 }}>{ov.title ?? P3_HOOK.title}</div>
+        <div style={{ fontSize: 'clamp(18px,2.2vw,28px)', color: '#e2e8f0', lineHeight: 1.7, maxWidth: 900 }}>{ov.body1 ?? P3_HOOK.body1}</div>
+        <div style={{ fontSize: 'clamp(18px,2.2vw,28px)', color: '#fde047', fontWeight: 700, lineHeight: 1.7, maxWidth: 900 }}>{ov.body2 ?? P3_HOOK.body2}</div>
+        <div style={{ fontSize: 'clamp(16px,1.9vw,24px)', color: '#fdba74', lineHeight: 1.7, maxWidth: 900, marginTop: 8 }}>{ov.bridge ?? P3_HOOK.bridge}</div>
         <ContentSlot slot="p3_hook_after" />
       </div>
     );
@@ -58,7 +60,7 @@ export default function GrowGameScreen({
     <div style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column', gap: 20, padding: '6px 0' }}>
       <ContentSlot slot="p3_top" />
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
-        <div style={{ fontSize: 22, fontWeight: 800, color: '#fb923c' }}>数字生命 · 共生缸</div>
+        <div style={{ fontSize: 22, fontWeight: 800, color: '#fb923c' }}>{ov.screenTitle ?? '数字生命 · 共生缸'}</div>
         <div style={{ fontSize: 15, color: 'var(--muted)' }}>已投入 {ready} 个生命</div>
       </div>
 
@@ -67,7 +69,7 @@ export default function GrowGameScreen({
         border: '1px solid rgba(250,204,21,0.45)', background: 'rgba(250,204,21,0.10)', borderRadius: 14,
         padding: '12px 20px', fontSize: 'clamp(15px,1.7vw,22px)', color: '#fde047', fontWeight: 700, textAlign: 'center',
       }}>
-        {P3_GOAL.banner}
+        {ov.banner ?? P3_GOAL.banner}
       </div>
 
       {/* 阶段进度条 */}
@@ -100,13 +102,13 @@ export default function GrowGameScreen({
       {stageIdx >= 0 && !inTank && (
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 18, textAlign: 'center' }}>
           <div style={{ fontSize: 'clamp(26px,3.4vw,46px)', fontWeight: 900, maxWidth: 1100, background: 'linear-gradient(180deg,#f8fafc,#fb923c)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent' }}>
-            {P3_STAGES[stageIdx].screenTitle}
+            {ov.screenTitle ?? P3_STAGES[stageIdx].screenTitle}
           </div>
           <div style={{ fontSize: 'clamp(18px,2.2vw,30px)', color: '#fde047', fontWeight: 700, maxWidth: 1000, lineHeight: 1.6 }}>
-            {P3_STAGES[stageIdx].screenQuestion}
+            {ov.screenQuestion ?? P3_STAGES[stageIdx].screenQuestion}
           </div>
           <div style={{ fontSize: 'clamp(15px,1.8vw,24px)', color: '#cbd5e1', maxWidth: 900, lineHeight: 1.7 }}>
-            {P3_STAGES[stageIdx].studentTask}
+            {ov.studentTask ?? P3_STAGES[stageIdx].studentTask}
           </div>
           <ContentSlot slot={`p3_${P3_STAGES[stageIdx].key}_after`} />
           <div style={{ fontSize: 14, color: 'var(--muted)' }}>

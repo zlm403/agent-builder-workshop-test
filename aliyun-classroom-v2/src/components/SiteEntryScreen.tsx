@@ -7,6 +7,7 @@
 import { useEffect, useState } from 'react';
 import { P2_STAGES, P2_HOOK, P2_GOAL } from '@/features/siteEntry/config';
 import ContentSlot from './ContentSlot';
+import { usePageOverrides } from '@/lib/usePageText';
 
 interface P2Data {
   total: number;
@@ -25,6 +26,7 @@ export default function SiteEntryScreen({
   subState: string | null;
 }) {
   const [data, setData] = useState<P2Data | null>(null);
+  const ov = usePageOverrides(subState);
 
   useEffect(() => {
     let closed = false;
@@ -44,11 +46,11 @@ export default function SiteEntryScreen({
     return (
       <div style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 22, textAlign: 'center', padding: '0 6vw' }}>
         <ContentSlot slot="p2_top" />
-        <div style={{ fontSize: 14, fontWeight: 700, color: '#38bdf8', letterSpacing: '0.12em' }}>{P2_HOOK.eyebrow}</div>
-        <div style={{ fontSize: 'clamp(30px,4vw,52px)', fontWeight: 900, lineHeight: 1.3, background: 'linear-gradient(180deg,#f8fafc,#38bdf8)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent', maxWidth: 1000 }}>{P2_HOOK.title}</div>
-        <div style={{ fontSize: 'clamp(18px,2.2vw,28px)', color: '#e2e8f0', lineHeight: 1.7, maxWidth: 900 }}>{P2_HOOK.body1}</div>
-        <div style={{ fontSize: 'clamp(18px,2.2vw,28px)', color: '#fde047', fontWeight: 700, lineHeight: 1.7, maxWidth: 900 }}>{P2_HOOK.body2}</div>
-        <div style={{ fontSize: 'clamp(16px,1.9vw,24px)', color: '#7dd3fc', lineHeight: 1.7, maxWidth: 900, marginTop: 8 }}>{P2_HOOK.bridge}</div>
+        <div style={{ fontSize: 14, fontWeight: 700, color: '#38bdf8', letterSpacing: '0.12em' }}>{ov.eyebrow ?? P2_HOOK.eyebrow}</div>
+        <div style={{ fontSize: 'clamp(30px,4vw,52px)', fontWeight: 900, lineHeight: 1.3, background: 'linear-gradient(180deg,#f8fafc,#38bdf8)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent', maxWidth: 1000 }}>{ov.title ?? P2_HOOK.title}</div>
+        <div style={{ fontSize: 'clamp(18px,2.2vw,28px)', color: '#e2e8f0', lineHeight: 1.7, maxWidth: 900 }}>{ov.body1 ?? P2_HOOK.body1}</div>
+        <div style={{ fontSize: 'clamp(18px,2.2vw,28px)', color: '#fde047', fontWeight: 700, lineHeight: 1.7, maxWidth: 900 }}>{ov.body2 ?? P2_HOOK.body2}</div>
+        <div style={{ fontSize: 'clamp(16px,1.9vw,24px)', color: '#7dd3fc', lineHeight: 1.7, maxWidth: 900, marginTop: 8 }}>{ov.bridge ?? P2_HOOK.bridge}</div>
         <ContentSlot slot="p2_hook_after" />
       </div>
     );
@@ -72,7 +74,7 @@ export default function SiteEntryScreen({
         border: '1px solid rgba(250,204,21,0.45)', background: 'rgba(250,204,21,0.10)', borderRadius: 14,
         padding: '12px 20px', fontSize: 'clamp(15px,1.7vw,22px)', color: '#fde047', fontWeight: 700, textAlign: 'center',
       }}>
-        {P2_GOAL.banner}
+        {ov.banner ?? P2_GOAL.banner}
       </div>
 
       {/* 十二阶段进度条 */}
@@ -98,13 +100,13 @@ export default function SiteEntryScreen({
       {stageIdx >= 0 && !launched && (
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 20, textAlign: 'center' }}>
           <div style={{ fontSize: 'clamp(26px,3.4vw,46px)', fontWeight: 900, maxWidth: 1100, background: 'linear-gradient(180deg,#f8fafc,#38bdf8)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent' }}>
-            {P2_STAGES[stageIdx].screenTitle}
+            {ov.screenTitle ?? P2_STAGES[stageIdx].screenTitle}
           </div>
           <div style={{ fontSize: 'clamp(18px,2.2vw,30px)', color: '#fde047', fontWeight: 700, maxWidth: 1000, lineHeight: 1.6 }}>
-            {P2_STAGES[stageIdx].screenQuestion}
+            {ov.screenQuestion ?? P2_STAGES[stageIdx].screenQuestion}
           </div>
           <div style={{ fontSize: 'clamp(15px,1.8vw,24px)', color: '#cbd5e1', maxWidth: 900, lineHeight: 1.7 }}>
-            {P2_STAGES[stageIdx].studentTask}
+            {ov.studentTask ?? P2_STAGES[stageIdx].studentTask}
           </div>
           {/* 内容槽：教师可在此阶段放额外文案/示例/图片/视频 */}
           <ContentSlot slot={`p2_${P2_STAGES[stageIdx].key}_after`} />
@@ -120,7 +122,7 @@ export default function SiteEntryScreen({
         <div style={{ flex: 1, overflowY: 'auto', padding: '6px 4px' }}>
           <ContentSlot slot="p2_wall_after" style={{ marginBottom: 12 }} />
           <div style={{ fontSize: 18, fontWeight: 800, color: '#86efac', marginBottom: 14 }}>
-            {"全班入门网站 · 作品墙"} ({data?.finished ?? 0} 人已提交)
+            {ov.screenTitle ?? "全班入门网站 · 作品墙"} ({data?.finished ?? 0} 人已提交)
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 14 }}>
             {(data?.cols ?? []).map((c, i) => (

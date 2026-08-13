@@ -25,6 +25,7 @@ interface PageDef {
   kind: 'builtin' | 'content';
   refKey: string | null;
   title: string | null;
+  overrides?: Record<string, string> | null;
   hidden: boolean;
 }
 
@@ -92,12 +93,14 @@ export default function AvatarTeacher({
   busy,
   control,
   onEditContent,
+  onEditText,
 }: {
   moduleId: string;
   subState: string | null;
   busy: boolean;
   control: (action: string, payload?: any) => void;
   onEditContent: (pageId: string) => void;
+  onEditText: (page: PageDef) => void;
 }) {
   const [pages, setPages] = useState<PageDef[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -247,11 +250,13 @@ export default function AvatarTeacher({
                 <span onClick={(e) => e.stopPropagation()} style={{ display: 'inline-flex', gap: 3 }}>
                   <button className="secondary" style={{ fontSize: 10, padding: '1px 6px' }} disabled={busyLocal} title="上移" onClick={() => move(p, -1)}>↑</button>
                   <button className="secondary" style={{ fontSize: 10, padding: '1px 6px' }} disabled={busyLocal} title="下移" onClick={() => move(p, 1)}>↓</button>
-                  {isContent && (
+                  {isContent ? (
                     <>
                       <button className="secondary" style={{ fontSize: 10, padding: '1px 6px' }} title="编辑内容" onClick={() => onEditContent(p.id)}>✎ 内容</button>
                       <button className="secondary" style={{ fontSize: 10, padding: '1px 6px' }} title="改标题" onClick={() => { setEditingId(p.id); setEditTitle(p.title || ''); }}>改标题</button>
                     </>
+                  ) : (
+                    <button className="secondary" style={{ fontSize: 10, padding: '1px 6px' }} title="改文字" onClick={() => onEditText(p)}>✎ 改文字</button>
                   )}
                   <button className="secondary" style={{ fontSize: 10, padding: '1px 6px' }} title={hidden ? '显示' : '隐藏'} onClick={() => toggleHidden(p)}>{hidden ? '显示' : '隐藏'}</button>
                   {isContent && (

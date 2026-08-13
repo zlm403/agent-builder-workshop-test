@@ -56,10 +56,11 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ pages });
     }
 
-    const patch: Partial<{ title: string; hidden: boolean; seq: number }> = {};
+    const patch: Partial<{ title: string; hidden: boolean; seq: number; overrides: Record<string, string> | null }> = {};
     if (typeof body.title === 'string') patch.title = body.title;
     if (typeof body.hidden === 'boolean') patch.hidden = body.hidden;
     if (typeof body.seq === 'number') patch.seq = body.seq;
+    if (body.overrides !== undefined) patch.overrides = body.overrides;
     const page = await updatePage(id, patch);
     return NextResponse.json({ page });
   } catch (e: any) {
