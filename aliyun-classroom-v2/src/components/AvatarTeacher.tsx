@@ -1,11 +1,44 @@
 'use client';
 // =========================================================
-// A0 新版 + A1 数字分身 + P2 快速入门网站 + P3 养成游戏 · 教师端控制面板
-// 单纯的按钮/说明插件，交给 TeacherPage 的 control() 执行。
+// A0 + A1 数字分身 + P2 快速入门网站 + P3 养成游戏 · 教师端环节控制面板
+// 环节内的分步骤统一用带序号按钮控制（点谁高亮），附 上一步/下一步
+// 锁定学员输入放在环节操作区
 // =========================================================
-import { A1_STEPS } from '@/features/avatarLesson/config';
-import { P2_STEPS } from '@/features/siteEntry/config';
-import { P3_STEPS } from '@/features/growGame/config';
+import { A1_STAGES } from '@/features/avatarLesson/config';
+import { P2_STAGES } from '@/features/siteEntry/config';
+import { P3_STAGES } from '@/features/growGame/config';
+
+// 通用：一组带序号的步骤按钮，点谁谁高亮
+function StepButtons({
+  steps,
+  activeKey,
+  disabled,
+  onPick,
+}: {
+  steps: { key: string; label: string }[];
+  activeKey: string;
+  disabled: boolean;
+  onPick: (key: string) => void;
+}) {
+  return (
+    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+      {steps.map((s, i) => {
+        const active = activeKey === s.key;
+        return (
+          <button
+            key={s.key}
+            className={active ? 'primary' : 'secondary'}
+            disabled={disabled}
+            onClick={() => onPick(s.key)}
+            style={{ fontWeight: active ? 800 : 500, border: active ? '2px solid var(--purple)' : '1px solid var(--border)' }}
+          >
+            {i + 1} · {s.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
 
 export default function AvatarTeacher({
   moduleId,
@@ -18,157 +51,158 @@ export default function AvatarTeacher({
   busy: boolean;
   control: (action: string, payload?: any) => void;
 }) {
-  // A0 揭晓屏控制
-  if (moduleId === 'A0N_REVEAL') {
-    const screen = subState ?? 'reveal:1';
-    const screens = [
-      { key: 'reveal:1', label: '1. 揭晓结果' },
-      { key: 'reveal:2', label: '2. 过去 vs 未来' },
-      { key: 'reveal:3', label: '3. 两张艺术图' },
+  const pick = (key: string) => control('setSubState', { subState: key });
+
+  // ---------- A0 章节（开场/三问/判定/揭晓/形态/滑块/图/镜子/收束 一条条） ----------
+  if (moduleId === 'A0N_QUESTIONS' || moduleId === 'A0N_VOTE' || moduleId === 'A0N_REVEAL') {
+    // A0 流程：开场（手指图→二维图）→ 三问 → 判定 → 揭晓 → 三种形态 → 六步滑块 → 工具/伙伴两图 → 镜子 → 收束
+    const steps = [
+      { module: 'A0N_QUESTIONS', key: 'a0:intro1', label: '开场·手指图' },
+      { module: 'A0N_QUESTIONS', key: 'a0:intro2', label: '开场·发展图' },
+      { module: 'A0N_QUESTIONS', key: null, label: '三问' },
+      { module: 'A0N_VOTE', key: null, label: '系统判定' },
+      { module: 'A0N_REVEAL', key: 'reveal:1', label: '揭晓结果' },
+      { module: 'A0N_REVEAL', key: 'reveal:2', label: '三种形态' },
+      { module: 'A0N_REVEAL', key: 'reveal:4', label: '六步滑块' },
+      { module: 'A0N_REVEAL', key: 'reveal:3', label: '工具/伙伴两图' },
+      { module: 'A0N_REVEAL', key: 'a0:mirror', label: '我们在哪儿' },
+      { module: 'A0N_REVEAL', key: 'a0:closing', label: '收束·已经来了' },
     ];
+    // 当前处于哪一步
+    const activeIdx = (() => {
+      if (moduleId === 'A0N_QUESTIONS') {
+        const s = String(subState ?? '');
+        if (s === 'a0:intro1') return 0;
+        if (s === 'a0:intro2') return 1;
+        return 2; // 三问
+      }
+      if (moduleId === 'A0N_VOTE') return 3;
+      const reveal = String(subState ?? 'reveal:1');
+      if (reveal.startsWith('a0:mirror')) return 8;
+      if (reveal.startsWith('a0:closing')) return 9;
+      if (reveal.startsWith('reveal:1')) return 4;
+      if (reveal.startsWith('reveal:2')) return 5;
+      if (reveal.startsWith('reveal:4')) return 6;
+      if (reveal.startsWith('reveal:3')) return 7;
+      return 4;
+    })();
+    // 跳到某一步：跨模块用 jump（可带 subState 直接落到指定子屏），同模块用 setSubState
+    const go = (idx: number) => {
+      const s = steps[idx];
+      if (!s) return;
+      if (s.module === moduleId) {
+        if (s.key) control('setSubState', { subState: s.key });
+      } else {
+        control('jump', { targetModuleId: s.module, subState: s.key });
+      }
+    };
     return (
-      <div className="story-control" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-        {screens.map((s) => (
-          <button
-            key={s.key}
-            className="secondary"
-            disabled={busy || screen === s.key}
-            onClick={() => control('setSubState', { subState: s.key })}
-          >
-            {s.label}
-          </button>
-        ))}
-        <span className="story-hint">A0 · 揭晓讲解三屏，逐屏引导</span>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <StepButtons
+          steps={steps.map((s, i) => ({ key: String(i), label: s.label }))}
+          activeKey={String(activeIdx)}
+          disabled={busy}
+          onPick={(k) => go(parseInt(k, 10))}
+        />
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+          <button className="secondary" disabled={busy || activeIdx <= 0} onClick={() => go(activeIdx - 1)}>◀ 上一步</button>
+          <button className="secondary" disabled={busy || activeIdx >= steps.length - 1} onClick={() => go(activeIdx + 1)}>下一步 →</button>
+        </div>
       </div>
     );
   }
 
-  // A1 数字分身 · 六格点亮 + 朋友圈墙
+  // ---------- A0 揭晓 ----------
+  if (moduleId === 'A0N_REVEAL') {
+    const steps = [
+      { key: 'reveal:1', label: '揭晓结果' },
+      { key: 'reveal:2', label: '三种形态' },
+      { key: 'reveal:3', label: '艺术图' },
+      { key: 'reveal:4', label: '推送滑杆' },
+    ];
+    const order = ['reveal:1', 'reveal:2', 'reveal:3', 'reveal:4'];
+    const activeKey = String(subState ?? 'reveal:1');
+    const curIdx = order.indexOf(activeKey);
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <StepButtons steps={steps} activeKey={activeKey} disabled={busy} onPick={pick} />
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+          <button className="secondary" disabled={busy || curIdx <= 0} onClick={() => control('setSubState', { subState: order[Math.max(0, curIdx - 1)] })}>◀ 上一步</button>
+          <button className="secondary" disabled={busy || curIdx >= order.length - 1} onClick={() => control('setSubState', { subState: order[Math.min(order.length - 1, curIdx + 1)] })}>下一步 →</button>
+        </div>
+      </div>
+    );
+  }
+
+  // ---------- A1 数字分身 ----------
   if (moduleId === 'A1_AVATAR') {
-    const current = (() => {
-      const m = String(subState ?? '').match(/^avatar:(\d+)$/);
-      return m ? Math.min(6, Math.max(1, parseInt(m[1], 10))) : 1;
-    })();
-    const isWall = subState === 'avatar:wall';
+    const steps = [
+      { key: 'avatar:hook', label: '钩子开场' },
+      ...A1_STAGES.map((s, i) => ({ key: `avatar:${s.key}`, label: `${i + 1}.${s.name}` })),
+      { key: 'avatar:wall', label: '作品墙' },
+    ];
+    const order = ['avatar:hook', ...A1_STAGES.map((s) => `avatar:${s.key}`), 'avatar:wall'];
+    const activeKey = String(subState ?? 'avatar:hook');
+    const curIdx = order.indexOf(activeKey);
     return (
-      <div className="story-control" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-        <button
-          className="secondary"
-          disabled={busy || current <= 1}
-          onClick={() => control('setSubState', { subState: `avatar:${Math.max(1, current - 1)}` })}
-        >
-          ◀ 上一格
-        </button>
-        <span className="story-hint" style={{ minWidth: 120 }}>
-          正在第 {isWall ? '作品墙' : current} 格 · {isWall ? '' : A1_STEPS[current - 1]?.name}
-        </span>
-        {!isWall && current < 6 ? (
-          <button
-            className="secondary"
-            disabled={busy}
-            onClick={() => control('setSubState', { subState: `avatar:${Math.min(6, current + 1)}` })}
-          >
-            点亮下一步 ▶
-          </button>
-        ) : null}
-        <button
-          className="primary"
-          disabled={busy || isWall}
-          onClick={() => control('setSubState', { subState: 'avatar:wall' })}
-        >
-          {isWall ? '作品墙已开（再次进入）' : '展示作品墙'}
-        </button>
-        <span className="story-hint">A1 · 手机端连续对话，大屏六格逐一点亮，最后展示全班朋友圈墙</span>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <StepButtons steps={steps} activeKey={activeKey} disabled={busy} onPick={pick} />
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+          <button className="secondary" disabled={busy || curIdx <= 0} onClick={() => control('setSubState', { subState: order[Math.max(0, curIdx - 1)] })}>◀ 上一步</button>
+          <button className="secondary" disabled={busy || curIdx >= order.length - 1} onClick={() => control('setSubState', { subState: order[Math.min(order.length - 1, curIdx + 1)] })}>下一步 →</button>
+        </div>
       </div>
     );
   }
 
-  // P2 快速入门网站 · 六格点亮 + 网站作品墙
+  // ---------- P2 快速入门网站 · 六座山十二阶段 ----------
   if (moduleId === 'P2_SITE') {
-    const current = (() => {
-      const m = String(subState ?? '').match(/^p2:(\d+)$/);
-      return m ? Math.min(6, Math.max(1, parseInt(m[1], 10))) : 1;
-    })();
-    const isWall = subState === 'p2:wall';
+    const steps = [
+      { key: 'p2:hook', label: '钩子开场' },
+      ...P2_STAGES.map((s, i) => ({ key: `p2:${s.key}`, label: `${i + 1}.${s.name}` })),
+      { key: 'p2:wall', label: '作品墙' },
+    ];
+    const order = ['p2:hook', ...P2_STAGES.map((s) => `p2:${s.key}`), 'p2:wall'];
+    const activeKey = String(subState ?? 'p2:hook');
+    const curIdx = order.indexOf(activeKey);
     return (
-      <div className="story-control" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-        <button
-          className="secondary"
-          disabled={busy || current <= 1}
-          onClick={() => control('setSubState', { subState: `p2:${Math.max(1, current - 1)}` })}
-        >
-          ◀ 上一格
-        </button>
-        <span className="story-hint" style={{ minWidth: 120 }}>
-          正在第 {isWall ? '作品墙' : current} 格 · {isWall ? '' : P2_STEPS[current - 1]?.name}
-        </span>
-        {!isWall && current < 6 ? (
-          <button
-            className="secondary"
-            disabled={busy}
-            onClick={() => control('setSubState', { subState: `p2:${Math.min(6, current + 1)}` })}
-          >
-            点亮下一步 ▶
-          </button>
-        ) : null}
-        <button
-          className="primary"
-          disabled={busy || isWall}
-          onClick={() => control('setSubState', { subState: 'p2:wall' })}
-        >
-          {isWall ? '作品墙已开（再次进入）' : '展示作品墙'}
-        </button>
-        <span className="story-hint">P2 · 手机端连续对话，大屏六格逐一点亮，最后展示全班入门网站墙</span>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <StepButtons steps={steps} activeKey={activeKey} disabled={busy} onPick={pick} />
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+          <button className="secondary" disabled={busy || curIdx <= 0} onClick={() => control('setSubState', { subState: order[Math.max(0, curIdx - 1)] })}>◀ 上一步</button>
+          <button className="secondary" disabled={busy || curIdx >= order.length - 1} onClick={() => control('setSubState', { subState: order[Math.min(order.length - 1, curIdx + 1)] })}>下一步 →</button>
+        </div>
       </div>
     );
   }
 
-  // P3 养成游戏 · 六格点亮 + 游戏作品墙
+  // ---------- P3 养成游戏 ----------
   if (moduleId === 'P3_GAME') {
-    const current = (() => {
-      const m = String(subState ?? '').match(/^p3:(\d+)$/);
-      return m ? Math.min(6, Math.max(1, parseInt(m[1], 10))) : 1;
-    })();
-    const isWall = subState === 'p3:wall';
+    const steps = [
+      { key: 'p3:hook', label: '钩子开场' },
+      ...P3_STAGES.map((s, i) => ({ key: `p3:${s.key}`, label: `${i + 1}.${s.name}` })),
+      { key: 'p3:wall', label: '共生缸' },
+    ];
+    const order = ['p3:hook', ...P3_STAGES.map((s) => `p3:${s.key}`), 'p3:wall'];
+    const activeKey = String(subState ?? 'p3:hook');
+    const curIdx = order.indexOf(activeKey);
     return (
-      <div className="story-control" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-        <button
-          className="secondary"
-          disabled={busy || current <= 1}
-          onClick={() => control('setSubState', { subState: `p3:${Math.max(1, current - 1)}` })}
-        >
-          ◀ 上一格
-        </button>
-        <span className="story-hint" style={{ minWidth: 120 }}>
-          正在第 {isWall ? '作品墙' : current} 格 · {isWall ? '' : P3_STEPS[current - 1]?.name}
-        </span>
-        {!isWall && current < 6 ? (
-          <button
-            className="secondary"
-            disabled={busy}
-            onClick={() => control('setSubState', { subState: `p3:${Math.min(6, current + 1)}` })}
-          >
-            点亮下一步 ▶
-          </button>
-        ) : null}
-        <button
-          className="primary"
-          disabled={busy || isWall}
-          onClick={() => control('setSubState', { subState: 'p3:wall' })}
-        >
-          {isWall ? '作品墙已开（再次进入）' : '展示作品墙'}
-        </button>
-        <span className="story-hint">P3 · 手机端连续对话，大屏六格逐一点亮，最后展示全班养成游戏墙</span>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <StepButtons steps={steps} activeKey={activeKey} disabled={busy} onPick={pick} />
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+          <button className="secondary" disabled={busy || curIdx <= 0} onClick={() => control('setSubState', { subState: order[Math.max(0, curIdx - 1)] })}>◀ 上一步</button>
+          <button className="secondary" disabled={busy || curIdx >= order.length - 1} onClick={() => control('setSubState', { subState: order[Math.min(order.length - 1, curIdx + 1)] })}>下一步 →</button>
+        </div>
       </div>
     );
   }
 
-  // 其它 A0 模块：通用提示
+  // 其它 A0 模块
   if (moduleId === 'A0N_QUESTIONS') {
-    return <span className="story-hint">A0-1 · 学生回答三问，答得差不多点「下一环节」进入投票。</span>;
+    return <span className="story-hint">学生回答三问，答得差不多进入系统判定。</span>;
   }
   if (moduleId === 'A0N_VOTE') {
-    return <span className="story-hint">A0-2 · 学生做唯一的关系题投票，收齐后点「下一环节」进入揭晓。</span>;
+    return <span className="story-hint">系统后台判定每位学生的关系，大屏实时显示，收齐后进入揭晓。</span>;
   }
   return null;
 }

@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>你活在哪一年</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html,body { height:100%; }
+  body {
+    background: radial-gradient(1400px 700px at 50% -10%,#13203a,#0b1120 60%);
+    color:#e2e8f0;
+    font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
+    display:flex; flex-direction:column; align-items:center;
+    padding: 28px 40px; overflow:hidden;
+  }
+  .head { text-align:center; margin-bottom:6px; }
+  .head .eyebrow { font-size:15px; letter-spacing:.35em; color:#94a3b8; font-weight:700; }
+  .head h1 {
+    font-size: clamp(30px,3.6vw,52px); font-weight:900; margin-top:6px;
+    background:linear-gradient(180deg,#f8fafc,#fb923c);
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+  }
+  .head p { font-size: clamp(15px,1.7vw,22px); color:#cbd5e1; margin-top:8px; font-weight:600; }
+  svg { flex:1; width:100%; min-height:0; margin-top:10px; }
+  .foot {
+    margin-top:6px; text-align:center; font-size: clamp(18px,2.4vw,32px);
+    font-weight:900; color:#fde047; line-height:1.6; padding: 8px 20px;
+    border:1px solid rgba(250,204,21,.4); border-radius:16px;
+    background:rgba(250,204,21,.08); max-width: 1100px;
+  }
+  .foot small { display:block; font-size: clamp(13px,1.5vw,20px); color:#e2e8f0; font-weight:600; margin-top:4px; }
+</style>
+</head>
+<body>
+  <div class="head">
+    <div class="eyebrow">AI · 这几年的变化</div>
+    <h1>它在几年里，帮人做成了多少事</h1>
+    <p>从底往上，能做的事越来越多、越来越复杂</p>
+  </div>
+
+  <svg viewBox="0 0 1500 760" preserveAspectRatio="xMidYMid meet" role="img" aria-label="AI 时间线与应用叠加图">
+    <defs>
+      <linearGradient id="bar" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#fbbf24"/>
+        <stop offset="100%" stop-color="#fb923c"/>
+      </linearGradient>
+      <linearGradient id="bar2" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#38bdf8"/>
+        <stop offset="100%" stop-color="#6366f1"/>
+      </linearGradient>
+      <filter id="glow"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    </defs>
+
+    <!-- 网格 -->
+    <g stroke="#1e293b" stroke-width="1">
+      <line x1="120" y1="100" x2="120" y2="620"/>
+      <line x1="120" y1="620" x2="1460" y2="620"/>
+    </g>
+
+    <!-- 纵轴：应用层级标签（从底到顶） -->
+    <g font-family="PingFang SC,Microsoft YaHei,sans-serif" font-size="17" fill="#94a3b8" text-anchor="end">
+      <text x="105" y="610">回答我（问答/答疑）</text>
+      <text x="105" y="530">帮我写（文案/简历）</text>
+      <text x="105" y="450">帮我看（图片/文档）</text>
+      <text x="105" y="370">帮我做（图/视频/网站）</text>
+      <text x="105" y="290">跟我干（智能体跑全流程）</text>
+      <text x="105" y="210">一起创造（做产品/发布）</text>
+    </g>
+
+    <!-- 阶段柱（从底往上叠加） -->
+    <!-- 2022.11 · 会聊天 -->
+    <g>
+      <rect x="200" y="560" width="200" height="60" fill="url(#bar)" rx="10"/>
+      <text x="300" y="596" text-anchor="middle" font-size="19" font-weight="800" fill="#431407">会聊天</text>
+    </g>
+    <!-- 2023 · 更聪明 + 能看 -->
+    <g>
+      <rect x="430" y="480" width="240" height="140" fill="url(#bar2)" rx="10" opacity=".95"/>
+      <text x="550" y="536" text-anchor="middle" font-size="19" font-weight="800" fill="#0c1a2e">更聪明（GPT-4）</text>
+      <text x="550" y="566" text-anchor="middle" font-size="16" fill="#1e293b">能看懂图（多模态）</text>
+    </g>
+    <!-- 2024 · 会做内容 -->
+    <g>
+      <rect x="700" y="380" width="260" height="240" fill="url(#bar)" rx="10" opacity=".92"/>
+      <text x="830" y="496" text-anchor="middle" font-size="20" font-weight="800" fill="#431407">帮你做图</text>
+      <text x="830" y="526" text-anchor="middle" font-size="20" font-weight="800" fill="#431407">做 PPT / 视频</text>
+      <text x="830" y="556" text-anchor="middle" font-size="20" font-weight="800" fill="#431407">搭网站</text>
+    </g>
+    <!-- 2025 · 会自己干完一件事 -->
+    <g>
+      <rect x="990" y="270" width="270" height="350" fill="url(#bar2)" rx="10" opacity=".92"/>
+      <text x="1125" y="420" text-anchor="middle" font-size="20" font-weight="800" fill="#0c1a2e">智能体（Agent）</text>
+      <text x="1125" y="452" text-anchor="middle" font-size="18" fill="#1e293b">一句话，它自己</text>
+      <text x="1125" y="478" text-anchor="middle" font-size="18" fill="#1e293b">干完一整件事</text>
+      <text x="1125" y="510" text-anchor="middle" font-size="18" fill="#1e293b">会写代码（AI Coding）</text>
+    </g>
+    <!-- 2026 · 今天 · 普通人创造 -->
+    <g>
+      <rect x="1290" y="150" width="170" height="470" fill="#fbbf24" rx="10" opacity="1" filter="url(#glow)"/>
+      <text x="1375" y="360" text-anchor="middle" font-size="21" font-weight="900" fill="#431407">今天</text>
+      <text x="1375" y="392" text-anchor="middle" font-size="17" font-weight="700" fill="#431407">普通人</text>
+      <text x="1375" y="416" text-anchor="middle" font-size="17" font-weight="700" fill="#431407">也能做出</text>
+      <text x="1375" y="440" text-anchor="middle" font-size="17" font-weight="700" fill="#431407">自己的作品</text>
+    </g>
+
+    <!-- 横轴年份 -->
+    <g font-family="PingFang SC,Microsoft YaHei,sans-serif" font-size="20" font-weight="800" fill="#f8fafc" text-anchor="middle">
+      <text x="300" y="655">2022.11</text>
+      <text x="550" y="655">2023</text>
+      <text x="830" y="655">2024</text>
+      <text x="1125" y="655">2025</text>
+      <text x="1375" y="655">2026 · 今天</text>
+    </g>
+    <g font-family="PingFang SC,Microsoft YaHei,sans-serif" font-size="15" fill="#94a3b8" text-anchor="middle">
+      <text x="300" y="678">ChatGPT-3.5</text>
+      <text x="550" y="678">GPT-4 · 多模态</text>
+      <text x="830" y="678">应用爆发</text>
+      <text x="1125" y="678">智能体 · AI Coding</text>
+      <text x="1375" y="678">AI 应用时代</text>
+    </g>
+
+    <!-- 上升箭头 -->
+    <path d="M 180 620 L 1480 620" stroke="#64748b" stroke-width="3" marker-end="url(#arr)"/>
+    <g font-size="22" font-weight="900" fill="#fbbf24" text-anchor="middle">
+      <text x="820" y="120">越来越多 · 越来越复杂 →</text>
+    </g>
+  </svg>
+
+  <div class="foot">
+    看看你在哪个位置——
+    <br/>
+    你明明活在 2026 年，做的却还是 2023 年的事？
+    <small>你具体干什么我不知道，但别人哪一年干过什么，我给你贴出来了——你对照一下，自己在哪个位置。</small>
+  </div>
+</body>
+</html>

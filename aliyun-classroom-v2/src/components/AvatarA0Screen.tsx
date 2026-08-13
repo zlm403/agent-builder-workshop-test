@@ -4,7 +4,7 @@
 // 数据自取（内部轮询），与页面解耦。
 // =========================================================
 import { useEffect, useState } from 'react';
-import { A0_QUESTIONS, A0_VOTE_OPTIONS, A0_REVEAL } from '@/features/avatarLesson/config';
+import { A0_INTRO, A0_QUESTIONS, A0_VOTE_OPTIONS, A0_REVEAL } from '@/features/avatarLesson/config';
 import ContentSlot from './ContentSlot';
 
 interface A0Data {
@@ -68,8 +68,42 @@ export default function AvatarA0Screen({
     return () => { closed = true; clearInterval(iv); };
   }, [isReveal4, sessionId]);
 
-  // 三问进行中
+  // 三问进行中（含开场页：P1 手指图 → P2 二维发展图 → 三问）
   if (type === 'A0N_QUESTIONS') {
+    const s = String(subState ?? '');
+
+    // P1 手指图 · 首次接触 AI 的故事
+    if (s === 'a0:intro1') {
+      return (
+        <div style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 22, textAlign: 'center', padding: '0 6vw' }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: '#fbbf24', letterSpacing: '0.12em' }}>{A0_INTRO.intro1.eyebrow}</div>
+          <div style={{ fontSize: 'clamp(30px,4vw,52px)', fontWeight: 900, lineHeight: 1.3, background: 'linear-gradient(180deg,#f8fafc,#fbbf24)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent', maxWidth: 1000 }}>
+            {A0_INTRO.intro1.title}
+          </div>
+          <div style={{ fontSize: 'clamp(18px,2.2vw,28px)', color: '#e2e8f0', lineHeight: 1.7, maxWidth: 900 }}>{A0_INTRO.intro1.body1}</div>
+          <div style={{ fontSize: 'clamp(18px,2.2vw,28px)', color: '#fde047', fontWeight: 700, lineHeight: 1.7, maxWidth: 900 }}>{A0_INTRO.intro1.body2}</div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={A0_INTRO.intro1.image} alt="手指接触 AI 的瞬间" style={{ maxWidth: 'min(900px, 80vw)', maxHeight: '48vh', objectFit: 'contain', borderRadius: 16 }} />
+          <ContentSlot slot="a0_top" />
+        </div>
+      );
+    }
+
+    // P2 二维发展图 · 横轴时间 / 纵轴"人们开始用 AI 做什么"
+    if (s === 'a0:intro2') {
+      return (
+        <div style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 18, textAlign: 'center', padding: '0 4vw' }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: '#fbbf24', letterSpacing: '0.12em' }}>{A0_INTRO.intro2.eyebrow}</div>
+          <div style={{ fontSize: 'clamp(26px,3.4vw,44px)', fontWeight: 900, lineHeight: 1.3, background: 'linear-gradient(180deg,#f8fafc,#fbbf24)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent', maxWidth: 1100 }}>
+            {A0_INTRO.intro2.title}
+          </div>
+          <div style={{ fontSize: 'clamp(16px,1.9vw,24px)', color: '#e2e8f0', lineHeight: 1.7, maxWidth: 900 }}>{A0_INTRO.intro2.body1}</div>
+          <iframe src={A0_INTRO.intro2.image} title="AI 发展时间线" style={{ width: 'min(1300px, 94vw)', height: '62vh', border: '1px solid rgba(251,146,60,.3)', borderRadius: 16, background: '#0b1120' }} />
+        </div>
+      );
+    }
+
+    // 三问（默认）
     return (
       <div className="a0-live">
         <div className="a0-topbar">
@@ -151,14 +185,54 @@ export default function AvatarA0Screen({
   const lp = Math.round((tool / voted) * 100);
   const pp = Math.round((partner / voted) * 100);
   const reveal = subState ?? 'reveal:1';
+  const rs = String(reveal);
+
+  // P4 镜子 · "我们在哪儿？" 心理停顿
+  if (rs === 'a0:mirror') {
+    return (
+      <div style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 22, textAlign: 'center', padding: '0 6vw' }}>
+        <div style={{ fontSize: 14, fontWeight: 700, color: '#fbbf24', letterSpacing: '0.12em' }}>{A0_INTRO.mirror.eyebrow}</div>
+        <div style={{ fontSize: 'clamp(40px,6vw,80px)', fontWeight: 900, background: 'linear-gradient(180deg,#f8fafc,#fbbf24)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent' }}>
+          {A0_INTRO.mirror.title}
+        </div>
+        <div style={{ fontSize: 'clamp(20px,2.6vw,34px)', color: '#e2e8f0', lineHeight: 1.7, maxWidth: 1000 }}>{A0_INTRO.mirror.body1}</div>
+        <div style={{ fontSize: 'clamp(20px,2.6vw,34px)', color: '#fde047', fontWeight: 800, lineHeight: 1.7, maxWidth: 1000 }}>{A0_INTRO.mirror.body2}</div>
+      </div>
+    );
+  }
+
+  // P8 收束 · "这个东西已经来了"（电子海啸图 + 三个视频）
+  if (rs === 'a0:closing') {
+    return (
+      <div style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 18, textAlign: 'center', padding: '0 4vw', overflowY: 'auto' }}>
+        <div style={{ fontSize: 14, fontWeight: 700, color: '#fbbf24', letterSpacing: '0.12em' }}>{A0_INTRO.closing.eyebrow}</div>
+        <div style={{ fontSize: 'clamp(30px,4vw,52px)', fontWeight: 900, lineHeight: 1.3, background: 'linear-gradient(180deg,#f8fafc,#fb923c)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent', maxWidth: 1000 }}>
+          {A0_INTRO.closing.title}
+        </div>
+        <div style={{ fontSize: 'clamp(17px,2.1vw,28px)', color: '#e2e8f0', lineHeight: 1.7, maxWidth: 900 }}>{A0_INTRO.closing.body1}</div>
+        <div style={{ fontSize: 'clamp(17px,2.1vw,28px)', color: '#fde047', fontWeight: 700, lineHeight: 1.7, maxWidth: 900 }}>{A0_INTRO.closing.body2}</div>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={A0_INTRO.closing.image} alt="AI 就在我们身边" style={{ maxWidth: 'min(900px, 80vw)', maxHeight: '34vh', objectFit: 'contain', borderRadius: 16 }} />
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, justifyContent: 'center' }}>
+          {A0_INTRO.closing.videos.map((v) => (
+            <a key={v.url} href={v.url} target="_blank" rel="noreferrer" style={{ fontSize: 'clamp(16px,1.9vw,24px)', color: '#93c5fd', fontWeight: 700, textDecoration: 'underline' }}>
+              ▶ {v.title}
+            </a>
+          ))}
+        </div>
+        <ContentSlot slot="a0_reveal_after" />
+      </div>
+    );
+  }
+
   // 图序号：reveal:3 或 reveal:3:1 = 第1张，reveal:3:2 = 第2张（默认第1张）
   const parseArtIdx = (prefix: string): number => {
     const m = String(reveal).match(new RegExp(`^${prefix}(?::(\\d+))?$`));
     const n = m ? parseInt(m[1] ?? '1', 10) : 1;
     return Math.min(2, Math.max(1, n));
   };
-  const isArt = /^reveal:3(?::\d+)?$/.test(String(reveal));
-  const isSliders = /^reveal:4(?::\d+)?$/.test(String(reveal));
+  const isArt = /^reveal:3(?::\d+)?$/.test(rs);
+  const isSliders = /^reveal:4(?::\d+)?$/.test(rs);
   const screen = isArt ? 'art' : isSliders ? 'sliders' : reveal === 'reveal:2' ? 'pvf' : 'result';
   const artIdx = isArt ? parseArtIdx('reveal:3') : isSliders ? parseArtIdx('reveal:4') : 1;
   const artImg = A0_REVEAL.artImages[artIdx - 1];
@@ -219,14 +293,17 @@ export default function AvatarA0Screen({
 
       {screen === 'art' && (
         <>
-          <div className="a0-reveal-statement" style={{ fontSize: 'clamp(24px,3vw,40px)' }}>接下来，我们一起把 AI 变成「伙伴」</div>
+          <div className="a0-reveal-statement" style={{ fontSize: 'clamp(24px,3vw,40px)' }}>你更愿意成为哪一种？</div>
+          <div style={{ fontSize: 'clamp(16px,2vw,26px)', color: '#e2e8f0', maxWidth: 900, textAlign: 'center', lineHeight: 1.7 }}>
+            左边：一个人驾驭工具；右边：一个人拥有了一群强大的 AI。
+          </div>
           <div style={{ width: 'min(1200px, 88vw)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
             <div style={{ borderRadius: 18, border: '1px solid rgba(124,58,237,0.35)', background: 'rgba(124,58,237,0.10)', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
               {imgFailed[artIdx - 1] ? (
                 <div style={{ padding: '10vh 0', textAlign: 'center' }}>
                   <div style={{ fontSize: 56 }}>{artIdx === 1 ? '🛠️' : '🤝'}</div>
-                  <div style={{ fontSize: 18, color: '#c4b5fd', marginTop: 10 }}>{artIdx === 1 ? '把 AI 当工具（过去）' : '把 AI 当伙伴（未来）'}</div>
-                  <div style={{ fontSize: 13, color: 'var(--muted)', marginTop: 6 }}>图片位 · 请把艺术图放到 /story/A0-{artIdx}.jpg</div>
+                  <div style={{ fontSize: 18, color: '#c4b5fd', marginTop: 10 }}>{artIdx === 1 ? '人驾驭工具' : '拥有一群 AI 力量'}</div>
+                  <div style={{ fontSize: 13, color: 'var(--muted)', marginTop: 6 }}>图片位 · /story/A0-tool.png / A0-partner.png</div>
                 </div>
               ) : (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -235,14 +312,17 @@ export default function AvatarA0Screen({
             </div>
             <div className="a0-sliders-progress">第 {artIdx} / 2 张 · 上一张/下一张由教师控制</div>
           </div>
-          <div className="a0-next">下一环节 · 一起养一个「数字的你」</div>
+          <div className="a0-next" style={{ fontSize: 'clamp(17px,2.1vw,26px)' }}>先不急着解释——先想：如果一个普通人真的拥有这样的 AI 力量，他还能做什么？</div>
           <ContentSlot slot="a0_art_after" />
         </>
       )}
 
       {screen === 'sliders' && (
         <>
-          <div className="a0-reveal-statement" style={{ fontSize: 'clamp(24px,3vw,40px)' }}>现在，每个人亲手滑一滑</div>
+          <div className="a0-reveal-statement" style={{ fontSize: 'clamp(24px,3vw,40px)' }}>先别急着分"工具还是伙伴"——我们来想：做一件事，每一步到底谁更适合？</div>
+          <div style={{ fontSize: 'clamp(16px,2vw,26px)', color: '#e2e8f0', maxWidth: 1000, textAlign: 'center', lineHeight: 1.7 }}>
+            在手机上，把这 6 步都滑到你心里的位置：最左全由人做，最右全交给 AI。
+          </div>
           <div className="a0-sliders-progress">
             已提交 {sliders?.submitted ?? 0} / {sliders?.total ?? total} 人 · 全体人机比例：人 {sliders?.avgHuman ?? 0}% · AI {sliders?.avgAi ?? 0}%
           </div>

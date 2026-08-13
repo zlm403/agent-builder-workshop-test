@@ -73,6 +73,8 @@ export async function startClassroom(sessionId: string) {
       currentModuleId: first,
       startedAt: new Date(),
       moduleStartedAt: new Date(),
+      // 第一个模块若是 A0 三问，初始 subState 落在开场·手指图
+      moduleSubState: first === 'A0N_QUESTIONS' ? 'a0:intro1' : null,
     },
   });
   await audit(sessionId, 'teacher', 'classroom:start');
@@ -250,6 +252,7 @@ export async function resetModuleProgress(sessionId: string, moduleId: string) {
   // subState 回到该模块的第一步，让大屏/学生端/教师端统一回到起点
   const initialSubState =
     moduleId === 'A1_AVATAR' ? 'avatar:hook'
+    : moduleId === 'A0N_QUESTIONS' ? 'a0:intro1'
     : moduleId === 'A0N_REVEAL' ? 'reveal:1'
     : moduleId === 'P2_SITE' ? 'p2:hook'
     : moduleId === 'P3_GAME' ? 'p3:hook'

@@ -1,9 +1,9 @@
 'use client';
 // =========================================================
-// A0 新版 · 学生端组件（覆盖 A0-1 三问 / A0-2 关系题 / A0-3 揭晓等待）
+// A0 新版 · 学生端组件（覆盖 A0-1 三问 / A0-2 关系题 / A0-3 揭晓等待 / 滑杆）
 // =========================================================
 import { useEffect, useState } from 'react';
-import { A0_QUESTIONS, A0_VOTE_OPTIONS } from '@/features/avatarLesson/config';
+import { A0_QUESTIONS, A0_QUESTIONS_GUIDE, A0_SLIDER_STEPS, A0_SLIDERS } from '@/features/avatarLesson/config';
 
 export default function AvatarA0Student({
   type,
@@ -14,6 +14,7 @@ export default function AvatarA0Student({
   submitted,
   onSubmitted,
   currentTitle,
+  subState,
 }: {
   type: string; // A0N_QUESTIONS | A0N_VOTE | A0N_REVEAL
   anonymousId: string;
@@ -23,11 +24,13 @@ export default function AvatarA0Student({
   submitted: boolean;
   onSubmitted: () => void;
   currentTitle?: string;
+  subState?: string | null;
 }) {
   const [answers, setAnswers] = useState<Record<string, string>>({});
-  const [relation, setRelation] = useState<'tool' | 'partner' | null>(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState('');
+  const [sliders, setSliders] = useState<Record<string, number>>({});
+  const [sliderSubmitted, setSliderSubmitted] = useState(false);
 
   // 恢复已提交内容
   useEffect(() => {
@@ -37,7 +40,6 @@ export default function AvatarA0Student({
   }, [submitted, moduleStatus]);
 
   const qs = A0_QUESTIONS;
-  const options = A0_VOTE_OPTIONS;
 
   async function submitQuestions() {
     const filled = qs.every((q) => (answers[q.key] ?? '').trim().length > 0);
@@ -61,21 +63,23 @@ export default function AvatarA0Student({
     }
   }
 
-  async function submitVote() {
-    if (!relation || busy || locked) return;
+  async function submitSliders() {
+    const allSet = A0_SLIDER_STEPS.every((s) => typeof sliders[s.key] === 'number');
+    if (!allSet || busy || locked) return;
     setBusy(true);
     setMsg('');
     try {
-      const res = await fetch('/api/avatar/a0/vote', {
+      const res = await fetch('/api/avatar/a0/sliders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ anonymousId, sessionId, relation }),
+        body: JSON.stringify({ anonymousId, sessionId, sliders }),
       });
       const d = await res.json();
       if (!res.ok) {
         setMsg(d.error?.code === 'MODULE_LOCKED' ? '本环节已截止/锁定' : '提交失败');
         return;
       }
+      setSliderSubmitted(true);
       onSubmitted();
     } finally {
       setBusy(false);
@@ -84,10 +88,20 @@ export default function AvatarA0Student({
 
   // 三问
   if (type === 'A0N_QUESTIONS') {
+    const s = String(subState ?? '');
+    // 开场页（P1 手指图 / P2 二维图）：学生端请看大屏
+    if (s === 'a0:intro1' || s === 'a0:intro2') {
+      return (
+        <div className="module-card" style={{ textAlign: 'center', paddingTop: '6vh' }}>
+          <div style={{ fontSize: 34, fontWeight: 800, marginBottom: 10 }}>请看大屏</div>
+          <p className="note">老师正在讲"你和 AI 的故事"，跟着大屏一起看。</p>
+        </div>
+      );
+    }
     return (
       <div>
         <p className="task-prompt" style={{ color: '#fbbf24', fontWeight: 600 }}>
-          请按真实想法回答这三个问题——没有对错，它只用来认识"你和 AI"的关系。
+          {A0_QUESTIONS_GUIDE}
         </p>
         {qs.map((q, i) => (
           <div key={q.key} style={{ marginBottom: 14 }}>
@@ -102,11 +116,11 @@ export default function AvatarA0Student({
           </div>
         ))}
         {submitted ? (
-          <p className="note" style={{ color: 'var(--green)' }}>已提交三问，等待教师推进到「关系题投票」。</p>
+          <p className="note" style={{ color: 'var(--green)' }}>已提交，系统正在整理大家的回答，请看大屏。</p>
         ) : (
           <>
             <button disabled={busy || locked || qs.some((q) => !(answers[q.key] ?? '').trim())} onClick={submitQuestions} className="primary" style={{ width: '100%' }}>
-              {busy ? '提交中…' : '提交三问'}
+              {busy ? '提交中…' : '提交'}
             </button>
             {msg ? <p style={{ color: 'var(--red)', marginTop: 8 }}>{msg}</p> : null}
           </>
@@ -115,54 +129,103 @@ export default function AvatarA0Student({
     );
   }
 
-  // 关系题投票
+  // A0-2 关系判定中：系统后台判定，学生端不打扰，请看大屏
   if (type === 'A0N_VOTE') {
     return (
-      <div>
-        <p className="task-prompt" style={{ color: '#fbbf24', fontWeight: 600 }}>
-          最后做一次唯一选择：在你的生活里，AI 更像是你的——
-        </p>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 12, marginTop: 8 }}>
-          {options.map((o) => {
-            const active = relation === o.id;
-            return (
-              <button
-                key={o.id}
-                type="button"
-                disabled={locked || submitted}
-                onClick={() => setRelation(o.id)}
-                style={{
-                  textAlign: 'left', padding: '16px 18px', borderRadius: 14, cursor: 'pointer',
-                  border: active ? '2px solid var(--purple)' : '1px solid var(--border)',
-                  background: active ? 'rgba(124,58,237,0.16)' : 'var(--panel)',
-                  color: 'var(--text)',
-                }}
-              >
-                <div style={{ fontSize: 22 }}>{o.icon} <b style={{ fontSize: 17 }}>{o.label}</b></div>
-                <div style={{ fontSize: 13, color: 'var(--muted)', marginTop: 4 }}>{o.desc}</div>
-              </button>
-            );
-          })}
-        </div>
-        {submitted ? (
-          <p className="note" style={{ color: 'var(--green)', marginTop: 12 }}>已投票，稍后看大屏揭晓全班结果。</p>
-        ) : (
-          <>
-            <button disabled={busy || locked || !relation} onClick={submitVote} className="primary" style={{ width: '100%', marginTop: 14 }}>
-              {busy ? '提交中…' : '确认投票'}
-            </button>
-            {msg ? <p style={{ color: 'var(--red)', marginTop: 8 }}>{msg}</p> : null}
-          </>
-        )}
+      <div className="module-card" style={{ textAlign: 'center', paddingTop: '6vh' }}>
+        <div style={{ fontSize: 34, fontWeight: 800, marginBottom: 10 }}>请看大屏</div>
+        <p className="note">系统正在分析每一位同学与 AI 的关系，一起看大屏上的结果。</p>
       </div>
     );
   }
 
-  // A0-3 揭晓等待：请看大屏
+  // A0-3 揭晓等待：请看大屏；教师推送到 reveal:4 时显示滑杆
+  if (type === 'A0N_REVEAL') {
+    const ss = String(subState ?? '');
+    // 镜子 / 收束页：学生端请看大屏
+    if (ss === 'a0:mirror') {
+      return (
+        <div className="module-card" style={{ textAlign: 'center', paddingTop: '6vh' }}>
+          <div style={{ fontSize: 34, fontWeight: 800, marginBottom: 10 }}>看看自己，在哪儿</div>
+          <p className="note">跟着大屏，停下来想一想：AI 已经走到这里了，我在哪个位置？</p>
+        </div>
+      );
+    }
+    if (ss === 'a0:closing') {
+      return (
+        <div className="module-card" style={{ textAlign: 'center', paddingTop: '6vh' }}>
+          <div style={{ fontSize: 34, fontWeight: 800, marginBottom: 10 }}>请看大屏</div>
+          <p className="note">老师正在讲"这个东西已经来了"，一起看大屏上的证据。</p>
+        </div>
+      );
+    }
+    const isSliderOpen = ss.startsWith('reveal:4');
+    if (isSliderOpen) {
+      return (
+        <div className="a0-slider-wrap">
+          <div className="a0-slider-title">{A0_SLIDERS.title}</div>
+          <p className="a0-slider-sub">做一件事，每一步到底谁更适合？把 6 条都滑到你心里的位置——最左全由人做，最右全交给 AI。滑完点提交。</p>
+          {A0_SLIDER_STEPS.map((s, i) => (
+            <div key={s.key} className="a0-slider-row">
+              <div className="a0-slider-label">{s.label}</div>
+              {s.hint ? <div className="a0-slider-hint">{s.hint}</div> : null}
+              <div className="a0-slider-track">
+                <span className="a0-slider-end a0-slider-end-human">人</span>
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  step={5}
+                  value={typeof sliders[s.key] === 'number' ? sliders[s.key] : 50}
+                  disabled={locked || sliderSubmitted}
+                  onChange={(e) => setSliders((v) => ({ ...v, [s.key]: Number(e.target.value) }))}
+                  className="a0-range"
+                  style={{
+                    ['--val' as string]: `${typeof sliders[s.key] === 'number' ? sliders[s.key] : 50}%`,
+                  }}
+                />
+                <span className="a0-slider-end a0-slider-end-ai">AI</span>
+              </div>
+              <div className="a0-slider-readout">
+                {typeof sliders[s.key] === 'number'
+                  ? sliders[s.key] <= 40
+                    ? '偏人 · 人来做'
+                    : sliders[s.key] >= 60
+                      ? '偏AI · 交给 AI'
+                      : '人机一起'
+                  : '未滑动'}
+              </div>
+            </div>
+          ))}
+          {sliderSubmitted ? (
+            <p className="note" style={{ color: 'var(--green)', textAlign: 'center' }}>已提交，请看大屏全班分布。</p>
+          ) : (
+            <button
+              disabled={busy || locked || A0_SLIDER_STEPS.some((s) => typeof sliders[s.key] !== 'number')}
+              onClick={submitSliders}
+              className="primary"
+              style={{ width: '100%' }}
+            >
+              {busy ? '提交中…' : A0_SLIDERS.submitText}
+            </button>
+          )}
+          {msg ? <p style={{ color: 'var(--red)', marginTop: 8, textAlign: 'center' }}>{msg}</p> : null}
+        </div>
+      );
+    }
+    return (
+      <div className="module-card" style={{ textAlign: 'center', paddingTop: '6vh' }}>
+        <div style={{ fontSize: 34, fontWeight: 800, marginBottom: 10 }}>请看大屏</div>
+        <p className="note">老师正在揭晓全班的答案，并讲解「把 AI 当工具 vs 当伙伴」的三种形态区别。跟着大屏一起看。</p>
+      </div>
+    );
+  }
+
+  // 其它情况（A0N_VOTE 已在上方 return；此处兜底请看大屏）
   return (
     <div className="module-card" style={{ textAlign: 'center', paddingTop: '6vh' }}>
       <div style={{ fontSize: 34, fontWeight: 800, marginBottom: 10 }}>请看大屏</div>
-      <p className="note">老师正在揭晓全班的答案，并讲解「过去 vs 未来」的流程差异。跟着大屏一起看。</p>
+      <p className="note">请跟着老师的节奏，一起看大屏。</p>
     </div>
   );
 }
