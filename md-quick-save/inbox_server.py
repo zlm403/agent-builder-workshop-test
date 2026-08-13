@@ -261,29 +261,41 @@ TRIM_HTML_TEMPLATE = r"""<!DOCTYPE html>
 <title>聊天精修 · __NAME__</title>
 <style>
   * { box-sizing: border-box; }
-  body { font-family: "Microsoft YaHei", sans-serif; margin: 0; background: #f5f6f8; color: #222; }
-  header { background: #fff; padding: 12px 20px; border-bottom: 1px solid #e5e7eb; position: sticky; top: 0; z-index: 10; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-  .docname { font-size: 16px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 560px; }
-  .count { font-size: 12px; color: #6b7280; }
-  button { padding: 7px 14px; border: 1px solid #d1d5db; border-radius: 8px; background: #fff; cursor: pointer; font-size: 13px; }
-  button.primary { background: #2563eb; color: #fff; border-color: #2563eb; }
-  button.ghost { background: #f3f4f6; }
+  body { font-family: "Microsoft YaHei", sans-serif; margin: 0; background: #0f131a; color: #e5e7eb; }
+  header { background: #171b23; padding: 12px 20px; border-bottom: 1px solid #2a2f3a; position: sticky; top: 0; z-index: 10; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  .docname { font-size: 16px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 420px; }
+  .count { font-size: 12px; color: #9ca3af; }
+  button { padding: 7px 14px; border: 1px solid #3b4250; border-radius: 8px; background: #1f232b; cursor: pointer; font-size: 13px; color: #e5e7eb; }
+  button.primary { background: #3b82f6; color: #fff; border-color: #3b82f6; }
+  button.ghost { background: #2a2f3a; border-color: #3b4250; color: #d1d5db; }
   #starTip { position: absolute; background: #1f2937; color: #fff; border-radius: 6px; padding: 4px 8px; font-size: 12px; cursor: pointer; }
   main { max-width: 960px; margin: 16px auto; padding: 0 16px; }
-  .turn { background: #fff; border: 1px solid #e5e7eb; border-radius: 10px; padding: 14px 16px; margin-bottom: 10px; }
-  .turn .speaker { font-size: 12px; color: #6b7280; margin-bottom: 6px; }
-  .turn.User .speaker { color: #0f4c81; font-weight: 600; }
-  .turn.Assistant .speaker { color: #924000; font-weight: 600; }
-  .content { font-size: 13.5px; line-height: 1.7; white-space: pre-wrap; word-break: break-word; }
-  .content marked { background: #fef3c7; padding: 1px 3px; border-radius: 3px; }
+  .turn { background: #171b23; border: 1px solid #2a2f3a; border-radius: 10px; padding: 14px 16px; margin-bottom: 10px; }
+  .turn .speaker { font-size: 12px; color: #9ca3af; margin-bottom: 6px; }
+  .turn.User .speaker { color: #93c5fd; font-weight: 600; }
+  .turn.Assistant .speaker { color: #fcd34d; font-weight: 600; }
+  .content { font-size: 13.5px; line-height: 1.7; white-space: pre-wrap; word-break: break-word; color: #cbd5e1; }
   .starbar { margin-top: 8px; display: flex; gap: 8px; align-items: center; }
-  .starbtn { cursor: pointer; font-size: 15px; color: #924000; }
-  .starbtn.on { color: #f59e0b; }
-  .starbtn:hover { color: #2563eb; }
-  .selbtn { cursor: pointer; border: 1px solid #d97706; color: #924000; background: #fef3c7; }
-  .selnote { font-size: 12px; color: #9ca3af; }
-  footer { text-align: center; color: #9ca3af; padding: 24px; font-size: 12px; }
-</style>
+  .starbtn { cursor: pointer; font-size: 15px; color: #fcd34d; }
+  .starbtn.on { color: #fbbf24; }
+  .starbtn:hover { color: #60a5fa; }
+  .selnote { font-size: 12px; color: #6b7280; }
+  footer { text-align: center; color: #6b7280; padding: 24px; font-size: 12px; }
+  .light body { background: #f5f6f8; color: #222; }
+  .light header { background: #fff; border-bottom-color: #e5e7eb; }
+  .light button { background: #fff; color: #1f2937; border-color: #d1d5db; }
+  .light button.ghost { background: #f3f4f6; }
+  .light .docname { color: #111; }
+  .light .count { color: #6b7280; }
+  .light .turn { background: #fff; border-color: #e5e7eb; }
+  .light .turn.User .speaker { color: #0f4c81; }
+  .light .turn.Assistant .speaker { color: #924000; }
+  .light .content { color: #4b5563; }
+  .light .starbtn { color: #924000; }
+  .light .starbtn.on { color: #f59e0b; }
+  .light .selnote { color: #6b7280; }
+  .light footer { color: #9ca3af; }
+  </style>
 </head>
 <body>
 <header>
@@ -291,7 +303,8 @@ TRIM_HTML_TEMPLATE = r"""<!DOCTYPE html>
   <span class="count">共 <b id="turnCount">0</b> 轮 · 已精选 <b id="starCount">0</b> 处</span>
   <button id="cleanAll" class="ghost">清空精选</button>
   <button id="compile" class="primary">输出紧凑版</button>
-  <a href="/" class="ghost" style="padding:7px 14px;border-radius:8px;background:#fff;text-decoration:none;">← 回看板</a>
+  <button id="themeToggle" class="ghost">🌓 暗色</button>
+  <a href="/" class="ghost" style="padding:7px 14px;border-radius:8px;background:#1f232b;color:#d1d5db;text-decoration:none;">← 回看板</a>
 </header>
 <main id="turns"></main>
 <div id="starTip">标星所选</div>
@@ -409,6 +422,23 @@ document.getElementById('compile').onclick = function(){
 };
 
 render();
+
+function applyTheme(t){
+  document.body.classList.toggle('light', t==='light');
+  var tb = document.getElementById('themeToggle');
+  if (tb) tb.textContent = t==='light' ? '🌙 暗色' : '🌓 暗色';
+}
+function initTheme(){
+  var t = localStorage.getItem('theme') || 'dark';
+  applyTheme(t);
+  document.getElementById('themeToggle').addEventListener('click', function(){
+    var cur = localStorage.getItem('theme') || 'dark';
+    var next = cur === 'dark' ? 'light' : 'dark';
+    localStorage.setItem('theme', next);
+    applyTheme(next);
+  });
+}
+initTheme();
 </script>
 </body>
 </html>
@@ -567,41 +597,62 @@ HTML = """<!DOCTYPE html>
 <meta charset="utf-8">
 <title>收件箱看板</title>
 <style>
-  body { font-family: "Microsoft YaHei", sans-serif; margin: 0; background: #f5f6f8; color: #222; }
-  header { background: #fff; padding: 14px 24px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid #e5e7eb; position: sticky; top: 0; z-index: 10; }
+  body { font-family: "Microsoft YaHei", sans-serif; margin: 0; background: #0f131a; color: #e5e7eb; }
+  header { background: #171b23; padding: 12px 24px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid #2a2f3a; position: sticky; top: 0; z-index: 10; }
   header h1 { font-size: 18px; margin: 0; }
-  #search { flex: 1; max-width: 420px; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; }
-  button { padding: 7px 14px; border: 1px solid #d1d5db; border-radius: 8px; background: #fff; cursor: pointer; font-size: 13px; }
-  button.primary { background: #2563eb; color: #fff; border-color: #2563eb; }
-  main { max-width: 920px; margin: 20px auto; padding: 0 16px; }
-  .card { background: #fff; border: 1px solid #e5e7eb; border-radius: 10px; padding: 14px 18px; margin-bottom: 12px; }
+  #search { flex: 1; max-width: 420px; padding: 8px 12px; border: 1px solid #3b4250; border-radius: 8px; font-size: 14px; background: #1f232b; color: #e5e7eb; }
+  button { padding: 7px 14px; border: 1px solid #3b4250; border-radius: 8px; background: #1f232b; cursor: pointer; font-size: 13px; color: #e5e7eb; }
+  button.primary { background: #3b82f6; color: #fff; border-color: #3b82f6; }
+  button.ghost { background: #2a2f3a; border-color: #3b4250; color: #d1d5db; }
+  main { max-width: 960px; margin: 20px auto; padding: 0 16px; }
+  .card { background: #171b23; border: 1px solid #2a2f3a; border-radius: 10px; padding: 14px 18px; margin-bottom: 12px; }
   .card .head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-  .card .name { font-size: 15px; font-weight: 600; cursor: pointer; color: #1f2937; }
-  .card .meta { font-size: 12px; color: #6b7280; margin-left: auto; }
+  .card .name { font-size: 15px; font-weight: 600; cursor: pointer; color: #f3f4f6; }
+  .card .meta { font-size: 12px; color: #9ca3af; margin-left: auto; }
   .badge { font-size: 11px; padding: 2px 8px; border-radius: 10px; }
-  .badge.newest { background: #dcfce7; color: #15803d; }
-  .badge.dup { background: #fef3c7; color: #b45309; }
-  .badge.ver { background: #e0e7ff; color: #4338ca; }
-  .preview { font-size: 13px; color: #4b5563; margin: 10px 0 6px; line-height: 1.6; white-space: pre-wrap; word-break: break-all; }
-  .group { font-size: 12px; color: #b45309; margin: 4px 0; }
-  .versions { font-size: 12px; color: #4338ca; margin: 4px 0; display: none; }
+  .badge.newest { background: #064e35; color: #6ee7b7; }
+  .badge.dup { background: #78350f; color: #fcd34d; }
+  .badge.ver { background: #312e81; color: #a78bfa; }
+  .preview { font-size: 13px; color: #cbd5e1; margin: 10px 0 6px; line-height: 1.6; white-space: pre-wrap; word-break: break-all; }
+  .group { font-size: 12px; color: #fcd34d; margin: 4px 0; }
+  .versions { font-size: 12px; color: #a78bfa; margin: 4px 0; display: none; }
   .versions.open { display: block; }
-  .versions div { padding: 3px 0; border-top: 1px dashed #e5e7eb; }
-  .versions a { color: #4338ca; cursor: pointer; margin-right: 8px; }
+  .versions div { padding: 3px 0; border-top: 1px dashed #2a2f3a; }
+  .versions a { color: #a78bfa; cursor: pointer; margin-right: 8px; }
   .actions { display: flex; gap: 8px; margin-top: 8px; }
-  .actions a, .actions span { font-size: 13px; color: #2563eb; cursor: pointer; text-decoration: none; }
-  .actions .del { color: #dc2626; }
-  .empty { text-align: center; color: #9ca3af; padding: 60px 0; }
-  .full { display: none; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 14px; margin-top: 10px; white-space: pre-wrap; font-size: 13px; line-height: 1.7; max-height: 60vh; overflow: auto; word-break: break-all; }
+  .actions a, .actions span { font-size: 13px; color: #60a5fa; cursor: pointer; text-decoration: none; }
+  .actions .del { color: #f87171; }
+  .empty { text-align: center; color: #6b7280; padding: 60px 0; }
+  .full { display: none; background: #0f172a; border: 1px solid #2a2f3a; border-radius: 8px; padding: 14px; margin-top: 10px; white-space: pre-wrap; font-size: 13px; line-height: 1.7; max-height: 60vh; overflow: auto; word-break: break-all; color: #cbd5e1; }
   .full.open { display: block; }
-</style>
-</head>
-<body>
+  .verprev { color: #94a3b8; margin-left: 8px; }
+  #themeToggle { padding: 4px 10px; font-size: 13px; }
+  .light body { background: #f5f6f8; color: #222; }
+  .light header { background: #fff; border-bottom-color: #e5e7eb; }
+  .light #search { background: #fff; border-color: #d1d5db; color: #111; }
+  .light button { background: #fff; color: #1f2937; border-color: #d1d5db; }
+  .light button.ghost { background: #f3f4f6; }
+  .light .card { background: #fff; border-color: #e5e7eb; }
+  .light .card .name { color: #1f2937; }
+  .light .card .meta { color: #6b7280; }
+  .light .preview { color: #4b5563; }
+  .light .full { background: #f9fafb; color: #4b5563; border-color: #e5e7eb; }
+  .light .badge.newest { background: #dcfce7; color: #15803d; }
+  .light .badge.dup { background: #fef3c7; color: #b45309; }
+  .light .badge.ver { background: #e0e7ff; color: #4338ca; }
+  .light .group { color: #b45309; }
+  .light .versions { color: #4338ca; }
+  .light .versions a { color: #4338ca; }
+  .light .empty { color: #9ca3af; }
+  </style>
+  </head>
+  <body>
 <header>
   <h1>📥 收件箱看板</h1>
   <input id="search" placeholder="搜内容或文件名…（不记得名字也能搜）">
   <button id="refresh">刷新</button>
-  <button id="openInbox">打开收件箱文件夹</button>
+   <button id="openInbox">打开收件箱文件夹</button>
+   <button id="themeToggle" class="ghost">🌓 暗色</button>
 </header>
 <main id="list"></main>
 
@@ -686,6 +737,17 @@ function delFile(name) {
 $('#search').addEventListener('input', render);
 $('#refresh').addEventListener('click', load);
 $('#openInbox').addEventListener('click', () => fetch('/open_inbox'));
+$('#themeToggle').addEventListener('click', () => {
+  const cur = localStorage.getItem('theme') || 'dark';
+  const next = cur === 'dark' ? 'light' : 'dark';
+  localStorage.setItem('theme', next);
+  applyTheme(next);
+});
+function applyTheme(t){
+  document.body.classList.toggle('light', t==='light');
+  $('#themeToggle').textContent = t==='light' ? '🌙 暗色' : '🌓 暗色';
+}
+applyTheme(localStorage.getItem('theme') || 'dark');
 load();
 </script>
 </body>
