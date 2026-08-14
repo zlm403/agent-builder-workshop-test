@@ -4,7 +4,7 @@
 // 数据自取（内部轮询），与页面解耦。
 // =========================================================
 import { useEffect, useState } from 'react';
-import { A0_INTRO, A0_QUESTIONS, A0_VOTE_OPTIONS, A0_REVEAL } from '@/features/avatarLesson/config';
+import { A0_INTRO, A0_VOTE_OPTIONS, A0_REVEAL } from '@/features/avatarLesson/config';
 import ContentSlot from './ContentSlot';
 import { usePageOverrides, pageText } from '@/lib/usePageText';
 
@@ -100,37 +100,10 @@ export default function AvatarA0Screen({
       );
     }
 
-    // 三问（默认）
+    // 三问（默认）：大屏仍放二维发展图（让学生对照位置），学生手机回答三问
     return (
-      <div className="a0-live">
-        <div className="a0-topbar">
-          <div className="a0-brand">你和 AI</div>
-          <div className="a0-tag">三问进行中</div>
-        </div>
-        <ContentSlot slot="a0_top" />
-        <div className="a0-stage">
-          <div className="a0-question" style={{ textAlign: 'center' }}>你平时会让 AI 帮你做什么？</div>
-          <div className="a0-snap" style={{ maxWidth: 760 }}>
-            <div className="a0-snap-title">正在收集三问 · 已回答</div>
-            <div className="a0-bars">
-              {A0_QUESTIONS.map((q, i) => {
-                const c = data?.answerCountByQuestion?.[i] ?? 0;
-                const pctT = total > 0 ? Math.round((c / total) * 100) : 0;
-                return (
-                  <div className="a0-bar-row" key={q.key}>
-                    <div className="a0-bar-name" style={{ width: 130, textAlign: 'right' }}>{i + 1} · {q.title.length > 6 ? q.title.slice(0, 6) + '…' : q.title}</div>
-                    <div className="a0-bar-track"><div className="a0-bar-fill" style={{ width: pctT + '%', background: 'linear-gradient(90deg,#7c3aed,#2563eb)' }} /></div>
-                    <div className="a0-bar-pct">{c}/{total}</div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-        <ContentSlot slot="a0_questions_after" />
-        <div className="a0-foot">
-          <div className="a0-status">正在读取每一位同学的真实回答…</div>
-        </div>
+      <div style={{ height: '100%', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 2vw' }}>
+        <iframe src={A0_INTRO.intro2.image} title="AI 发展时间线" style={{ width: 'min(1700px, 100%)', height: '94vh', border: 'none', borderRadius: 0, background: '#0b1120' }} />
       </div>
     );
   }
