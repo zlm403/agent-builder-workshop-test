@@ -58,8 +58,6 @@ const BUILTIN_SEEDS: BuiltinSeed[] = [
   { group: 'A1', moduleId: 'A1_AVATAR', refKey: 'avatar:c9', label: '现实：一人公司' },
   { group: 'A1', moduleId: 'A1_AVATAR', refKey: 'avatar:c10', label: '现实信号' },
   { group: 'A1', moduleId: 'A1_AVATAR', refKey: 'avatar:c11', label: 'A1收束 → A2问题' },
-  { group: 'A1', moduleId: 'A1_AVATAR', refKey: 'avatar:cog', label: '认知对比图' },
-  { group: 'A1', moduleId: 'A1_AVATAR', refKey: 'avatar:video', label: '视频·普通人的例子' },
 
   // ---- P2 快速入门网站 ----
   { group: 'P2', moduleId: 'P2_SITE', refKey: 'p2:hook', label: '钩子开场' },
@@ -124,6 +122,19 @@ export async function ensurePages(group: PageGroup) {
   for (const e of existing) {
     if (e.kind === 'builtin' && !seedKeys.has(`${e.moduleId}:${e.refKey ?? ''}`)) {
       await prisma.lessonPage.delete({ where: { id: e.id } }).catch(() => {});
+    }
+  }
+  // 重排：把所有内置页按种子顺序重写 seq（保证顺序始终与种子一致，不受历史 seq 残留影响）
+  {
+    const builtins = existing.filter((e) => e.kind === 'builtin');
+    let bi = 0;
+    for (const s of seeds) {
+      const key = `${s.moduleId}:${s.refKey ?? ''}`;
+      const page = builtins.find((e) => `${e.moduleId}:${e.refKey ?? ''}` === key);
+      if (page && page.seq !== bi) {
+        await prisma.lessonPage.update({ where: { id: page.id }, data: { seq: bi } }).catch(() => {});
+      }
+      bi++;
     }
   }
   const maxSeq = existing.reduce((m, e) => Math.max(m, e.seq), -1);
