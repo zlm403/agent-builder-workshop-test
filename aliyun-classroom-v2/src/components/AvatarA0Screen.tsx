@@ -29,6 +29,7 @@ export default function AvatarA0Screen({
   total: number;
 }) {
   const [data, setData] = useState<A0Data | null>(null);
+  const [playingVideo, setPlayingVideo] = useState<string | null>(null);
   const ov = usePageOverrides(subState);
 
   useEffect(() => {
@@ -146,7 +147,7 @@ export default function AvatarA0Screen({
     const tBody1 = pageText(ov, 'body1', A0_INTRO.closing.body1);
     const tBody2 = pageText(ov, 'body2', A0_INTRO.closing.body2);
     return (
-      <div style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 18, textAlign: 'center', padding: '0 4vw', overflowY: 'auto' }}>
+      <div style={{ minHeight: 'calc(100vh - 80px)', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 18, textAlign: 'center', padding: '0 4vw', overflowY: 'auto' }}>
         {tEyebrow !== null && <div style={{ fontSize: 14, fontWeight: 700, color: '#fbbf24', letterSpacing: '0.12em' }}>{tEyebrow}</div>}
         {tTitle !== null && <div style={{ fontSize: 'clamp(30px,4vw,52px)', fontWeight: 900, lineHeight: 1.3, background: 'linear-gradient(180deg,#f8fafc,#fb923c)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent', maxWidth: 1000 }}>
           {tTitle}
@@ -155,14 +156,19 @@ export default function AvatarA0Screen({
         {tBody2 !== null && <div style={{ fontSize: 'clamp(17px,2.1vw,28px)', color: '#fde047', fontWeight: 700, lineHeight: 1.7, maxWidth: 900 }}>{tBody2}</div>}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={A0_INTRO.closing.image} alt="AI 就在我们身边" style={{ maxWidth: 'min(900px, 80vw)', maxHeight: '34vh', objectFit: 'contain', borderRadius: 16 }} />
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, justifyContent: 'center' }}>
-          {A0_INTRO.closing.videos.map((v) => (
-            <a key={v.url} href={v.url} target="_blank" rel="noreferrer" style={{ fontSize: 'clamp(16px,1.9vw,24px)', color: '#93c5fd', fontWeight: 700, textDecoration: 'underline' }}>
-              ▶ {v.title}
-            </a>
-          ))}
-        </div>
+        <button
+          onClick={() => setPlayingVideo('/api/media/file/1786677398421-7ncl82.mp4')}
+          style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 'clamp(20px,2.4vw,32px)', color: '#93c5fd', fontWeight: 700, textDecoration: 'underline' }}
+        >
+          ▶ a0-1
+        </button>
         <ContentSlot slot="a0_reveal_after" />
+
+        {playingVideo && (
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000 }} onClick={() => setPlayingVideo(null)}>
+            <video src={playingVideo} controls autoPlay playsInline style={{ width: 'min(1200px, 94vw)', maxHeight: '88vh', borderRadius: 12 }} />
+          </div>
+        )}
       </div>
     );
   }
