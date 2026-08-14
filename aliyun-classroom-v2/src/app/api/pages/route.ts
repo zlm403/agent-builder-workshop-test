@@ -47,14 +47,16 @@ export async function PATCH(req: NextRequest) {
   try {
     const body = await req.json();
     const id = String(body.id ?? '');
-    if (!id) return NextResponse.json({ error: { code: 'BAD_REQUEST' } }, { status: 400 });
 
+    // 重排：只需 group + order，不需要 id
     if (Array.isArray(body.order)) {
       const group = parseGroup(body.group);
       if (!group) return NextResponse.json({ error: { code: 'BAD_REQUEST' } }, { status: 400 });
       const pages = await reorderPages(group, body.order.map(String));
       return NextResponse.json({ pages });
     }
+
+    if (!id) return NextResponse.json({ error: { code: 'BAD_REQUEST' } }, { status: 400 });
 
     const patch: Partial<{ title: string; hidden: boolean; seq: number; overrides: Record<string, string> | null }> = {};
     if (typeof body.title === 'string') patch.title = body.title;

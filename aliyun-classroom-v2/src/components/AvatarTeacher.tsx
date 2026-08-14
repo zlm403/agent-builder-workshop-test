@@ -137,6 +137,8 @@ export default function AvatarTeacher({
 
   function go(page: PageDef) {
     if (busy || busyLocal) return;
+    // 隐藏页不允许投大屏（防止"点了隐藏页大屏却显示"）
+    if (page.hidden) return;
     if (page.moduleId !== moduleId) {
       // 跨模块（A0 三个模块之间）：jump 并落到指定 subState
       control('jump', { targetModuleId: page.moduleId, subState: page.kind === 'content' ? `page:${page.id}` : page.refKey ?? null });
@@ -161,11 +163,22 @@ export default function AvatarTeacher({
   }
 
   async function toggleHidden(p: PageDef) {
+    const nextHidden = !p.hidden;
     await fetch('/api/pages', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: p.id, hidden: !p.hidden }),
+      body: JSON.stringify({ id: p.id, hidden: nextHidden }),
     });
+    // 隐藏当前正在展示的页时，大屏自动切到相邻可见页（避免大屏停在已隐藏页）
+    if (nextHidden && isActive(p)) {
+      const visiblePages = pages.filter((x) => x.id !== p.id && !x.hidden);
+      const idx = pages.findIndex((x) => x.id === p.id);
+      // 优先选前一个可见页，没有则选后一个
+      const before = [...pages].reverse().find((x) => x.seq < p.seq && x.id !== p.id && !x.hidden);
+      const after = pages.find((x) => x.seq > p.seq && x.id !== p.id && !x.hidden);
+      const target = before ?? after ?? visiblePages[0];
+      if (target) go(target);
+    }
     await load();
   }
 
