@@ -66,7 +66,7 @@ export function getFieldDefs(refKey: string | null): TextFieldDef[] {
   // A1 数字分身
   if (refKey === 'avatar:hook') return hookFields(A1_HOOK);
   if (refKey.startsWith('avatar:c')) {
-    const k = refKey.slice('avatar:c'.length);
+    const k = refKey.slice('avatar:'.length); // avatar:c1 → c1
     const st = A1_STAGES.find((s) => s.key === k);
     return st ? stageFields(st) : [];
   }
@@ -75,7 +75,7 @@ export function getFieldDefs(refKey: string | null): TextFieldDef[] {
   // P2 快速入门网站
   if (refKey === 'p2:hook') return hookFields(P2_HOOK);
   if (refKey.startsWith('p2:s')) {
-    const k = refKey.slice('p2:s'.length);
+    const k = refKey.slice('p2:'.length); // p2:s1 → s1
     const st = P2_STAGES.find((s) => s.key === k);
     return st ? stageFields(st) : [];
   }
@@ -84,7 +84,7 @@ export function getFieldDefs(refKey: string | null): TextFieldDef[] {
   // P3 养成游戏
   if (refKey === 'p3:hook') return hookFields(P3_HOOK);
   if (refKey.startsWith('p3:s')) {
-    const k = refKey.slice('p3:s'.length);
+    const k = refKey.slice('p3:'.length); // p3:s1 → s1
     const st = P3_STAGES.find((s) => s.key === k);
     return st ? stageFields(st) : [];
   }
