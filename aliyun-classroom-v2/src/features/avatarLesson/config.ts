@@ -159,13 +159,10 @@ export interface A1Step {
   aiAsk: string; // AI 首次向学生发问的话（引导开场）
 }
 
-// A1 钩子开场（大屏先显示，不出现六格）
+// A1 钩子开场（屏1 · 只显示一张孙悟空分身图，无文字）
 export const A1_HOOK = {
-  eyebrow: 'A1 · 数字分身',
-  title: '如果有「另一个你」，替你去干活——',
-  body1: '孙悟空拔一根毫毛，变出另一个自己，替他斩妖除魔；那他本人呢？去花果山吃桃、玩耍。',
-  body2: '如果我们也拥有一个「数字的你」，替你干活，你去吃喝玩乐——这个好不好？',
-  bridge: '好，那我们先别空想。我们真的来试一次——和 AI 聊一聊，这件事到底怎么做。',
+  image: '/api/media/file/1786706693302-hi3j9o.png',
+  alt: '孙悟空抱着手微笑，身后无数分身正在替他做事',
 };
 
 // 目标横幅（钩子讲完后钉在大屏顶部，全程不消失）
@@ -175,7 +172,7 @@ export const A1_GOAL = {
 
 // A1 十七环节（任务链 1-12 + 升华链 13-17）
 export interface A1Stage {
-  key: string; // c1..c17
+  key: string; // c1..c11
   name: string; // 阶段名
   screenTitle: string; // 大屏显示的大标题
   screenQuestion: string; // 大屏显示的问题/任务
@@ -183,6 +180,8 @@ export interface A1Stage {
   action: string; // 学生端主要动作
   output: string; // 本环节产出
   teacherHint: string; // 教师端提示
+  media?: 'image' | 'video'; // 有则本屏只显示图/视频，无文字（image=留图位，video=留视频位）
+  mediaUrl?: string; // image 的图片地址（教师/张老师给）
 }
 
 export const A1_STAGES: A1Stage[] = [
@@ -256,45 +255,51 @@ export const A1_STAGES: A1Stage[] = [
   {
     key: 'c7',
     name: '梦想①打开世界',
-    screenTitle: '视觉图为主：蓝色能量核心 → 一本书、老师、艺术家、课程、公司、人物、经验、能力等被蒸馏 → 汇聚成巨大的 AI 能力体。',
+    screenTitle: '',
     screenQuestion: '',
     studentTask: '看图，感受可能性',
     action: '看图',
     output: '万物皆可蒸馏的感受',
     teacherHint: '从"蒸馏自己"突然把梦想扩大到"万物"。',
+    media: 'image',
+    mediaUrl: '',
   },
   // 屏12 · 梦想②一个人与一支队伍
   {
     key: 'c8',
     name: '梦想②一个人与一支队伍',
-    screenTitle: '两个大学生微笑聊天：左边身后只有自己；右边身后已经站着庞大的 AI 队伍。',
+    screenTitle: '',
     screenQuestion: '',
     studentTask: '看图',
     action: '看图',
     output: '强烈对比的感受',
     teacherHint: '把宏大的梦想落回"我自己"：一个人 vs 一支队伍。',
+    media: 'image',
+    mediaUrl: '',
   },
   // 屏13 · 现实：一人公司
   {
     key: 'c9',
     name: '现实：一人公司',
-    screenTitle: '真实的一人公司 / AI 创业案例',
+    screenTitle: '',
     screenQuestion: '',
     studentTask: '看案例',
     action: '看视频',
     output: '现实不是幻想',
     teacherHint: '放真实一人公司/AI创业案例视频（教师自己插视频）。',
+    media: 'video',
   },
   // 屏14 · 现实信号
   {
     key: 'c10',
     name: '现实信号',
-    screenTitle: '国家 / 社会正在出现的一人公司、AI 生产方式等现实信号',
+    screenTitle: '',
     screenQuestion: '',
     studentTask: '看材料',
     action: '看视频',
     output: '变化已进入真实社会',
     teacherHint: '放现实信号视频/材料（教师自己插）。',
+    media: 'video',
   },
   // 屏15 · A1收束 → A2问题
   {

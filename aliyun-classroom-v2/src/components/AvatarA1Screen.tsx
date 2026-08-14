@@ -43,22 +43,12 @@ export default function AvatarA1Screen({
     return () => { closed = true; clearInterval(iv); };
   }, [sessionId]);
 
-  // 钩子开场
+  // 钩子开场（只显示一张孙悟空分身图，无文字）
   if (String(subState ?? '') === 'avatar:hook') {
-    const tEyebrow = pageText(ov, 'eyebrow', A1_HOOK.eyebrow);
-    const tTitle = pageText(ov, 'title', A1_HOOK.title);
-    const tBody1 = pageText(ov, 'body1', A1_HOOK.body1);
-    const tBody2 = pageText(ov, 'body2', A1_HOOK.body2);
-    const tBridge = pageText(ov, 'bridge', A1_HOOK.bridge);
     return (
-      <div style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 22, textAlign: 'center', padding: '0 6vw' }}>
-        <ContentSlot slot="a1_top" />
-        {tEyebrow !== null && <div style={{ fontSize: 14, fontWeight: 700, color: '#c4b5fd', letterSpacing: '0.12em' }}>{tEyebrow}</div>}
-        {tTitle !== null && <div style={{ fontSize: 'clamp(30px,4vw,52px)', fontWeight: 900, lineHeight: 1.3, background: 'linear-gradient(180deg,#f8fafc,#c4b5fd)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent', maxWidth: 1000 }}>{tTitle}</div>}
-        {tBody1 !== null && <div style={{ fontSize: 'clamp(18px,2.2vw,28px)', color: '#e2e8f0', lineHeight: 1.7, maxWidth: 900 }}>{tBody1}</div>}
-        {tBody2 !== null && <div style={{ fontSize: 'clamp(18px,2.2vw,28px)', color: '#fde047', fontWeight: 700, lineHeight: 1.7, maxWidth: 900 }}>{tBody2}</div>}
-        {tBridge !== null && <div style={{ fontSize: 'clamp(16px,1.9vw,24px)', color: '#93c5fd', lineHeight: 1.7, maxWidth: 900, marginTop: 8 }}>{tBridge}</div>}
-        <ContentSlot slot="a1_hook_after" />
+      <div style={{ height: '100%', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 2vw' }}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={A1_HOOK.image} alt={A1_HOOK.alt} style={{ maxWidth: 'min(1500px, 96vw)', maxHeight: '90vh', objectFit: 'contain' }} />
       </div>
     );
   }
@@ -95,7 +85,31 @@ export default function AvatarA1Screen({
       </div>
 
       {/* 当前环节内容（上下左右居中） */}
-      {stageIdx >= 0 && !launched && (
+      {stageIdx >= 0 && !launched && (() => {
+        const st = A1_STAGES[stageIdx];
+        // 图屏：只显示图，无文字
+        if (st.media === 'image') {
+          return (
+            <div style={{ flex: 1, minHeight: 'calc(100vh - 140px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              {st.mediaUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={st.mediaUrl} alt={st.name} style={{ maxWidth: 'min(1500px, 96vw)', maxHeight: '88vh', objectFit: 'contain' }} />
+              ) : (
+                <div style={{ color: 'var(--muted)', fontSize: 18 }}>图片位（等张老师给图）</div>
+              )}
+            </div>
+          );
+        }
+        // 视频屏：只显示视频，无文字（教师自己插视频到内容块）
+        if (st.media === 'video') {
+          return (
+            <div style={{ flex: 1, minHeight: 'calc(100vh - 140px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              {pageId && <ContentSlot slot={`page:${pageId}`} />}
+            </div>
+          );
+        }
+        // 普通文字屏
+        return (
         <div style={{ flex: 1, minHeight: 'calc(100vh - 140px)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 18, textAlign: 'center' }}>
           {tStageTitle !== null && <div style={{ fontSize: 'clamp(26px,3.4vw,46px)', fontWeight: 900, maxWidth: 1100, background: 'linear-gradient(180deg,#f8fafc,#c4b5fd)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent' }}>
             {tStageTitle}
@@ -111,7 +125,8 @@ export default function AvatarA1Screen({
           {/* 内容槽：教师可在此环节放额外文案/示例/图片/视频 */}
           <ContentSlot slot={`a1_${A1_STAGES[stageIdx].key}_after`} />
         </div>
-      )}
+        );
+      })()}
 
       {/* 朋友圈墙 */}
       {launched && (

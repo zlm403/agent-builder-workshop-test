@@ -3,7 +3,7 @@
 // 每个内置页有哪些可编辑字段 + 默认值（从 config 取）。
 // 大屏渲染用 overrides ?? 默认值（见 usePageText.ts）。
 // =========================================================
-import { A0_INTRO, A0_REVEAL, A1_HOOK, A1_GOAL, A1_STAGES } from '@/features/avatarLesson/config';
+import { A0_INTRO, A0_REVEAL, A1_STAGES } from '@/features/avatarLesson/config';
 import { P2_HOOK, P2_GOAL, P2_STAGES } from '@/features/siteEntry/config';
 import { P3_HOOK, P3_GOAL, P3_STAGES } from '@/features/growGame/config';
 
@@ -64,11 +64,13 @@ export function getFieldDefs(refKey: string | null): TextFieldDef[] {
   ];
 
   // A1 数字分身
-  if (refKey === 'avatar:hook') return hookFields(A1_HOOK);
+  if (refKey === 'avatar:hook') return []; // 钩子页现在只显示一张图，无文字可编辑
   if (refKey.startsWith('avatar:c')) {
     const k = refKey.slice('avatar:'.length); // avatar:c1 → c1
     const st = A1_STAGES.find((s) => s.key === k);
-    return st ? stageFields(st) : [];
+    if (!st) return [];
+    if (st.media) return []; // 图/视频屏无文字
+    return stageFields(st);
   }
   if (refKey === 'avatar:wall') return [{ key: 'screenTitle', label: '作品墙标题', def: '全班数字分身 · 朋友圈墙' }];
 
@@ -95,7 +97,6 @@ export function getFieldDefs(refKey: string | null): TextFieldDef[] {
 
 // 目标横幅字段（钩子页额外可编辑）
 export function getBannerFields(refKey: string | null): TextFieldDef[] {
-  if (refKey === 'avatar:hook') return [{ key: 'banner', label: '目标横幅', def: A1_GOAL.banner }];
   if (refKey === 'p2:hook') return [{ key: 'banner', label: '目标横幅', def: P2_GOAL.banner }];
   if (refKey === 'p3:hook') return [{ key: 'banner', label: '目标横幅', def: P3_GOAL.banner }];
   return [];
