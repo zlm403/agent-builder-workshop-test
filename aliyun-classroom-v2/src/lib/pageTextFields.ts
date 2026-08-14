@@ -4,6 +4,7 @@
 // 大屏渲染用 overrides ?? 默认值（见 usePageText.ts）。
 // =========================================================
 import { A0_INTRO, A0_REVEAL, A1_STAGES } from '@/features/avatarLesson/config';
+import { A2_STAGES, A2_HOOK } from '@/features/siteEntry/config';
 
 export interface TextFieldDef {
   key: string; // overrides 的 key
@@ -71,6 +72,17 @@ export function getFieldDefs(refKey: string | null): TextFieldDef[] {
     return stageFields(st);
   }
   if (refKey === 'avatar:wall') return [{ key: 'screenTitle', label: '作品墙标题', def: '全班数字分身 · 朋友圈墙' }];
+
+  // A2 快速入门网站
+  if (refKey === 'a2:hook') return hookFields(A2_HOOK);
+  if (refKey.startsWith('a2:s')) {
+    const k = refKey.slice('a2:'.length); // a2:s1 → s1
+    const st = A2_STAGES.find((s) => s.key === k);
+    if (!st) return [];
+    if (st.media) return []; // 图/视频屏无文字
+    return stageFields(st);
+  }
+  if (refKey === 'a2:wall') return [{ key: 'screenTitle', label: '作品墙标题', def: '全班作品墙' }];
 
   return [];
 }
