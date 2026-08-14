@@ -137,36 +137,41 @@ export function groupOfModule(moduleId: string | null | undefined): PageGroup | 
   return null;
 }
 
-// seed：确保某组的默认内置页已存在（幂等，只补缺，不覆盖教师已有调整）
+// seed：确保某组的默认内置页 + 内容页种子已存在（幂等，只补缺，不覆盖教师已有调整）
 export async function ensurePages(group: PageGroup) {
   const seeds = BUILTIN_SEEDS.filter((s) => s.group === group);
+  const contentSeeds = CONTENT_SEEDS.filter((s) => s.group === group);
   const existing = await prisma.lessonPage.findMany({ where: { group }, orderBy: { seq: 'asc' } });
-  // 内置页唯一键 = moduleId:refKey（refKey 为 null 用 ''，A0 的"三问"靠 moduleId 区分）
+
+  // 1) 内容页种子（纯展示环节）：旧内置页迁移为内容页 / 缺失则新建，并 seed 默认内容块
+  for (const cs of contentSeeds) {
+    let page = existing.find((e) => e.refKey === cs.refKey);
+    if (!page) {
+      page = await prisma.lessonPage.create({
+        data: { group, moduleId: cs.moduleId, seq: 0, kind: 'content', refKey: cs.refKey, title: cs.title, hidden: false },
+      });
+    } else if (page.kind !== 'content') {
+      // 旧内置纯展示页 → 内容页（保留 refKey 身份与位置，标题给默认）
+      await prisma.lessonPage.update({ where: { id: page.id }, data: { kind: 'content', title: cs.title } });
+    }
+    // seed 默认内容块（仅当该页还没有任何内容块时，不覆盖教师已有编辑）
+    await seedDefaultBlocksIfEmpty(page.id, cs);
+  }
+  // 迁移后重新拉取（上面的 kind 转换已入库，in-memory existing 已过期）
+  const afterMigration = await prisma.lessonPage.findMany({ where: { group }, orderBy: { seq: 'asc' } });
+
+  // 2) 内置页（功能页）seed：清理 + 补缺
   const existingKeys = new Set(
-    existing.filter((e) => e.kind === 'builtin').map((e) => `${e.moduleId}:${e.refKey ?? ''}`),
+    afterMigration.filter((e) => e.kind === 'builtin').map((e) => `${e.moduleId}:${e.refKey ?? ''}`),
   );
-  // 清理：种子里已不存在的内置页（如合并掉的老页）→ 删除，保持与种子一致
   const seedKeys = new Set(seeds.map((s) => `${s.moduleId}:${s.refKey ?? ''}`));
-  for (const e of existing) {
+  for (const e of afterMigration) {
     if (e.kind === 'builtin' && !seedKeys.has(`${e.moduleId}:${e.refKey ?? ''}`)) {
       await prisma.lessonPage.delete({ where: { id: e.id } }).catch(() => {});
     }
   }
-  // 重排：把所有内置页按种子顺序重写 seq（保证顺序始终与种子一致，不受历史 seq 残留影响）
-  {
-    const builtins = existing.filter((e) => e.kind === 'builtin');
-    let bi = 0;
-    for (const s of seeds) {
-      const key = `${s.moduleId}:${s.refKey ?? ''}`;
-      const page = builtins.find((e) => `${e.moduleId}:${e.refKey ?? ''}` === key);
-      if (page && page.seq !== bi) {
-        await prisma.lessonPage.update({ where: { id: page.id }, data: { seq: bi } }).catch(() => {});
-      }
-      bi++;
-    }
-  }
-  const maxSeq = existing.reduce((m, e) => Math.max(m, e.seq), -1);
-
+  // 补缺内置页
+  const maxSeq = afterMigration.reduce((m, e) => Math.max(m, e.seq), -1);
   let seq = maxSeq + 1;
   for (const s of seeds) {
     const key = `${s.moduleId}:${s.refKey ?? ''}`;
@@ -184,6 +189,65 @@ export async function ensurePages(group: PageGroup) {
     });
     existingKeys.add(key);
   }
+
+  // 3) 重排：种子页（内置 + 内容页）按全序对齐 seq（只动种子页，不碰教师后加的内容页）
+  const order = fullOrder(group);
+  const all = await prisma.lessonPage.findMany({ where: { group } });
+  for (let i = 0; i < order.length; i++) {
+    const o = order[i];
+    const page = all.find((e) => e.kind === o.kind && e.refKey === o.refKey);
+    if (page && page.seq !== i) {
+      await prisma.lessonPage.update({ where: { id: page.id }, data: { seq: i } }).catch(() => {});
+    }
+  }
+}
+
+// 每组的全序（内置功能页 + 内容页种子交错），重排按此对齐
+function fullOrder(group: PageGroup): { refKey: string | null; kind: 'builtin' | 'content' }[] {
+  const builtins = BUILTIN_SEEDS.filter((s) => s.group === group);
+  const contents = CONTENT_SEEDS.filter((s) => s.group === group);
+  if (group === 'A2') {
+    // A2 全序：钩子 → 发布任务 → 产生疑问 → 找到方法 → 会前准备 → AI团队开会 → 检验提交
+    //           → 作品墙 → 认知思考 → 梦想墙 → 未来展开 → 最后升华
+    const keys = ['a2:hook', 'a2:s1', 'a2:s2', 'a2:s3', 'a2:s4', 'a2:s5', 'a2:s6', 'a2:wall', 'a2:s7', 'a2:s8', 'a2:s9', 'a2:s10'];
+    return keys
+      .map((k) => {
+        const b = builtins.find((x) => x.refKey === k);
+        if (b) return { refKey: b.refKey, kind: 'builtin' as const };
+        const c = contents.find((x) => x.refKey === k);
+        if (c) return { refKey: c.refKey, kind: 'content' as const };
+        return null;
+      })
+      .filter(Boolean) as { refKey: string | null; kind: 'builtin' | 'content' }[];
+  }
+  // 其它组：内置页在前、内容页种子在后
+  return [
+    ...builtins.map((b) => ({ refKey: b.refKey, kind: 'builtin' as const })),
+    ...contents.map((c) => ({ refKey: c.refKey, kind: 'content' as const })),
+  ];
+}
+
+// 内容页种子：写入默认内容块（仅当该页 slot 还没有任何内容块时）
+async function seedDefaultBlocksIfEmpty(pageId: string, cs: ContentSeedDef) {
+  const slot = `page:${pageId}`;
+  const count = await prisma.mediaItem.count({ where: { slot } });
+  if (count > 0 || cs.blocks.length === 0) return;
+  await prisma.$transaction(
+    cs.blocks.map((b, i) =>
+      prisma.mediaItem.create({
+        data: {
+          title: b.title ?? cs.title,
+          kind: b.kind,
+          url: b.url ?? null,
+          content: b.content ?? null,
+          slot,
+          sort: i,
+          align: 'center',
+          hidden: false,
+        },
+      }),
+    ),
+  );
 }
 
 // 读取某组完整页面序列（builtin + content，含内容页标题）
@@ -256,11 +320,12 @@ export async function reorderPages(group: PageGroup, ids: string[]) {
   return listPages(group);
 }
 
-// 删除：仅内容页可删（内置页受保护）。同时清掉其内容块（MediaItem slot=page:{id}）。
+// 删除：仅内容页可删（内置页 + 内容页种子受保护）。同时清掉其内容块（MediaItem slot=page:{id}）。
 export async function deletePage(id: string) {
   const page = await prisma.lessonPage.findUnique({ where: { id } });
   if (!page) return { ok: false, reason: '页不存在' };
   if (page.kind === 'builtin') return { ok: false, reason: '内置功能页不可删除（可隐藏）' };
+  if (page.kind === 'content' && page.refKey) return { ok: false, reason: '内置内容页不可删除（可隐藏）' };
   await prisma.$transaction([
     prisma.mediaItem.deleteMany({ where: { slot: `page:${id}` } }),
     prisma.lessonPage.delete({ where: { id } }),

@@ -231,9 +231,11 @@ export default function AvatarTeacher({
         {pages.map((p) => {
           const active = isActive(p);
           const hidden = p.hidden;
-          // A1/A2 的环节页大屏主要是文字/图，按"内容页"对待：可加图/视频/链接 + 可改默认文字
-          const isContent = p.kind === 'content' || (group === 'A1' && !!p.refKey && p.refKey.startsWith('avatar:')) || (group === 'A2' && !!p.refKey && p.refKey.startsWith('a2:'));
-          const canDelete = p.kind === 'content';
+          // A1/A2 的环节页大屏主要是文字/图：A2 纯展示环节已做成内容页(kind=content)，
+          // A1 环节页为内置页但按"内容页"对待（可加图/视频/链接 + 可改默认文字）。
+          const isContent = p.kind === 'content' || (group === 'A1' && !!p.refKey && p.refKey.startsWith('avatar:'));
+          // 内容页种子（A2 纯展示环节）不可删，只可隐藏；教师自己加的内容页可删
+          const canDelete = p.kind === 'content' && !p.refKey;
           return (
             <div key={p.id} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
               {/* 插入点（每页上方） */}
