@@ -11,6 +11,7 @@ const DATA_DIR = path.resolve(process.cwd(), 'data', 'world');
 const CONTROL_FILE = path.join(DATA_DIR, 'world-control.json');
 const LIVES_FILE = path.join(DATA_DIR, 'world-lives.json');
 const STATE_FILE = path.join(DATA_DIR, 'world-state.json');
+const POPUP_FILE = path.join(DATA_DIR, 'world-popup.json');
 
 function ensureDir(): void {
   fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -93,6 +94,7 @@ export function upsertLife(
     name: string;
     color: string;
     version: number;
+    text?: string;
     social: number;
     helpful: number;
     cautious: number;
@@ -103,6 +105,7 @@ export function upsertLife(
   const existing = data.lives.find((l) => l.sid === sid);
   const version = {
     version: input.version,
+    text: input.text || '',
     social: input.social,
     helpful: input.helpful,
     cautious: input.cautious,
@@ -125,6 +128,33 @@ export function upsertLife(
   }
   writeLives(data);
   return data;
+}
+
+// ---------- popup（大屏按需弹窗，教师控制） ----------
+
+export interface WorldPopup {
+  show: boolean;
+  content: 'usage' | 'method' | null; // usage=手机怎么用 method=AI创作方法
+  updatedAt: number;
+}
+
+export function defaultPopup(): WorldPopup {
+  return { show: false, content: null, updatedAt: Date.now() };
+}
+
+export function readPopup(): WorldPopup {
+  return readJson<WorldPopup>(POPUP_FILE, defaultPopup());
+}
+
+export function writePopup(popup: WorldPopup): void {
+  popup.updatedAt = Date.now();
+  writeJsonAtomic(POPUP_FILE, popup);
+}
+
+export function setPopup(content: 'usage' | 'method' | null, show: boolean): WorldPopup {
+  const next = { show, content, updatedAt: Date.now() };
+  writePopup(next);
+  return next;
 }
 
 // ---------- state ----------

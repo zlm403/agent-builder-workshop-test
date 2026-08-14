@@ -1342,11 +1342,12 @@ export default function TeacherPage() {
   );
 }
 
-// 《我的世界》教师控制栏：驱动 world-control.json 状态机（creating/running/revising/finished）
+// 《我的世界》教师控制栏：驱动 world-control.json 状态机 + 大屏按需弹窗
 function WorldControlBar({ busy, onChanged }: { busy: boolean; onChanged: () => void }) {
   const [status, setStatus] = useState<string>('creating');
   const [round, setRound] = useState<number>(1);
   const [submitting, setSubmitting] = useState(false);
+  const [popup, setPopup] = useState<{ show: boolean; content: string | null }>({ show: false, content: null });
 
   async function refresh() {
     try {
@@ -1354,6 +1355,11 @@ function WorldControlBar({ busy, onChanged }: { busy: boolean; onChanged: () => 
       const d = await r.json();
       setStatus(d.status);
       setRound(d.round);
+    } catch { /* noop */ }
+    try {
+      const r = await fetch('/api/world/popup', { cache: 'no-store' });
+      const d = await r.json();
+      setPopup({ show: !!d.show, content: d.content ?? null });
     } catch { /* noop */ }
   }
 
@@ -1370,6 +1376,21 @@ function WorldControlBar({ busy, onChanged }: { busy: boolean; onChanged: () => 
       });
       if (res.ok) { await refresh(); onChanged(); }
       else alert('操作失败：' + res.statusText);
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function doPopup(content: 'usage' | 'method' | null, show: boolean) {
+    if (submitting) return;
+    setSubmitting(true);
+    try {
+      await fetch('/api/world/popup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content, show }),
+      });
+      setPopup({ show, content });
     } finally {
       setSubmitting(false);
     }
@@ -1394,6 +1415,13 @@ function WorldControlBar({ busy, onChanged }: { busy: boolean; onChanged: () => 
         <button className="secondary" style={{ fontSize: 11, padding: '4px 10px' }} disabled={submitting || busy} onClick={() => doAction('startRevise')}>开始修改</button>
         <button className="secondary" style={{ fontSize: 11, padding: '4px 10px' }} disabled={submitting || busy} onClick={() => doAction('startRound2')}>开始第二轮</button>
         <button className="danger" style={{ fontSize: 11, padding: '4px 10px' }} disabled={submitting || busy} onClick={() => doAction('finish')}>结束</button>
+      </div>
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', borderTop: '1px solid var(--border)', paddingTop: 8 }}>
+        <span style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 700, alignSelf: 'center' }}>大屏弹窗：</span>
+        <button className="secondary" style={{ fontSize: 11, padding: '4px 10px', color: 'var(--green)' }} disabled={submitting || busy} onClick={() => doPopup('usage', true)}>讲手机怎么玩</button>
+        <button className="secondary" style={{ fontSize: 11, padding: '4px 10px', color: 'var(--green)' }} disabled={submitting || busy} onClick={() => doPopup('method', true)}>讲 AI 创作方法</button>
+        <button className="secondary" style={{ fontSize: 11, padding: '4px 10px' }} disabled={submitting || busy || !popup.show} onClick={() => doPopup(null, false)}>收起弹窗</button>
+        {popup.show && <span className="pill blue" style={{ fontSize: 10 }}>显示中</span>}
       </div>
     </div>
   );

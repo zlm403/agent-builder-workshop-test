@@ -19,6 +19,7 @@ export interface WorldControl {
 
 export interface LifeVersion {
   version: number;
+  text?: string; // 学生用文字描述的生命定义（"它喜欢……"）
   social: number; // 0..1 亲近倾向
   helpful: number; // 0..1 帮助倾向
   cautious: number; // 0..1 谨慎倾向

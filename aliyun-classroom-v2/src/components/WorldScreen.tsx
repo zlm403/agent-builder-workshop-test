@@ -77,12 +77,15 @@ function sizeOf(id: string): number {
 
 export default function WorldScreen({ sessionId }: { sessionId: string }) {
   const [data, setData] = useState<WorldData | null>(null);
+  const [popup, setPopup] = useState<{ show: boolean; content: string | null }>({ show: false, content: null });
   const canvasRef = useRef<HTMLCanvasElement>(null);
   // 渲染层状态（ref，不进 React 重渲染）
   const dataRef = useRef<WorldData | null>(null);
   const posRef = useRef<Record<string, { x: number; y: number }>>({});
   const fxRef = useRef<FxLight[]>([]);
   const seenRef = useRef<Set<string>>(new Set());
+  // 环境光点（空世界不空，纯视觉）
+  const ambRef = useRef<{ x: number; y: number; vx: number; vy: number; size: number; hue: number }[]>([]);
 
   // 轮询数据
   useEffect(() => {
@@ -99,6 +102,21 @@ export default function WorldScreen({ sessionId }: { sessionId: string }) {
     return () => { closed = true; clearInterval(t); };
   }, [sessionId]);
 
+  // 轮询弹窗
+  useEffect(() => {
+    let closed = false;
+    async function loadPopup() {
+      try {
+        const r = await fetch('/api/world/popup', { cache: 'no-store' });
+        const d = await r.json();
+        if (!closed) setPopup({ show: !!d.show, content: d.content ?? null });
+      } catch { /* noop */ }
+    }
+    loadPopup();
+    const t = setInterval(loadPopup, 2000);
+    return () => { closed = true; clearInterval(t); };
+  }, []);
+
   // rAF 渲染循环
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -114,6 +132,21 @@ export default function WorldScreen({ sessionId }: { sessionId: string }) {
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
       canvas!.width = rect.width * dpr;
       canvas!.height = rect.height * dpr;
+      // 首次初始化环境光点（约占满世界，若已有生命则少放些）
+      if (ambRef.current.length === 0) {
+        for (let i = 0; i < 26; i++) {
+          const a = Math.random() * Math.PI * 2;
+          const sp = 0.0006 + Math.random() * 0.0016;
+          ambRef.current.push({
+            x: Math.random(),
+            y: Math.random(),
+            vx: Math.cos(a) * sp,
+            vy: Math.sin(a) * sp,
+            size: 1.5 + Math.random() * 3.5,
+            hue: 150 + Math.random() * 120,
+          });
+        }
+      }
     }
     resize();
     window.addEventListener('resize', resize);
@@ -137,6 +170,27 @@ export default function WorldScreen({ sessionId }: { sessionId: string }) {
       bg.addColorStop(1, '#04101c');
       ctx!.fillStyle = bg;
       ctx!.fillRect(0, 0, W, H);
+
+      // 环境光点（漂浮，纯视觉，让世界始终"活"着）
+      for (const a of ambRef.current) {
+        a.x += a.vx * dt;
+        a.y += a.vy * dt;
+        if (a.x < 0 || a.x > 1) a.vx *= -1;
+        if (a.y < 0 || a.y > 1) a.vy *= -1;
+        a.x = Math.max(0, Math.min(1, a.x));
+        a.y = Math.max(0, Math.min(1, a.y));
+        const gx = a.x * W;
+        const gy = a.y * H;
+        ctx!.globalCompositeOperation = 'lighter';
+        const g = ctx!.createRadialGradient(gx, gy, 0, gx, gy, a.size * 4);
+        g.addColorStop(0, `hsla(${a.hue},80%,75%,0.22)`);
+        g.addColorStop(1, 'transparent');
+        ctx!.fillStyle = g;
+        ctx!.beginPath();
+        ctx!.arc(gx, gy, a.size * 4, 0, Math.PI * 2);
+        ctx!.fill();
+        ctx!.globalCompositeOperation = 'source-over';
+      }
 
       if (d) {
         // 收集新事件 → 生成光点
@@ -311,6 +365,7 @@ export default function WorldScreen({ sessionId }: { sessionId: string }) {
       {/* 中：Canvas 世界 */}
       <div style={{ position: 'relative', borderRadius: 14, overflow: 'hidden', border: '1px solid rgba(120,200,230,0.18)' }}>
         <canvas ref={canvasRef} style={{ width: '100%', height: '100%', display: 'block' }} />
+        <PopupOverlay show={popup.show} content={popup.content} />
       </div>
 
       {/* 右：关键动态 */}
@@ -353,4 +408,63 @@ function fmtTime(t: number): string {
   const m = Math.floor(t / 60);
   const s = Math.floor(t % 60);
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
+
+// =========================================================
+// 大屏按需弹窗（老师控制）：覆盖在游戏主屏上，讲操作方法 / AI 创作方法
+// =========================================================
+function PopupOverlay({ show, content }: { show: boolean; content: string | null }) {
+  if (!show) return null;
+
+  const blocks: Record<string, { title: string; lines: string[] }> = {
+    usage: {
+      title: '手机怎么玩 · 三步',
+      lines: [
+        '① 连：你已经扫码进来了，手机跟着大屏走就行',
+        '② 造：给它起名、选颜色，写一段「生命定义」——也可以用一句话告诉 AI，让 AI 帮你写',
+        '③ 看：提交后它进入世界，看它怎么动；点「和 AI 聊聊」，把看到的告诉 AI，让它帮你分析',
+      ],
+    },
+    method: {
+      title: 'AI 创作方法 · 想法是你的，AI 帮你做',
+      lines: [
+        '先想：想清楚你的生命是什么性格，用大白话说出来',
+        '再问：把想法发给 AI，让 AI 帮你把它写成「生命定义」',
+        '后看：放进世界观察——它靠近谁、帮谁、躲谁',
+        '再改：看到不对劲，把现象告诉 AI，让它帮你分析，再改一句话，下一轮看变化',
+      ],
+    },
+  };
+
+  const b = blocks[content ?? ''] ?? blocks.usage;
+
+  return (
+    <div style={{
+      position: 'absolute', inset: 0, zIndex: 10,
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      background: 'rgba(4,17,26,0.72)', backdropFilter: 'blur(4px)',
+    }}>
+      <div style={{
+        maxWidth: 720, width: '86%', padding: '34px 40px',
+        background: 'linear-gradient(180deg,#0e2940,#081a2b)',
+        border: '1px solid rgba(120,200,230,0.3)', borderRadius: 20,
+        boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
+      }}>
+        <div style={{ fontSize: 30, fontWeight: 800, color: '#39d6ff', marginBottom: 18, letterSpacing: 1 }}>
+          {b.title}
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          {b.lines.map((line, i) => (
+            <div key={i} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+              <span style={{ color: '#ffd27a', fontSize: 18, fontWeight: 800, lineHeight: 1.5 }}>{'·'}</span>
+              <span style={{ fontSize: 21, lineHeight: 1.5, color: '#cfeaf6' }}>{line}</span>
+            </div>
+          ))}
+        </div>
+        <div style={{ marginTop: 26, fontSize: 14, color: '#7fa6b8', textAlign: 'center' }}>
+          讲完后由老师收起本窗，游戏继续
+        </div>
+      </div>
+    </div>
+  );
 }
