@@ -73,16 +73,11 @@ export default function AvatarA1Screen({
 
   const tStageTitle = stageIdx >= 0 ? pageText(ov, 'screenTitle', A1_STAGES[stageIdx].screenTitle) : null;
   const tStageQuestion = stageIdx >= 0 ? pageText(ov, 'screenQuestion', A1_STAGES[stageIdx].screenQuestion) : null;
-  const tStageTask = stageIdx >= 0 ? pageText(ov, 'studentTask', A1_STAGES[stageIdx].studentTask) : null;
   const tWallTitle = pageText(ov, 'screenTitle', '全班数字分身 · 朋友圈墙');
 
   return (
     <div style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column', gap: 20, padding: '6px 0' }}>
       <ContentSlot slot="a1_top" />
-      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
-        <div style={{ fontSize: 22, fontWeight: 800, color: '#c4b5fd' }}>数字分身</div>
-        <div style={{ fontSize: 15, color: 'var(--muted)' }}>已参与 {data?.started ?? 0}/{data?.total ?? 0}</div>
-      </div>
 
       {/* 当前环节内容（上下左右居中） */}
       {stageIdx >= 0 && !launched && (() => {
@@ -116,9 +111,6 @@ export default function AvatarA1Screen({
           </div>}
           {tStageQuestion !== null && <div style={{ fontSize: 'clamp(18px,2.2vw,30px)', color: '#fde047', fontWeight: 700, maxWidth: 1000, lineHeight: 1.6, whiteSpace: 'pre-line' }}>
             {tStageQuestion}
-          </div>}
-          {tStageTask !== null && <div style={{ fontSize: 'clamp(15px,1.8vw,24px)', color: '#cbd5e1', maxWidth: 900, lineHeight: 1.7, whiteSpace: 'pre-line' }}>
-            {tStageTask}
           </div>}
           {/* 该环节页的内容块：教师可在页面序列里给本页加图/视频/链接等 */}
           {pageId && <ContentSlot slot={`page:${pageId}`} />}
