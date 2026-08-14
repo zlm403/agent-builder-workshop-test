@@ -4,7 +4,7 @@
 // avatar:hook 钩子开场 → avatar:1..6 六格逐步点亮（顶目标横幅常驻）→ avatar:wall 作品墙
 // =========================================================
 import { useEffect, useState } from 'react';
-import { A1_STAGES, A1_HOOK, A1_GOAL } from '@/features/avatarLesson/config';
+import { A1_STAGES, A1_HOOK } from '@/features/avatarLesson/config';
 import CogCompare from './CogCompare';
 import MediaPlayer from './MediaPlayer';
 import ContentSlot from './ContentSlot';
@@ -80,7 +80,6 @@ export default function AvatarA1Screen({
 
   const launched = String(subState ?? '') === 'avatar:wall';
 
-  const tBanner = pageText(ov, 'banner', A1_GOAL.banner);
   const tStageTitle = stageIdx >= 0 ? pageText(ov, 'screenTitle', A1_STAGES[stageIdx].screenTitle) : null;
   const tStageQuestion = stageIdx >= 0 ? pageText(ov, 'screenQuestion', A1_STAGES[stageIdx].screenQuestion) : null;
   const tStageTask = stageIdx >= 0 ? pageText(ov, 'studentTask', A1_STAGES[stageIdx].studentTask) : null;
@@ -94,44 +93,9 @@ export default function AvatarA1Screen({
         <div style={{ fontSize: 15, color: 'var(--muted)' }}>已参与 {data?.started ?? 0}/{data?.total ?? 0}</div>
       </div>
 
-      {/* 目标横幅 · 常驻 */}
-      {tBanner !== null && (
-      <div style={{
-        border: '1px solid rgba(250,204,21,0.45)', background: 'rgba(250,204,21,0.10)', borderRadius: 14,
-        padding: '12px 20px', fontSize: 'clamp(15px,1.7vw,22px)', color: '#fde047', fontWeight: 700, textAlign: 'center',
-      }}>
-        {tBanner}
-      </div>
-      )}
-
-      {/* 十七环节进度条（任务链 1-12 / 升华链 13-17） */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(17, 1fr)', gap: 4 }}>
-          {A1_STAGES.map((s, i) => {
-            const active = i === stageIdx;
-            const done = stageIdx !== -1 && i < stageIdx;
-            return (
-              <div key={s.key} style={{
-                textAlign: 'center', padding: '6px 2px', borderRadius: 6, fontSize: 10,
-                border: active ? '1px solid rgba(124,58,237,0.8)' : done ? '1px solid rgba(134,239,172,0.4)' : '1px solid var(--border)',
-                background: active ? 'rgba(124,58,237,0.22)' : done ? 'rgba(134,239,172,0.10)' : 'rgba(15,23,42,0.4)',
-                color: active ? '#c4b5fd' : done ? '#86efac' : 'var(--muted)',
-                fontWeight: active ? 700 : 400,
-              }}>
-                {i + 1}
-              </div>
-            );
-          })}
-        </div>
-        <div style={{ display: 'flex', gap: 12, fontSize: 11, color: 'var(--muted)' }}>
-          <span style={{ color: '#c4b5fd' }}>● 任务链（1-12 · 造分身）</span>
-          <span style={{ color: '#fde047' }}>● 升华链（13-17 · 一支队伍）</span>
-        </div>
-      </div>
-
-      {/* 当前环节内容 */}
+      {/* 当前环节内容（上下左右居中） */}
       {stageIdx >= 0 && !launched && (
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 18, textAlign: 'center' }}>
+        <div style={{ flex: 1, minHeight: 'calc(100vh - 140px)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 18, textAlign: 'center' }}>
           {tStageTitle !== null && <div style={{ fontSize: 'clamp(26px,3.4vw,46px)', fontWeight: 900, maxWidth: 1100, background: 'linear-gradient(180deg,#f8fafc,#c4b5fd)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent' }}>
             {tStageTitle}
           </div>}
@@ -143,10 +107,6 @@ export default function AvatarA1Screen({
           </div>}
           {/* 内容槽：教师可在此环节放额外文案/示例/图片/视频 */}
           <ContentSlot slot={`a1_${A1_STAGES[stageIdx].key}_after`} />
-          <div style={{ fontSize: 14, color: 'var(--muted)' }}>
-            环节 {stageIdx + 1} / 17 · {A1_STAGES[stageIdx].output}
-            {stageIdx < 16 && <span style={{ color: '#fde047' }}> · 教师讲完可进入下一环节</span>}
-          </div>
         </div>
       )}
 
