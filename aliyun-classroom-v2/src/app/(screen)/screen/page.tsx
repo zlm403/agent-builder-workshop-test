@@ -1,15 +1,13 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import ScreenFinale from '@/components/ScreenFinale';
-import ClosingScreen from '@/components/ClosingScreen';
 import VocabBrowser from '@/components/VocabBrowser';
 import { vocabText } from '@/lib/vocab';
 import { compareRounds } from '@/lib/analytics';
 import { KNOWLEDGE_DOCS, SKILL_BLOCKS } from '@/lib/courseConfig';
 import AvatarA0Screen from '@/components/AvatarA0Screen';
 import AvatarA1Screen from '@/components/AvatarA1Screen';
-import GrowGameScreen from '@/components/GrowGameScreen';
+import SiteEntryScreen from '@/components/SiteEntryScreen';
 import ContentPage from '@/components/ContentPage';
 
 interface Summary {
@@ -65,10 +63,7 @@ export default function ScreenPage() {
   const [hostname, setHostname] = useState('');
   const [effectiveHost, setEffectiveHost] = useState('');
   const esRef = useRef<EventSource | null>(null);
-  const [finaleActive, setFinaleActive] = useState(false);
   const [thoughts, setThoughts] = useState<{ id: string; text: string; anonymousId: string; createdAt: string }[]>([]);
-  const [closingActive, setClosingActive] = useState(false);
-  const [closingBeat, setClosingBeat] = useState(0);
   // 刷新时不闪过 A00Screen 开场页，先显示"加载中"等首次 load 返回
   const [loading, setLoading] = useState(true);
 
@@ -118,11 +113,6 @@ export default function ScreenPage() {
             if (evt.type === 'classroom:reset') load(id);
             if (evt.type === 'classroom:closed') load(id);
             if (evt.type === 'analytics:update') { if (module?.id) fetchAnalytics(id, module.id); fetchScreening(id); }
-            if (evt.type === 'finale:enter') setFinaleActive(true);
-            if (evt.type === 'finale:exit') setFinaleActive(false);
-            if (evt.type === 'closing:enter') setClosingActive(true);
-            if (evt.type === 'closing:exit') setClosingActive(false);
-            if (evt.type === 'closing:beat') setClosingBeat(evt.payload?.beatIdx ?? 0);
             if (evt.type === 'thought:new') {
               const t = evt.payload as { id: string; text: string; anonymousId: string; createdAt: string };
               if (t?.text) setThoughts((prev) => [t, ...prev].slice(0, 80));
@@ -230,11 +220,7 @@ export default function ScreenPage() {
         </div>
       </div>
 
-      {closingActive ? (
-        <ClosingScreen sessionId={sessionId} beatIdx={closingBeat} />
-      ) : (finaleActive || module?.type === 'finale') ? (
-        <ScreenFinale />
-      ) : !sessionId ? (
+      {!sessionId ? (
         <p style={{ color: '#94a3b8' }}>请在教师端点击“打开大屏”后访问此页（需带 ?sessionId=）。</p>
       ) : loading ? (
         <div style={{ textAlign: 'center', marginTop: '30vh', color: '#94a3b8' }}>
@@ -259,9 +245,9 @@ export default function ScreenPage() {
       ) : module.type === 'avatar_flow' ? (
         <AvatarA1Screen sessionId={sessionId} subState={summary?.moduleSubState ?? null} />
       ) : module.type === 'site_entry' ? (
-        <PlaceholderModule title={module.title} />
+        <SiteEntryScreen sessionId={sessionId} subState={summary?.moduleSubState ?? null} />
       ) : module.type === 'grow_game' ? (
-        <GrowGameScreen sessionId={sessionId} subState={summary?.moduleSubState ?? null} />
+        <PlaceholderModule title={module.title} />
       ) : module.type === 'ai_task' ? (
         module.screenContent?.phase === 'redo' ? (
           <A03Screen module={module} analytics={analytics} total={total} summary={summary} startedAt={startedAt} subState={summary?.moduleSubState ?? null} sessionId={sessionId} />
@@ -307,7 +293,7 @@ function ContentPageHost({ subState }: { subState: string }) {
     if (!pageId) return;
     let closed = false;
     (async () => {
-      for (const g of ['A0', 'A1', 'P2', 'P3']) {        try {
+      for (const g of ['A0', 'A1', 'A2']) {        try {
           const r = await fetch(`/api/pages?group=${g}`);
           const d = await r.json();
           const p = (d.pages ?? []).find((x: any) => x.id === pageId);

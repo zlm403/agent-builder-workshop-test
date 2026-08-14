@@ -30,10 +30,7 @@ export const MODULE_SLOT_GROUP: Record<string, string> = {
   A0N_VOTE: 'A0',
   A0N_REVEAL: 'A0',
   A1_AVATAR: '数字分身',
-  P2_SITE: '快速入门网站',
-  P3_GAME: '养成游戏',
-  A08_WRAP: '收官',
-  finale: '收官',
+  A2_SITE: '快速入门网站',
 };
 
 export default function SlotContentManager({

@@ -43,28 +43,24 @@ export const CONTENT_SLOTS: SlotDef[] = [
   { key: 'a1_wall_after', label: '数字分身 作品墙之后', group: '数字分身' },
   { key: 'a1_video_after', label: '数字分身 视频之后', group: '数字分身' },
 
-  // ---- P3 养成游戏（钩子 + 十阶段）----
-  { key: 'p3_top', label: '养成游戏 环节最前', group: '养成游戏' },
-  { key: 'p3_hook_after', label: '养成游戏 钩子之后', group: '养成游戏' },
-  { key: 'p3_s1_after', label: '养成游戏 空世界之后', group: '养成游戏' },
-  { key: 'p3_s2_after', label: '养成游戏 核心特质之后', group: '养成游戏' },
-  { key: 'p3_s3_after', label: '养成游戏 设计规则之后', group: '养成游戏' },
-  { key: 'p3_s4_after', label: '养成游戏 AI翻译生成之后', group: '养成游戏' },
-  { key: 'p3_s5_after', label: '养成游戏 投入共生缸之后', group: '养成游戏' },
-  { key: 'p3_s6_after', label: '养成游戏 观察之后', group: '养成游戏' },
-  { key: 'p3_s7_after', label: '养成游戏 修改之后', group: '养成游戏' },
-  { key: 'p3_s8_after', label: '养成游戏 二次运行之后', group: '养成游戏' },
-  { key: 'p3_s9_after', label: '养成游戏 创造过程卡之后', group: '养成游戏' },
-  { key: 'p3_s10_after', label: '养成游戏 认知收束之后', group: '养成游戏' },
-
-  // ---- 收官 ----
-  { key: 'finale_top', label: '收官 环节最前', group: '收官' },
-  { key: 'finale_after', label: '收官 成果回顾之后', group: '收官' },
-  { key: 'finale_sale_after', label: '收官 销售转化之后', group: '收官' },
+  // ---- A2 快速入门网站（钩子 + 十环节 + 作品墙）----
+  { key: 'a2_top', label: '快速入门网站 环节最前', group: '快速入门网站' },
+  { key: 'a2_hook_after', label: '快速入门网站 钩子之后', group: '快速入门网站' },
+  { key: 'a2_s1_after', label: '快速入门网站 发布任务之后', group: '快速入门网站' },
+  { key: 'a2_s2_after', label: '快速入门网站 产生疑问之后', group: '快速入门网站' },
+  { key: 'a2_s3_after', label: '快速入门网站 找到方法之后', group: '快速入门网站' },
+  { key: 'a2_s4_after', label: '快速入门网站 会前准备之后', group: '快速入门网站' },
+  { key: 'a2_s5_after', label: '快速入门网站 AI团队开会之后', group: '快速入门网站' },
+  { key: 'a2_s6_after', label: '快速入门网站 检验迭代之后', group: '快速入门网站' },
+  { key: 'a2_wall_after', label: '快速入门网站 作品墙之后', group: '快速入门网站' },
+  { key: 'a2_s7_after', label: '快速入门网站 认知思考之后', group: '快速入门网站' },
+  { key: 'a2_s8_after', label: '快速入门网站 梦想墙之后', group: '快速入门网站' },
+  { key: 'a2_s9_after', label: '快速入门网站 未来展开之后', group: '快速入门网站' },
+  { key: 'a2_s10_after', label: '快速入门网站 最后升华之后', group: '快速入门网站' },
 ];
 
 export function slotLabel(key: string): string {
   return CONTENT_SLOTS.find((s) => s.key === key)?.label ?? key;
 }
 
-export const SLOT_GROUPS = ['A0', '数字分身', '养成游戏', '收官'];
+export const SLOT_GROUPS = ['A0', '数字分身', '快速入门网站'];

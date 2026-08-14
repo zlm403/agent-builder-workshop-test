@@ -8,12 +8,11 @@
 import { useCallback, useEffect, useState } from 'react';
 
 // 模块 → 组 映射（纯函数，客户端内联，避免 import 含 prisma 的服务端模块）
-function groupOfModule(moduleId: string | null | undefined): 'A0' | 'A1' | 'P2' | 'P3' | null {
+function groupOfModule(moduleId: string | null | undefined): 'A0' | 'A1' | 'A2' | null {
   if (!moduleId) return null;
   if (moduleId.startsWith('A0N_')) return 'A0';
   if (moduleId === 'A1_AVATAR') return 'A1';
-  if (moduleId === 'P2_SITE') return 'P2';
-  if (moduleId === 'P3_GAME') return 'P3';
+  if (moduleId === 'A2_SITE') return 'A2';
   return null;
 }
 
@@ -43,28 +42,22 @@ const BUILTIN_LABEL: Record<string, string> = {
   'avatar:wall': '作品墙',
   'avatar:cog': '认知对比图',
   'avatar:video': '视频·普通人的例子',
-  // P2
-  'p2:hook': '钩子开场',
-  'p2:wall': '作品墙',
-  // P3
-  'p3:hook': '钩子开场',
-  'p3:wall': '共生缸',
+  // A2
+  'a2:hook': '钩子开场',
+  'a2:wall': '作品墙',
 };
 
-// A1 十七环节名（c1..c17）
+// A1 环节名（c1..c11）
 const A1_CN: Record<string, string> = {
   c1: '发布任务', c2: 'AI沟通准则①', c3: '目标辨析', c4: 'AI沟通准则②',
   c5: 'AI采访我', c6: '让分身开始工作', c7: '梦想①打开世界', c8: '梦想②一个人与一支队伍',
   c9: '现实：一人公司', c10: '现实信号', c11: 'A1收束 → A2问题',
 };
-const P2_CN: Record<string, string> = {
-  s1: '发布任务', s2: '明确目标', s3: '获取领域地图', s4: '判断与收缩',
-  s5: '生成可用内容', s6: '生成网页', s7: '第一轮自检', s8: '同伴测试',
-  s9: '根据反馈修改', s10: '能力迁移', s11: '提交与成果', s12: '升华',
-};
-const P3_CN: Record<string, string> = {
-  s1: '空世界', s2: '核心特质', s3: '设计规则', s4: 'AI翻译生成', s5: '投入共生缸',
-  s6: '观察', s7: '修改', s8: '二次运行', s9: '创造过程卡', s10: '认知收束',
+// A2 环节名（s1..s10）
+const A2_CN: Record<string, string> = {
+  s1: '发布任务', s2: '产生疑问', s3: '找到方法', s4: '会前准备',
+  s5: 'AI团队开会→自动执行', s6: '检验、迭代，最后提交', s7: '认知思考',
+  s8: '梦想互动/梦想墙', s9: '未来展开', s10: '最后升华',
 };
 
 function pageLabel(p: PageDef): string {
@@ -78,10 +71,8 @@ function pageLabel(p: PageDef): string {
   if (BUILTIN_LABEL[p.refKey]) return BUILTIN_LABEL[p.refKey];
   const m = p.refKey.match(/^avatar:(c\d+)$/);
   if (m) return A1_CN[m[1]] ?? p.refKey;
-  const m2 = p.refKey.match(/^p2:(s\d+)$/);
-  if (m2) return P2_CN[m2[1]] ?? p.refKey;
-  const m3 = p.refKey.match(/^p3:(s\d+)$/);
-  if (m3) return P3_CN[m3[1]] ?? p.refKey;
+  const m2 = p.refKey.match(/^a2:(s\d+)$/);
+  if (m2) return A2_CN[m2[1]] ?? p.refKey;
   return p.refKey;
 }
 
@@ -229,8 +220,8 @@ export default function AvatarTeacher({
         {pages.map((p) => {
           const active = isActive(p);
           const hidden = p.hidden;
-          // A1 的环节页（avatar:*）大屏只有文字，按"内容页"对待：可加图/视频/链接 + 可改默认文字
-          const isContent = p.kind === 'content' || (group === 'A1' && !!p.refKey && p.refKey.startsWith('avatar:'));
+          // A1/A2 的环节页大屏主要是文字/图，按"内容页"对待：可加图/视频/链接 + 可改默认文字
+          const isContent = p.kind === 'content' || (group === 'A1' && !!p.refKey && p.refKey.startsWith('avatar:')) || (group === 'A2' && !!p.refKey && p.refKey.startsWith('a2:'));
           const canDelete = p.kind === 'content';
           return (
             <div key={p.id} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>

@@ -88,15 +88,8 @@ export async function advanceClassroom(sessionId: string) {
   if (!session) throw new Error('SESSION_NOT_FOUND');
   const tpl = await ensureTemplate();
   const modules = getModules(tpl);
-  const curMod = findModule(tpl, session.currentModuleId ?? '');
   const idx = getModuleIndex(tpl, session.currentModuleId ?? '');
   const next = modules[idx + 1]?.id ?? session.currentModuleId;
-  const nextMod = findModule(tpl, next);
-  if (nextMod?.type === 'finale') {
-    await enterFinale(sessionId);
-  } else if (curMod?.type === 'finale') {
-    await exitFinale(sessionId);
-  }
   const updated = await prisma.classSession.update({
     where: { id: sessionId },
     data: { currentModuleId: next, moduleStartedAt: new Date() },
@@ -113,14 +106,6 @@ export async function jumpClassroom(sessionId: string, targetModuleId: string) {
   const mod = findModule(tpl, targetModuleId);
   if (!mod) throw new Error('MODULE_NOT_FOUND');
   const session = await prisma.classSession.findUnique({ where: { id: sessionId } });
-  const curMod = findModule(tpl, session?.currentModuleId ?? '');
-  // 与 advanceClassroom 保持一致：离开终章（A07）时复位并通知学生端退出终章，
-  // 进入终章时初始化（锁定 + 推送 finale:enter）。否则退回 A6 后学生端仍卡在终章。
-  if (curMod?.type === 'finale' && mod.type !== 'finale') {
-    await exitFinale(sessionId);
-  } else if (mod.type === 'finale' && curMod?.type !== 'finale') {
-    await enterFinale(sessionId);
-  }
   const updated = await prisma.classSession.update({
     where: { id: sessionId },
     data: { currentModuleId: targetModuleId, moduleStartedAt: new Date() },
@@ -240,8 +225,8 @@ export async function resetModuleProgress(sessionId: string, moduleId: string) {
       if (partIds.length) await tx.a1Avatar.deleteMany({ where: { participantId: { in: partIds } } });
     } else if (moduleId === 'A0N_QUESTIONS' || moduleId === 'A0N_VOTE' || moduleId === 'A0N_REVEAL') {
       if (partIds.length) await tx.a0New.deleteMany({ where: { participantId: { in: partIds } } });
-    } else if (moduleId === 'P3_GAME') {
-      if (partIds.length) await tx.p3GrowGame.deleteMany({ where: { participantId: { in: partIds } } });
+    } else if (moduleId === 'A2_SITE') {
+      if (partIds.length) await tx.a2SiteEntry.deleteMany({ where: { participantId: { in: partIds } } });
     }
     // 该模块的提交进度一并清掉（重新开始后 moduleStatus 回到 pending）
     await tx.moduleProgress.deleteMany({ where: { sessionId, moduleId } });
@@ -252,7 +237,7 @@ export async function resetModuleProgress(sessionId: string, moduleId: string) {
     moduleId === 'A1_AVATAR' ? 'avatar:hook'
     : moduleId === 'A0N_QUESTIONS' ? 'a0:intro1'
     : moduleId === 'A0N_REVEAL' ? 'reveal:1'
-    : moduleId === 'P3_GAME' ? 'p3:hook'
+    : moduleId === 'A2_SITE' ? 'a2:hook'
     : null;
   if (initialSubState !== null) await writeModuleSubState(sessionId, initialSubState);
 
@@ -645,115 +630,4 @@ export async function getSessionState(sessionId: string) {
 /** 清除指定课堂的状态缓存（控制操作后调用，确保下次拉取最新数据） */
 export function invalidateSessionCache(sessionId: string) {
   _stateCache.delete(sessionId);
-}
-
-// ================= 一人公司 · 多 Agent 协同 =================
-
-// Agent 人设卡类型集中定义在客户端安全的 finaleConfig，这里引入并再导出以保持兼容。
-import type { FinaleAgent } from './finaleConfig';
-export type { FinaleAgent };
-
-export async function getFinaleState(sessionId: string) {
-  let s = await prisma.finaleState.findUnique({ where: { sessionId } });
-  if (!s) {
-    s = await prisma.finaleState.create({ data: { sessionId, active: false, round: 0, open: false } });
-  }
-  return s;
-}
-
-export async function enterFinale(sessionId: string) {
-  await getFinaleState(sessionId);
-  const s = await prisma.finaleState.update({ where: { sessionId }, data: { active: true, round: 0, open: false } });
-  // 进入 A07 时自动锁定模块，学生端先显示占位页（等教师讲完点"解锁"再让学生自由玩）
-  await prisma.classSession.update({ where: { id: sessionId }, data: { moduleLocked: true } });
-  publish(sessionId, { type: 'finale:enter', payload: {} });
-  publish(sessionId, { type: 'module:locked', payload: {} });
-  return s;
-}
-
-export async function openFinaleRound(sessionId: string) {
-  const s = await getFinaleState(sessionId);
-  return prisma.finaleState.update({ where: { sessionId }, data: { round: s.round + 1, open: true } });
-}
-
-export async function closeFinaleRound(sessionId: string) {
-  return prisma.finaleState.update({ where: { sessionId }, data: { open: false } });
-}
-
-export async function exitFinale(sessionId: string) {
-  const s = await prisma.finaleState.update({ where: { sessionId }, data: { active: false, open: false } });
-  // 退出终章时解除模块锁，避免学生回到普通环节后仍被卡在"讲解中"占位页
-  await prisma.classSession.update({ where: { id: sessionId }, data: { moduleLocked: false } });
-  publish(sessionId, { type: 'finale:exit', payload: {} });
-  return s;
-}
-
-export async function publishCompany(
-  sessionId: string,
-  ownerAnonymousId: string,
-  ownerName: string | null,
-  scene: string,
-  name: string,
-  agents: FinaleAgent[]
-) {
-  const s = await getFinaleState(sessionId);
-  if (!s.open) throw new Error('FINALE_NOT_OPEN');
-  return prisma.agentCompany.create({
-    data: {
-      sessionId,
-      ownerAnonymousId,
-      ownerName,
-      scene,
-      name,
-      agents: agents as object,
-      round: s.round,
-      publishedAt: new Date(),
-    },
-  });
-}
-
-export async function listCompanies(sessionId: string, round?: number) {
-  const s = await getFinaleState(sessionId);
-  const r = round ?? s.round;
-  return prisma.agentCompany.findMany({
-    where: { sessionId, round: r, publishedAt: { not: null } },
-    orderBy: { publishedAt: 'asc' },
-  });
-}
-
-export async function getCompany(id: string) {
-  return prisma.agentCompany.findUnique({ where: { id } });
-}
-
-export async function submitFinaleFeedback(
-  sessionId: string,
-  companyId: string,
-  visitorAnonymousId: string,
-  rating?: number,
-  comment?: string
-) {
-  return prisma.companyFeedback.create({
-    data: { sessionId, companyId, visitorAnonymousId, rating: rating ?? null, comment: comment ?? null },
-  });
-}
-
-export async function getFinaleSummary(sessionId: string) {
-  const s = await getFinaleState(sessionId);
-  const companies = await prisma.agentCompany.findMany({ where: { sessionId } });
-  const feedbacks = await prisma.companyFeedback.findMany({ where: { sessionId } });
-  const byRound: Record<number, number> = {};
-  for (const c of companies) byRound[c.round] = (byRound[c.round] ?? 0) + 1;
-  const avgRating =
-    feedbacks.length > 0
-      ? feedbacks.reduce((a, f) => a + (f.rating ?? 0), 0) / feedbacks.length
-      : 0;
-  return {
-    active: s.active,
-    round: s.round,
-    open: s.open,
-    totalCompanies: companies.length,
-    byRound,
-    totalFeedback: feedbacks.length,
-    avgRating: Math.round(avgRating * 10) / 10,
-  };
 }

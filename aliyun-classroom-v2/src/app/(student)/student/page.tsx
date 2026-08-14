@@ -3,14 +3,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { getStyleProfile } from '@/lib/styleProfiles';
 import { A1_REVIEW } from '@/lib/a1Review';
-import StudentFinale from '@/components/StudentFinale';
-import ClosingStudent from '@/components/ClosingStudent';
 import StudentWaitingRoom from '@/components/StudentWaitingRoom';
 import VocabBrowser from '@/components/VocabBrowser';
 import L2StudentFlow from './L2StudentFlow';
 import AvatarA0Student from '@/components/AvatarA0Student';
 import AvatarA1Student from '@/components/AvatarA1Student';
-import GrowGameStudent from '@/components/GrowGameStudent';
+import SiteEntryStudent from '@/components/SiteEntryStudent';
 
 interface ModuleDef {
   id: string;
@@ -49,9 +47,7 @@ export default function StudentPage() {
   const [invitationCode, setInvitationCode] = useState('');
   const [nickname, setNickname] = useState(''); // 学生自己填的昵称（无微信授权时的身份标识）
   const [wechatName, setWechatName] = useState(''); // 微信扫码自动识别的昵称
-  const [phase, setPhase] = useState<'loading' | 'join' | 'class' | 'finale'>('loading');
-  const [closingActive, setClosingActive] = useState(false);
-  const [closingBeat, setClosingBeat] = useState(0);
+  const [phase, setPhase] = useState<'loading' | 'join' | 'class'>('loading');
   const [anonymousId, setAnonymousId] = useState('');
   const [current, setCurrent] = useState<ModuleDef | null>(null);
   const [moduleStatus, setModuleStatus] = useState('pending');
@@ -59,18 +55,6 @@ export default function StudentPage() {
   const [subState, setSubState] = useState<string | null>(null);
   const [sessionId, setSessionId] = useState('');
   const [reloadKey, setReloadKey] = useState(0); // 模块进度被教师重置时 ++ 强制重挂载
-
-  // 连接建立即拉取收官状态：SSE 不回放历史事件，学生端若晚于 enter 连上需自愈
-  useEffect(() => {
-    if (!sessionId) return;
-    fetch(`/api/closing/state?sessionId=${encodeURIComponent(sessionId)}`)
-      .then((r) => r.json())
-      .then((d) => {
-        if (d?.active) setClosingActive(true);
-        if (typeof d?.beatIdx === 'number') setClosingBeat(d.beatIdx);
-      })
-      .catch(() => {});
-  }, [sessionId]);
 
   const [form, setForm] = useState<Record<string, unknown>>({});
   const [message, setMessage] = useState('');
@@ -188,18 +172,6 @@ export default function StudentPage() {
             setScreeningFollowupAnswer('');
             setBusy(false);
             setMessage('本课堂已关闭，学生已释放。如需重新上课，请使用新的课堂码进入。');
-          } else if (evt.type === 'finale:enter') {
-            setPhase('finale');
-          } else if (evt.type === 'finale:exit') {
-            setPhase('class');
-            refreshCurrent();
-          } else if (evt.type === 'closing:enter') {
-            setClosingActive(true);
-          } else if (evt.type === 'closing:exit') {
-            setClosingActive(false);
-          } else if (evt.type === 'closing:beat') {
-            const b = (evt.payload as { beatIdx?: number })?.beatIdx;
-            if (typeof b === 'number') setClosingBeat(b);
           }
         } catch {
           /* noop */
@@ -386,9 +358,6 @@ export default function StudentPage() {
         setScreeningStep('q1');
       }
       setMyStyle(data.aiStyle ?? null);
-      // 教师进入终章后自动切到体验；终章复位（退回其它环节）后主动退出，避免学生端卡死在 A07
-      if (data.finale?.active && phase !== 'finale') setPhase('finale');
-      else if (!data.finale?.active && phase === 'finale') setPhase('class');
     } catch {
       // 网络错误等静默忽略，下次 visibilitychange/onopen 会重试
     }
@@ -596,25 +565,6 @@ export default function StudentPage() {
     );
   }
 
-  if (closingActive) {
-    return (
-      <ClosingStudent
-        key={sessionId}
-        beatIdx={closingBeat}
-        sessionId={sessionId}
-        anon={anonymousId || undefined}
-      />
-    );
-  }
-
-  if (phase === 'finale' || current?.type === 'finale') {
-    return (
-      <div className="container" style={{ maxWidth: 880 }}>
-        <StudentFinale locked={locked} />
-      </div>
-    );
-  }
-
   if (current?.type === 'wrap_up') {
     return (
       <div className="container" style={{ maxWidth: 480, textAlign: 'center', paddingTop: '24vh' }}>
@@ -756,14 +706,14 @@ export default function StudentPage() {
             )}
 
             {current.type === 'site_entry' && (
+              <SiteEntryStudent anonymousId={anonymousId} sessionId={sessionId} locked={locked} subState={subState} />
+            )}
+
+            {current.type === 'grow_game' && (
               <div className="module-card" style={{ textAlign: 'center', paddingTop: '6vh' }}>
                 <div style={{ fontSize: 34, fontWeight: 800, marginBottom: 10 }}>请看大屏</div>
                 <p className="note">本环节待重建，跟着大屏。</p>
               </div>
-            )}
-
-            {current.type === 'grow_game' && (
-              <GrowGameStudent anonymousId={anonymousId} sessionId={sessionId} locked={locked} subState={subState} />
             )}
 
             {isAiTask && (

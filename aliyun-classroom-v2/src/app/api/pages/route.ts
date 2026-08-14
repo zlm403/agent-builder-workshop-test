@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
   try {
     const group = parseGroup(req.nextUrl.searchParams.get('group'));
     if (!group) {
-      return NextResponse.json({ error: { code: 'BAD_REQUEST', message: 'group 必填（A0/A1/P2/P3）' } }, { status: 400 });
+      return NextResponse.json({ error: { code: 'BAD_REQUEST', message: 'group 必填（A0/A1/A2）' } }, { status: 400 });
     }
     const pages = await listPages(group);
     return NextResponse.json({ pages });

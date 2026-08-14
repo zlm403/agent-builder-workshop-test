@@ -402,51 +402,26 @@ const TEMPLATE: CourseTemplateData = {
 
     // ===================== 方案二：快速入门网站 =====================
     {
-      id: 'P2_SITE',
+      id: 'A2_SITE',
       type: 'site_entry',
       title: '快速入门网站',
-      durationSeconds: 900,
+      durationSeconds: 1200,
       teacherContent: {
-        headline: 'P2 · 做一款「快速入门网站」',
-        subline: '手机端一个对话框，不停地问、不停地说；最后 AI 生成网站、小白测试、发布',
+        headline: 'A2 · 做一款「快速入门网站」',
+        subline: '组建一支 AI 团队（统筹引导+领域专家+网页工程师+体验设计专家），开会→自动执行→做出手机网站→检验迭代→上墙',
         bullets: [
-          '六步：选择领域 → 定义入场任务 → 建立知识骨架 → 形成判断标准 → 设计网站路径 → 创作迭代',
-          'AI 按五屏结构生成 HTML 网站第一版',
-          '学生做「小白测试」，AI 评审可发布性，通过后发布上墙',
+          '发布任务 → 产生疑问 → 找到方法 → 会前准备 → AI团队开会自动执行 → 检验迭代提交',
+          '作品墙 → 认知思考 → 梦想墙 → 未来展开 → 最后升华',
         ],
         revealOrder: [
-          'p2:hook',
-          'p2:s1', 'p2:s2', 'p2:s3', 'p2:s4', 'p2:s5', 'p2:s6',
-          'p2:s7', 'p2:s8', 'p2:s9', 'p2:s10', 'p2:s11', 'p2:s12',
-          'p2:wall',
+          'a2:hook',
+          'a2:s1', 'a2:s2', 'a2:s3', 'a2:s4', 'a2:s5', 'a2:s6',
+          'a2:s7', 'a2:s8', 'a2:s9', 'a2:s10', 'a2:s11',
+          'a2:wall',
         ],
       },
       studentTask: {},
       screenContent: { phase: 'site_entry' },
-    },
-
-    // ===================== 方案三：养成游戏 =====================
-    {
-      id: 'P3_GAME',
-      type: 'grow_game',
-      title: '养成游戏',
-      durationSeconds: 900,
-      teacherContent: {
-        headline: 'P3 · 做一款你的「养成游戏」',
-        subline: '手机端一个对话框，不停地问、不停地说；最后 AI 生成游戏、试玩修改、发布',
-        bullets: [
-          '六步：提出设想 → 定义成长 → 建立规则 → 设计事件 → 设计结局 → 创作迭代',
-          'AI 按「属性 + 事件 + 结局」生成手机养成游戏第一版',
-          '学生试玩，检查选择是否有效、冲突是否好玩，通过后发布上墙',
-        ],
-        revealOrder: [
-          'p3:hook',
-          'p3:s1', 'p3:s2', 'p3:s3', 'p3:s4', 'p3:s5', 'p3:s6', 'p3:s7', 'p3:s8', 'p3:s9', 'p3:s10',
-          'p3:wall',
-        ],
-      },
-      studentTask: {},
-      screenContent: { phase: 'grow_game' },
     },
 
     {

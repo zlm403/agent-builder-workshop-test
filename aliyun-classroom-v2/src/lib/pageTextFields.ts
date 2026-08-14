@@ -4,7 +4,6 @@
 // 大屏渲染用 overrides ?? 默认值（见 usePageText.ts）。
 // =========================================================
 import { A0_INTRO, A0_REVEAL, A1_STAGES } from '@/features/avatarLesson/config';
-import { P3_HOOK, P3_GOAL, P3_STAGES } from '@/features/growGame/config';
 
 export interface TextFieldDef {
   key: string; // overrides 的 key
@@ -73,20 +72,10 @@ export function getFieldDefs(refKey: string | null): TextFieldDef[] {
   }
   if (refKey === 'avatar:wall') return [{ key: 'screenTitle', label: '作品墙标题', def: '全班数字分身 · 朋友圈墙' }];
 
-  // P3 养成游戏
-  if (refKey === 'p3:hook') return hookFields(P3_HOOK);
-  if (refKey.startsWith('p3:s')) {
-    const k = refKey.slice('p3:'.length); // p3:s1 → s1
-    const st = P3_STAGES.find((s) => s.key === k);
-    return st ? stageFields(st) : [];
-  }
-  if (refKey === 'p3:wall') return [{ key: 'screenTitle', label: '共生缸标题', def: '数字生命 · 共生缸' }];
-
   return [];
 }
 
 // 目标横幅字段（钩子页额外可编辑）
-export function getBannerFields(refKey: string | null): TextFieldDef[] {
-  if (refKey === 'p3:hook') return [{ key: 'banner', label: '目标横幅', def: P3_GOAL.banner }];
+export function getBannerFields(_refKey: string | null): TextFieldDef[] {
   return [];
 }

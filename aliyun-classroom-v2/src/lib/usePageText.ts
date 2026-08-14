@@ -23,12 +23,11 @@ export function pageText(
 }
 
 // subState → 组 映射（纯函数，客户端安全）
-export function groupOfSubState(subState: string | null | undefined): 'A0' | 'A1' | 'P2' | 'P3' | null {
+export function groupOfSubState(subState: string | null | undefined): 'A0' | 'A1' | 'A2' | null {
   if (!subState) return null;
   if (subState.startsWith('a0:') || subState.startsWith('reveal:')) return 'A0';
   if (subState.startsWith('avatar:')) return 'A1';
-  if (subState.startsWith('p2:')) return 'P2';
-  if (subState.startsWith('p3:')) return 'P3';
+  if (subState.startsWith('a2:')) return 'A2';
   return null;
 }
 

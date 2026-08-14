@@ -2,8 +2,6 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { STYLE_PROFILES, STYLE_ORDER } from '@/lib/styleProfiles';
-import TeacherFinale from '@/components/TeacherFinale';
-import TeacherClosing from '@/components/TeacherClosing';
 import AvatarTeacher from '@/components/AvatarTeacher';
 import MediaManager from '@/components/MediaManager';
 import ContentPageEditor from '@/components/ContentPageEditor';
@@ -103,8 +101,6 @@ export default function TeacherPage() {
   const [genBusy, setGenBusy] = useState(false);
   const [thoughts, setThoughts] = useState<{ id: string; text: string; anonymousId: string; createdAt: string }[]>([]);
   const [showThoughts, setShowThoughts] = useState(false);
-  const [showFinale, setShowFinale] = useState(false);
-  const [showClosing, setShowClosing] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [showMedia, setShowMedia] = useState(false);
   const [editingPageId, setEditingPageId] = useState<string | null>(null);
@@ -722,14 +718,6 @@ export default function TeacherPage() {
     );
   }
 
-  if (showClosing) {
-    return <TeacherClosing sessionId={sessionId} onClose={() => setShowClosing(false)} />;
-  }
-
-  if (showFinale) {
-    return <TeacherFinale sessionId={sessionId} onClose={() => setShowFinale(false)} />;
-  }
-
   const m = (analytics?.metrics) ?? null;
 
   const pctOf = (n: number, d: number) => (d > 0 ? Math.round((n / d) * 100) : 0);
@@ -756,7 +744,7 @@ export default function TeacherPage() {
   }
 
   const isA0 = currentModuleId === 'A0_SCREENING';
-  const isA0New = currentModuleId === 'A0N_QUESTIONS' || currentModuleId === 'A0N_VOTE' || currentModuleId === 'A0N_REVEAL' || currentModuleId === 'A1_AVATAR' || currentModuleId === 'P2_SITE' || currentModuleId === 'P3_GAME';
+  const isA0New = currentModuleId === 'A0N_QUESTIONS' || currentModuleId === 'A0N_VOTE' || currentModuleId === 'A0N_REVEAL' || currentModuleId === 'A1_AVATAR' || currentModuleId === 'A2_SITE';
 
   function buildA0Dirs(s: ScreeningData | null): { kind: 'more' | 'less' | 'watch' | 'good'; text: string }[] {
     const out: { kind: 'more' | 'less' | 'watch' | 'good'; text: string }[] = [];
@@ -1120,12 +1108,6 @@ export default function TeacherPage() {
                 关闭课堂
               </button>
             )}
-            <button className="secondary" onClick={() => setShowClosing(true)}>
-              收官阶段
-            </button>
-            <button className="primary" onClick={() => setShowFinale(true)}>
-              模式 →
-            </button>
           </div>
           {isA0 ? (
             <p className="note" style={{ marginTop: 12, color: 'var(--yellow)' }}>

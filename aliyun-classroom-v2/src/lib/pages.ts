@@ -8,7 +8,7 @@
 import { prisma } from '@/lib/db';
 import { Prisma } from '@prisma/client';
 
-export const PAGE_GROUPS = ['A0', 'A1', 'P2', 'P3'] as const;
+export const PAGE_GROUPS = ['A0', 'A1', 'A2'] as const;
 export type PageGroup = (typeof PAGE_GROUPS)[number];
 
 export interface LessonPageDef {
@@ -59,19 +59,19 @@ const BUILTIN_SEEDS: BuiltinSeed[] = [
   { group: 'A1', moduleId: 'A1_AVATAR', refKey: 'avatar:c10', label: '现实信号' },
   { group: 'A1', moduleId: 'A1_AVATAR', refKey: 'avatar:c11', label: 'A1收束 → A2问题' },
 
-  // ---- P3 养成游戏 ----
-  { group: 'P3', moduleId: 'P3_GAME', refKey: 'p3:hook', label: '钩子开场' },
-  { group: 'P3', moduleId: 'P3_GAME', refKey: 'p3:s1', label: '空世界' },
-  { group: 'P3', moduleId: 'P3_GAME', refKey: 'p3:s2', label: '核心特质' },
-  { group: 'P3', moduleId: 'P3_GAME', refKey: 'p3:s3', label: '设计规则' },
-  { group: 'P3', moduleId: 'P3_GAME', refKey: 'p3:s4', label: 'AI翻译生成' },
-  { group: 'P3', moduleId: 'P3_GAME', refKey: 'p3:s5', label: '投入共生缸' },
-  { group: 'P3', moduleId: 'P3_GAME', refKey: 'p3:s6', label: '观察' },
-  { group: 'P3', moduleId: 'P3_GAME', refKey: 'p3:s7', label: '修改' },
-  { group: 'P3', moduleId: 'P3_GAME', refKey: 'p3:s8', label: '二次运行' },
-  { group: 'P3', moduleId: 'P3_GAME', refKey: 'p3:s9', label: '创造过程卡' },
-  { group: 'P3', moduleId: 'P3_GAME', refKey: 'p3:s10', label: '认知收束' },
-  { group: 'P3', moduleId: 'P3_GAME', refKey: 'p3:wall', label: '共生缸' },
+  // ---- A2 快速入门网站 ----
+  { group: 'A2', moduleId: 'A2_SITE', refKey: 'a2:hook', label: '钩子开场' },
+  { group: 'A2', moduleId: 'A2_SITE', refKey: 'a2:s1', label: '发布任务' },
+  { group: 'A2', moduleId: 'A2_SITE', refKey: 'a2:s2', label: '产生疑问' },
+  { group: 'A2', moduleId: 'A2_SITE', refKey: 'a2:s3', label: '找到方法' },
+  { group: 'A2', moduleId: 'A2_SITE', refKey: 'a2:s4', label: '会前准备' },
+  { group: 'A2', moduleId: 'A2_SITE', refKey: 'a2:s5', label: 'AI团队开会→自动执行' },
+  { group: 'A2', moduleId: 'A2_SITE', refKey: 'a2:s6', label: '检验、迭代，最后提交' },
+  { group: 'A2', moduleId: 'A2_SITE', refKey: 'a2:wall', label: '作品墙' },
+  { group: 'A2', moduleId: 'A2_SITE', refKey: 'a2:s7', label: '认知思考' },
+  { group: 'A2', moduleId: 'A2_SITE', refKey: 'a2:s8', label: '梦想互动/梦想墙' },
+  { group: 'A2', moduleId: 'A2_SITE', refKey: 'a2:s9', label: '未来展开' },
+  { group: 'A2', moduleId: 'A2_SITE', refKey: 'a2:s10', label: '最后升华' },
 ];
 
 // 内置页显示名（教师端页卡片用）
@@ -88,8 +88,7 @@ export function groupOfModule(moduleId: string | null | undefined): PageGroup | 
   if (!moduleId) return null;
   if (moduleId.startsWith('A0N_')) return 'A0';
   if (moduleId === 'A1_AVATAR') return 'A1';
-  if (moduleId === 'P2_SITE') return 'P2';
-  if (moduleId === 'P3_GAME') return 'P3';
+  if (moduleId === 'A2_SITE') return 'A2';
   return null;
 }
 
@@ -184,9 +183,10 @@ export async function createContentPage(group: PageGroup, afterId: string | null
 function defaultModuleOf(group: PageGroup): string {
   if (group === 'A0') return 'A0N_QUESTIONS';
   if (group === 'A1') return 'A1_AVATAR';
-  if (group === 'P2') return 'P2_SITE';
-  return 'P3_GAME';
-}// 更新页：改标题 / 隐藏 / 排序（seq 重排）/ 文字覆盖 overrides
+  return 'A2_SITE';
+}
+
+// 更新页：改标题 / 隐藏 / 排序（seq 重排）/ 文字覆盖 overrides
 export async function updatePage(
   id: string,
   patch: Partial<{ title: string; hidden: boolean; seq: number; overrides: Record<string, string> | null }>,

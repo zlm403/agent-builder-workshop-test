@@ -52,12 +52,9 @@ model ClassSession {
   a0Screenings    A0Screening[]
   a0News          A0New[]
   a1Avatars       A1Avatar[]
-  p3GrowGames     P3GrowGame[]
+  a2SiteEntries   A2SiteEntry[]
   entryThoughts   EntryThought[]
   auditLogs       AuditLog[]
-  agentCompanies  AgentCompany[]
-  companyFeedbacks CompanyFeedback[]
-  finaleState     FinaleState?
 
   @@index([inviteCode])
   @@index([teacherId])
@@ -82,7 +79,7 @@ model Participant {
   a0Screenings    A0Screening[]
   a0News          A0New[]
   a1Avatars       A1Avatar[]
-  p3GrowGames     P3GrowGame[]
+  a2SiteEntries   A2SiteEntry[]
   entryThoughts   EntryThought[]
   consentRecords  ConsentRecord[]
 
@@ -170,54 +167,6 @@ model AuditLog {
   @@index([sessionId, createdAt])
 }
 
-/// （一人公司 · 多 Agent 协同）：每个学生搭建的 4-Agent 产品，发布后供他人访问体验
-model AgentCompany {
-  id              String   @id @default(uuid())
-  sessionId       String
-  ownerAnonymousId String // 发布者匿名号（与 Participant.anonymousId 对应）
-  ownerName       String? // 发布者昵称（微信名），仅用于展示
-  scene           String // study | shopping | fun
-  name            String // 公司名（学生自拟）
-  agents          Json // 4 个 Agent 的属性卡：[{ role, nickname, personality, duty, boundary, rules, handoff }]
-  round           Int      @default(0) // 所属体验轮次
-  publishedAt     DateTime?
-  createdAt       DateTime @default(now())
-  feedbacks       CompanyFeedback[]
-
-  session ClassSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-
-  @@index([sessionId])
-  @@index([sessionId, round])
-}
-
-/// 课堂状态：是否进入、当前轮次、是否开放（接受发布/访问）
-model FinaleState {
-  sessionId String @id
-  active    Boolean @default(false)
-  round     Int     @default(0)
-  open      Boolean @default(false) // 是否开放发布与访问
-  updatedAt DateTime @updatedAt
-
-  session ClassSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-}
-
-/// 访问反馈（他人体验某产品后提交）
-model CompanyFeedback {
-  id                String   @id @default(uuid())
-  sessionId         String
-  companyId         String
-  visitorAnonymousId String
-  rating            Int? // 1-5
-  comment           String?
-  createdAt         DateTime @default(now())
-
-  company AgentCompany @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  session ClassSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-
-  @@index([companyId])
-  @@index([sessionId])
-}
-
 /// A0 新版（三问 + 关系题）：匿名收集每位学员对 AI 的三个真实回答与"工具/伙伴"关系投票
 model A0New {
   id           String   @id @default(uuid())
@@ -292,22 +241,16 @@ model A0Screening {
   @@index([sessionId])
 }
 
-/// 方案三：数字生命共生缸（grow_game）· 创造生命 → 投入共生缸 → 观察 → 修改 → 再运行
-model P3GrowGame {
+/// A2 快速入门网站（site_entry）· 组建 AI 团队 → 开会自动执行 → 做手机网站 → 检验迭代 → 提交
+model A2SiteEntry {
   id            String   @id @default(uuid())
   sessionId     String
   anonymousId   String
   participantId String
-  step          Int      @default(1) // 1..10 当前完成到第几步（大屏阶段）
-  objectName    String?  // 生命名字
-  trait         String?  // 核心特质（我想创造一个____的生命）
-  traitWhy      String?  // 为什么选这个特质
-  lifeDesign    Json?    // 生命设计卡（外形/移动/相遇/能力/代价/自定义规则）
-  chatLog       Json?    // 全程多轮对话 [{ role, content }]
-  lifeNotes     Json?    // 观察记录 + 修改记录（发现的问题/修改方向/前后对比）
-  gameCode      String?  // 兼容旧字段（不再使用）
-  testNote      String?  // 兼容旧字段
-  finalWork     String?  // 创造过程卡 / 结课句
+  step          Int      @default(1) // 当前完成到第几步
+  team          Json?    // 已建立的 AI 团队：[{ id, label, icon, duty }]
+  chatLog       Json?    // 全程多轮对话 [{ role, content, speaker? }]
+  siteCode      String?  // LLM 生成的手机网站 HTML
   submittedAt   DateTime?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -317,7 +260,7 @@ model P3GrowGame {
 
   @@unique([sessionId, anonymousId])
   @@index([sessionId])
-  @@map("p3_grow_game")
+  @@map("a2_site_entry")
 }
 
 /// 课堂内容框架（教师端管理，无需改代码）：文字/图片/视频/链接/网页，按 slot 插槽归类
