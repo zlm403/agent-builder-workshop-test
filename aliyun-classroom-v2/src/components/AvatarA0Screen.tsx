@@ -108,7 +108,7 @@ export default function AvatarA0Screen({
     );
   }
 
-  // 关系判定中（系统后台判定）
+  // 关系判定中（系统后台判定）—— 已与揭晓结果页合并：同一画面，标题+大方框+百分比
   if (type === 'A0N_VOTE') {
     const tool = data?.tool ?? 0;
     const partner = data?.partner ?? 0;
@@ -116,34 +116,24 @@ export default function AvatarA0Screen({
     const lp = voted > 0 ? Math.round((tool / Math.max(1, voted)) * 100) : 0;
     const pp = voted > 0 ? Math.round((partner / Math.max(1, voted)) * 100) : 0;
     return (
-      <div className="a0-live">
-        <div className="a0-topbar">
-          <div className="a0-brand">你和 AI</div>
-          <div className="a0-tag">系统判定中 · {voted}/{total}</div>
-        </div>
+      <div className="a0-reveal">
         <ContentSlot slot="a0_top" />
-        <div className="a0-stage">
-          <div className="a0-question" style={{ textAlign: 'center' }}>根据同学们的答案，AI 正在判断每一位同学——</div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, width: 'min(1100px, 92vw)', marginTop: 6 }}>
-            {A0_VOTE_OPTIONS.map((o) => {
-              const v = o.id === 'tool' ? tool : partner;
-              const p = o.id === 'tool' ? lp : pp;
-              const lead = o.id === 'tool' ? tool >= partner : partner > tool;
-              return (
-                <div key={o.id} style={{ background: 'rgba(15,23,42,0.55)', border: lead ? '1px solid rgba(124,58,237,0.6)' : '1px solid var(--border)', borderRadius: 20, padding: '34px 24px', textAlign: 'center' }}>
-                  <div style={{ fontSize: 54 }}>{o.icon}</div>
-                  <div style={{ fontSize: 30, fontWeight: 800, margin: '8px 0 4px' }}>{o.label}</div>
-                  <div style={{ fontSize: 15, color: 'var(--muted)' }}>{o.desc}</div>
-                  <div style={{ fontSize: 64, fontWeight: 900, marginTop: 14, color: lead ? '#c4b5fd' : '#e2e8f0' }}>{p}%</div>
-                  <div style={{ fontSize: 18, color: 'var(--muted)' }}>{v} 人</div>
-                </div>
-              );
-            })}
-          </div>
+        <div className="a0-reveal-statement">{A0_REVEAL.headline}</div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, width: 'min(1100px, 92vw)', marginTop: 6 }}>
+          {A0_VOTE_OPTIONS.map((o) => {
+            const p = o.id === 'tool' ? lp : pp;
+            const lead = o.id === 'tool' ? tool >= partner : partner > tool;
+            return (
+              <div key={o.id} style={{ background: 'rgba(15,23,42,0.55)', border: lead ? '1px solid rgba(124,58,237,0.6)' : '1px solid var(--border)', borderRadius: 20, padding: '34px 24px', textAlign: 'center' }}>
+                <div style={{ fontSize: 54 }}>{o.icon}</div>
+                <div style={{ fontSize: 30, fontWeight: 800, margin: '8px 0 4px' }}>{o.label}</div>
+                <div style={{ fontSize: 15, color: 'var(--muted)' }}>{o.desc}</div>
+                <div style={{ fontSize: 64, fontWeight: 900, marginTop: 14, color: lead ? '#c4b5fd' : '#e2e8f0' }}>{p}%</div>
+              </div>
+            );
+          })}
         </div>
-        <div className="a0-foot">
-          <div className="a0-status">判定依据是同学们自己写的回答 · 揭晓后我们再看「工具 vs 伙伴」的三种形态</div>
-        </div>
+        <div className="a0-snap-note" style={{ marginTop: 14 }}>今天这节课，我们不急着下结论。先看看，把 AI 当工具的过去，和当伙伴的未来，流程差在哪。</div>
       </div>
     );
   }
@@ -224,21 +214,21 @@ export default function AvatarA0Screen({
       {screen === 'result' && (
         <>
           {tHeadline !== null && <div className="a0-reveal-statement">{tHeadline}</div>}
-          <div className="a0-snap" style={{ maxWidth: 900 }}>
-            <div className="a0-bars">
-              {[
-                { name: '工具 🔧', val: tool, pct: lp, c: '#fde047' },
-                { name: '伙伴 🤝', val: partner, pct: pp, c: '#86efac' },
-              ].map((b) => (
-                <div className="a0-bar-row" key={b.name}>
-                  <div className="a0-bar-name">{b.name}</div>
-                  <div className="a0-bar-track"><div className="a0-bar-fill" style={{ width: b.pct + '%', background: b.c }} /></div>
-                  <div className="a0-bar-pct">{b.pct}% · {b.val} 人</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, width: 'min(1100px, 92vw)', marginTop: 6 }}>
+            {A0_VOTE_OPTIONS.map((o) => {
+              const p = o.id === 'tool' ? lp : pp;
+              const lead = o.id === 'tool' ? tool >= partner : partner > tool;
+              return (
+                <div key={o.id} style={{ background: 'rgba(15,23,42,0.55)', border: lead ? '1px solid rgba(124,58,237,0.6)' : '1px solid var(--border)', borderRadius: 20, padding: '34px 24px', textAlign: 'center' }}>
+                  <div style={{ fontSize: 54 }}>{o.icon}</div>
+                  <div style={{ fontSize: 30, fontWeight: 800, margin: '8px 0 4px' }}>{o.label}</div>
+                  <div style={{ fontSize: 15, color: 'var(--muted)' }}>{o.desc}</div>
+                  <div style={{ fontSize: 64, fontWeight: 900, marginTop: 14, color: lead ? '#c4b5fd' : '#e2e8f0' }}>{p}%</div>
                 </div>
-              ))}
-            </div>
-            <div className="a0-snap-note">今天这节课，我们不急着下结论。先看看，把 AI 当工具的过去，和当伙伴的未来，流程差在哪。</div>
+              );
+            })}
           </div>
+          <div className="a0-snap-note" style={{ marginTop: 14 }}>今天这节课，我们不急着下结论。先看看，把 AI 当工具的过去，和当伙伴的未来，流程差在哪。</div>
         </>
       )}
 

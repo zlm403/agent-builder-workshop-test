@@ -36,7 +36,7 @@ const BUILTIN_SEEDS: BuiltinSeed[] = [
   { group: 'A0', moduleId: 'A0N_QUESTIONS', refKey: 'a0:intro1', label: '开场·手指图' },
   { group: 'A0', moduleId: 'A0N_QUESTIONS', refKey: 'a0:intro2', label: '开场·发展图' },
   { group: 'A0', moduleId: 'A0N_QUESTIONS', refKey: null, label: '三问' },
-  { group: 'A0', moduleId: 'A0N_VOTE', refKey: null, label: '系统判定' },
+  // 系统判定页已与揭晓结果页合并（2026-08-14），不再作为独立页
   { group: 'A0', moduleId: 'A0N_REVEAL', refKey: 'reveal:1', label: '揭晓结果' },
   { group: 'A0', moduleId: 'A0N_REVEAL', refKey: 'reveal:2', label: '三种形态' },
   { group: 'A0', moduleId: 'A0N_REVEAL', refKey: 'reveal:4', label: '六步滑块' },
@@ -121,10 +121,17 @@ export function groupOfModule(moduleId: string | null | undefined): PageGroup | 
 export async function ensurePages(group: PageGroup) {
   const seeds = BUILTIN_SEEDS.filter((s) => s.group === group);
   const existing = await prisma.lessonPage.findMany({ where: { group }, orderBy: { seq: 'asc' } });
-  // 内置页唯一键 = moduleId:refKey（refKey 为 null 用 ''，A0 的"三问/判定"靠 moduleId 区分）
+  // 内置页唯一键 = moduleId:refKey（refKey 为 null 用 ''，A0 的"三问"靠 moduleId 区分）
   const existingKeys = new Set(
     existing.filter((e) => e.kind === 'builtin').map((e) => `${e.moduleId}:${e.refKey ?? ''}`),
   );
+  // 清理：种子里已不存在的内置页（如合并掉的老页）→ 删除，保持与种子一致
+  const seedKeys = new Set(seeds.map((s) => `${s.moduleId}:${s.refKey ?? ''}`));
+  for (const e of existing) {
+    if (e.kind === 'builtin' && !seedKeys.has(`${e.moduleId}:${e.refKey ?? ''}`)) {
+      await prisma.lessonPage.delete({ where: { id: e.id } }).catch(() => {});
+    }
+  }
   const maxSeq = existing.reduce((m, e) => Math.max(m, e.seq), -1);
 
   let seq = maxSeq + 1;
