@@ -200,7 +200,7 @@ export const A1_STAGES: A1Stage[] = [
   {
     key: 'c2',
     name: 'AI沟通准则①',
-    screenTitle: '和 AI 做事，先过这三关：①先别做，先确定目标；②让 AI 复述它的理解；③不一致就继续沟通，直到目标一致。',
+    screenTitle: '和 AI 做事，先过这三关：\n①先别做，先确定目标；\n②让 AI 复述它的理解；\n③不一致就继续沟通，直到目标一致。',
     screenQuestion: '',
     studentTask: 'AI对话框；提示：先不要让它做，先确认目标。',
     action: '与 AI 对话，先确认目标',
@@ -222,7 +222,7 @@ export const A1_STAGES: A1Stage[] = [
   {
     key: 'c4',
     name: 'AI沟通准则②',
-    screenTitle: '确定怎么做，先过这三关：①先问 AI：你准备怎么做？②告诉 AI：我手里有什么。③一起调整方法，直到能做。',
+    screenTitle: '确定怎么做，先过这三关：\n①先问 AI：你准备怎么做？\n②告诉 AI：我手里有什么。\n③一起调整方法，直到能做。',
     screenQuestion: '',
     studentTask: '继续与AI对话；提示：先让它说方法，再告诉它你的条件。',
     action: '与 AI 对话，确定方法',
@@ -233,7 +233,7 @@ export const A1_STAGES: A1Stage[] = [
   {
     key: 'c5',
     name: 'AI采访我',
-    screenTitle: 'AI采访我的时候，记住这四点：①不是所有问题都要回答；②每问一个问题，先说为什么要问；③不只是回答，要确认AI怎么理解；④AI的理解也要检查，不准确就继续纠正。',
+    screenTitle: 'AI采访我的时候，记住这四点：\n①不是所有问题都要回答；\n②每问一个问题，先说为什么要问；\n③不只是回答，要确认AI怎么理解；\n④AI的理解也要检查，不准确就继续纠正。',
     screenQuestion: '',
     studentTask: 'AI提问 → 判断是否相关 → 回答 → 要AI解释理解 → 检查、纠正',
     action: '回答 AI 采访',
