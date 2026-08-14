@@ -4,7 +4,6 @@
 // 大屏渲染用 overrides ?? 默认值（见 usePageText.ts）。
 // =========================================================
 import { A0_INTRO, A0_REVEAL, A1_STAGES } from '@/features/avatarLesson/config';
-import { P2_HOOK, P2_GOAL, P2_STAGES } from '@/features/siteEntry/config';
 import { P3_HOOK, P3_GOAL, P3_STAGES } from '@/features/growGame/config';
 
 export interface TextFieldDef {
@@ -74,15 +73,6 @@ export function getFieldDefs(refKey: string | null): TextFieldDef[] {
   }
   if (refKey === 'avatar:wall') return [{ key: 'screenTitle', label: '作品墙标题', def: '全班数字分身 · 朋友圈墙' }];
 
-  // P2 快速入门网站
-  if (refKey === 'p2:hook') return hookFields(P2_HOOK);
-  if (refKey.startsWith('p2:s')) {
-    const k = refKey.slice('p2:'.length); // p2:s1 → s1
-    const st = P2_STAGES.find((s) => s.key === k);
-    return st ? stageFields(st) : [];
-  }
-  if (refKey === 'p2:wall') return [{ key: 'screenTitle', label: '作品墙标题', def: '全班入门网站 · 作品墙' }];
-
   // P3 养成游戏
   if (refKey === 'p3:hook') return hookFields(P3_HOOK);
   if (refKey.startsWith('p3:s')) {
@@ -97,7 +87,6 @@ export function getFieldDefs(refKey: string | null): TextFieldDef[] {
 
 // 目标横幅字段（钩子页额外可编辑）
 export function getBannerFields(refKey: string | null): TextFieldDef[] {
-  if (refKey === 'p2:hook') return [{ key: 'banner', label: '目标横幅', def: P2_GOAL.banner }];
   if (refKey === 'p3:hook') return [{ key: 'banner', label: '目标横幅', def: P3_GOAL.banner }];
   return [];
 }

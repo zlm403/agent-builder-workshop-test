@@ -240,8 +240,6 @@ export async function resetModuleProgress(sessionId: string, moduleId: string) {
       if (partIds.length) await tx.a1Avatar.deleteMany({ where: { participantId: { in: partIds } } });
     } else if (moduleId === 'A0N_QUESTIONS' || moduleId === 'A0N_VOTE' || moduleId === 'A0N_REVEAL') {
       if (partIds.length) await tx.a0New.deleteMany({ where: { participantId: { in: partIds } } });
-    } else if (moduleId === 'P2_SITE') {
-      if (partIds.length) await tx.p2SiteEntry.deleteMany({ where: { participantId: { in: partIds } } });
     } else if (moduleId === 'P3_GAME') {
       if (partIds.length) await tx.p3GrowGame.deleteMany({ where: { participantId: { in: partIds } } });
     }
@@ -254,7 +252,6 @@ export async function resetModuleProgress(sessionId: string, moduleId: string) {
     moduleId === 'A1_AVATAR' ? 'avatar:hook'
     : moduleId === 'A0N_QUESTIONS' ? 'a0:intro1'
     : moduleId === 'A0N_REVEAL' ? 'reveal:1'
-    : moduleId === 'P2_SITE' ? 'p2:hook'
     : moduleId === 'P3_GAME' ? 'p3:hook'
     : null;
   if (initialSubState !== null) await writeModuleSubState(sessionId, initialSubState);

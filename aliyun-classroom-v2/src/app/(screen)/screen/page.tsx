@@ -9,7 +9,6 @@ import { compareRounds } from '@/lib/analytics';
 import { KNOWLEDGE_DOCS, SKILL_BLOCKS } from '@/lib/courseConfig';
 import AvatarA0Screen from '@/components/AvatarA0Screen';
 import AvatarA1Screen from '@/components/AvatarA1Screen';
-import SiteEntryScreen from '@/components/SiteEntryScreen';
 import GrowGameScreen from '@/components/GrowGameScreen';
 import ContentPage from '@/components/ContentPage';
 
@@ -260,7 +259,7 @@ export default function ScreenPage() {
       ) : module.type === 'avatar_flow' ? (
         <AvatarA1Screen sessionId={sessionId} subState={summary?.moduleSubState ?? null} />
       ) : module.type === 'site_entry' ? (
-        <SiteEntryScreen sessionId={sessionId} subState={summary?.moduleSubState ?? null} />
+        <PlaceholderModule title={module.title} />
       ) : module.type === 'grow_game' ? (
         <GrowGameScreen sessionId={sessionId} subState={summary?.moduleSubState ?? null} />
       ) : module.type === 'ai_task' ? (
@@ -308,8 +307,7 @@ function ContentPageHost({ subState }: { subState: string }) {
     if (!pageId) return;
     let closed = false;
     (async () => {
-      for (const g of ['A0', 'A1', 'P2', 'P3']) {
-        try {
+      for (const g of ['A0', 'A1', 'P2', 'P3']) {        try {
           const r = await fetch(`/api/pages?group=${g}`);
           const d = await r.json();
           const p = (d.pages ?? []).find((x: any) => x.id === pageId);
@@ -320,6 +318,16 @@ function ContentPageHost({ subState }: { subState: string }) {
     return () => { closed = true; };
   }, [pageId]);
   return <ContentPage pageId={pageId} title={title} />;
+}
+
+// 待重建模块占位（A2 快速入门网站已清空，重做前显示占位）
+function PlaceholderModule({ title }: { title: string }) {
+  return (
+    <div style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 18, textAlign: 'center' }}>
+      <div style={{ fontSize: 'clamp(30px,4vw,52px)', fontWeight: 900, color: '#c4b5fd' }}>{title}</div>
+      <div style={{ fontSize: 18, color: 'var(--muted)' }}>本环节待重建，请先不要进入。</div>
+    </div>
+  );
 }
 
 function A01Screen({

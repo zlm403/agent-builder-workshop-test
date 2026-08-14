@@ -10,7 +10,6 @@ import VocabBrowser from '@/components/VocabBrowser';
 import L2StudentFlow from './L2StudentFlow';
 import AvatarA0Student from '@/components/AvatarA0Student';
 import AvatarA1Student from '@/components/AvatarA1Student';
-import SiteEntryStudent from '@/components/SiteEntryStudent';
 import GrowGameStudent from '@/components/GrowGameStudent';
 
 interface ModuleDef {
@@ -757,7 +756,10 @@ export default function StudentPage() {
             )}
 
             {current.type === 'site_entry' && (
-              <SiteEntryStudent anonymousId={anonymousId} sessionId={sessionId} locked={locked} subState={subState} />
+              <div className="module-card" style={{ textAlign: 'center', paddingTop: '6vh' }}>
+                <div style={{ fontSize: 34, fontWeight: 800, marginBottom: 10 }}>请看大屏</div>
+                <p className="note">本环节待重建，跟着大屏。</p>
+              </div>
             )}
 
             {current.type === 'grow_game' && (

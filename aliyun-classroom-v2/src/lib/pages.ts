@@ -59,22 +59,6 @@ const BUILTIN_SEEDS: BuiltinSeed[] = [
   { group: 'A1', moduleId: 'A1_AVATAR', refKey: 'avatar:c10', label: '现实信号' },
   { group: 'A1', moduleId: 'A1_AVATAR', refKey: 'avatar:c11', label: 'A1收束 → A2问题' },
 
-  // ---- P2 快速入门网站 ----
-  { group: 'P2', moduleId: 'P2_SITE', refKey: 'p2:hook', label: '钩子开场' },
-  { group: 'P2', moduleId: 'P2_SITE', refKey: 'p2:s1', label: '发布任务' },
-  { group: 'P2', moduleId: 'P2_SITE', refKey: 'p2:s2', label: '明确目标' },
-  { group: 'P2', moduleId: 'P2_SITE', refKey: 'p2:s3', label: '获取领域地图' },
-  { group: 'P2', moduleId: 'P2_SITE', refKey: 'p2:s4', label: '判断与收缩' },
-  { group: 'P2', moduleId: 'P2_SITE', refKey: 'p2:s5', label: '生成可用内容' },
-  { group: 'P2', moduleId: 'P2_SITE', refKey: 'p2:s6', label: '生成网页' },
-  { group: 'P2', moduleId: 'P2_SITE', refKey: 'p2:s7', label: '第一轮自检' },
-  { group: 'P2', moduleId: 'P2_SITE', refKey: 'p2:s8', label: '同伴测试' },
-  { group: 'P2', moduleId: 'P2_SITE', refKey: 'p2:s9', label: '根据反馈修改' },
-  { group: 'P2', moduleId: 'P2_SITE', refKey: 'p2:s10', label: '能力迁移' },
-  { group: 'P2', moduleId: 'P2_SITE', refKey: 'p2:s11', label: '提交与成果' },
-  { group: 'P2', moduleId: 'P2_SITE', refKey: 'p2:s12', label: '升华' },
-  { group: 'P2', moduleId: 'P2_SITE', refKey: 'p2:wall', label: '作品墙' },
-
   // ---- P3 养成游戏 ----
   { group: 'P3', moduleId: 'P3_GAME', refKey: 'p3:hook', label: '钩子开场' },
   { group: 'P3', moduleId: 'P3_GAME', refKey: 'p3:s1', label: '空世界' },

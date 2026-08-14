@@ -43,23 +43,6 @@ export const CONTENT_SLOTS: SlotDef[] = [
   { key: 'a1_wall_after', label: '数字分身 作品墙之后', group: '数字分身' },
   { key: 'a1_video_after', label: '数字分身 视频之后', group: '数字分身' },
 
-  // ---- P2 快速入门网站（钩子 + 十二阶段 + 作品墙）----
-  { key: 'p2_top', label: '快速入门网站 环节最前', group: '快速入门网站' },
-  { key: 'p2_hook_after', label: '快速入门网站 钩子之后', group: '快速入门网站' },
-  { key: 'p2_s1_after', label: '快速入门网站 发布任务之后', group: '快速入门网站' },
-  { key: 'p2_s2_after', label: '快速入门网站 明确目标之后', group: '快速入门网站' },
-  { key: 'p2_s3_after', label: '快速入门网站 获取领域地图之后', group: '快速入门网站' },
-  { key: 'p2_s4_after', label: '快速入门网站 判断与收缩之后', group: '快速入门网站' },
-  { key: 'p2_s5_after', label: '快速入门网站 生成可用内容之后', group: '快速入门网站' },
-  { key: 'p2_s6_after', label: '快速入门网站 生成网页之后', group: '快速入门网站' },
-  { key: 'p2_s7_after', label: '快速入门网站 第一轮自检之后', group: '快速入门网站' },
-  { key: 'p2_s8_after', label: '快速入门网站 同伴测试之后', group: '快速入门网站' },
-  { key: 'p2_s9_after', label: '快速入门网站 根据反馈修改之后', group: '快速入门网站' },
-  { key: 'p2_s10_after', label: '快速入门网站 能力迁移之后', group: '快速入门网站' },
-  { key: 'p2_s11_after', label: '快速入门网站 提交与成果之后', group: '快速入门网站' },
-  { key: 'p2_s12_after', label: '快速入门网站 升华之后', group: '快速入门网站' },
-  { key: 'p2_wall_after', label: '快速入门网站 作品墙之后', group: '快速入门网站' },
-
   // ---- P3 养成游戏（钩子 + 十阶段）----
   { key: 'p3_top', label: '养成游戏 环节最前', group: '养成游戏' },
   { key: 'p3_hook_after', label: '养成游戏 钩子之后', group: '养成游戏' },
@@ -84,4 +67,4 @@ export function slotLabel(key: string): string {
   return CONTENT_SLOTS.find((s) => s.key === key)?.label ?? key;
 }
 
-export const SLOT_GROUPS = ['A0', '数字分身', '快速入门网站', '养成游戏', '收官'];
+export const SLOT_GROUPS = ['A0', '数字分身', '养成游戏', '收官'];

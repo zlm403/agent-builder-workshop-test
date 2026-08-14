@@ -52,7 +52,6 @@ model ClassSession {
   a0Screenings    A0Screening[]
   a0News          A0New[]
   a1Avatars       A1Avatar[]
-  p2SiteEntries   P2SiteEntry[]
   p3GrowGames     P3GrowGame[]
   entryThoughts   EntryThought[]
   auditLogs       AuditLog[]
@@ -83,7 +82,6 @@ model Participant {
   a0Screenings    A0Screening[]
   a0News          A0New[]
   a1Avatars       A1Avatar[]
-  p2SiteEntries   P2SiteEntry[]
   p3GrowGames     P3GrowGame[]
   entryThoughts   EntryThought[]
   consentRecords  ConsentRecord[]
@@ -292,37 +290,6 @@ model A0Screening {
 
   @@unique([sessionId, anonymousId])
   @@index([sessionId])
-}
-
-/// 方案二：快速入门网站（site_entry）六步流程 + LLM 生成的领域骨架/网站草稿/发布作品
-model P2SiteEntry {
-  id            String   @id @default(uuid())
-  sessionId     String
-  anonymousId   String
-  participantId String
-  step          Int      @default(1) // 1..6 当前完成到第几步（大屏点亮格数）
-  field         String?  // s1：选择的领域
-  entryTask     String?  // s1：入场任务中间过程
-  goalTask      String?  // s1：最终任务句（我要为___做___帮助___）
-  knowledgeQs   String?  // s2：3 个核心问题（换行分隔）
-  contentBlocks String?  // s3：3 个内容模块（含标题/说明/步骤/例子）
-  skeleton      String?  // 兼容旧字段
-  keyDiff       String?  // 兼容旧字段
-  sitePlan      String?  // 兼容旧字段
-  chatLog       Json?    // 全程多轮对话 [{ role, content }]
-  siteCode      String?  // s4：LLM 生成的手机网站 HTML
-  testNote      String?  // s5：小白测试/互测反馈
-  finalWork     String?  // s6：迁移小改动 / 发布版描述
-  submittedAt   DateTime?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  participant Participant   @relation(fields: [participantId], references: [id], onDelete: Cascade)
-  session     ClassSession  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-
-  @@unique([sessionId, anonymousId])
-  @@index([sessionId])
-  @@map("p2_site_entry")
 }
 
 /// 方案三：数字生命共生缸（grow_game）· 创造生命 → 投入共生缸 → 观察 → 修改 → 再运行
