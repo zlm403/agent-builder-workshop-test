@@ -63,6 +63,7 @@ export interface Resource {
 export interface KeyEvent {
   t: number;
   text: string;
+  lifeId?: string; // 事件发生在哪个生命（大屏据此生成光点）
 }
 
 export interface WorldState {
@@ -248,7 +249,7 @@ function tick(state: WorldState, config: EngineConfig, rng: Rng): void {
         life.state = 'active';
         life.action = 'wander';
         life.reason = '恢复了能量，重新活动';
-        state.keyEvents.push({ t: state.simulationTime, text: `${life.name} 苏醒了` });
+        state.keyEvents.push({ t: state.simulationTime, text: `${life.name} 苏醒了`, lifeId: life.id });
       } else {
         life.action = 'sleeping';
         life.reason = '能量耗尽，正在休眠恢复';
@@ -262,7 +263,7 @@ function tick(state: WorldState, config: EngineConfig, rng: Rng): void {
       life.state = 'sleeping';
       life.action = 'sleeping';
       life.reason = '能量耗尽，进入休眠';
-      state.keyEvents.push({ t: state.simulationTime, text: `${life.name} 能量耗尽，休眠了` });
+      state.keyEvents.push({ t: state.simulationTime, text: `${life.name} 能量耗尽，休眠了`, lifeId: life.id });
       continue;
     }
 
@@ -311,7 +312,7 @@ function tick(state: WorldState, config: EngineConfig, rng: Rng): void {
         addRel(life, helpTarget, REL_HELP_GAIN);
         life.action = 'help';
         life.reason = `${helpTarget.name} 能量不足，选择了帮助`;
-        state.keyEvents.push({ t: state.simulationTime, text: `${life.name} 帮助了 ${helpTarget.name}` });
+        state.keyEvents.push({ t: state.simulationTime, text: `${life.name} 帮助了 ${helpTarget.name}`, lifeId: life.id });
         continue;
       }
       // 有意帮助但没到距离：朝它靠近
