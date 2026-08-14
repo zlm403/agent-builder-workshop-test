@@ -6,7 +6,6 @@ import TeacherFinale from '@/components/TeacherFinale';
 import TeacherClosing from '@/components/TeacherClosing';
 import AvatarTeacher from '@/components/AvatarTeacher';
 import MediaManager from '@/components/MediaManager';
-import SlotContentManager from '@/components/SlotContentManager';
 import ContentPageEditor from '@/components/ContentPageEditor';
 import BuiltinTextEditor from '@/components/BuiltinTextEditor';
 
@@ -108,7 +107,6 @@ export default function TeacherPage() {
   const [showClosing, setShowClosing] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [showMedia, setShowMedia] = useState(false);
-  const [mediaInitialSlot, setMediaInitialSlot] = useState<string | undefined>(undefined);
   const [editingPageId, setEditingPageId] = useState<string | null>(null);
   const [editingBuiltin, setEditingBuiltin] = useState<{ id: string; kind: string; refKey: string | null; overrides?: Record<string, string> | null } | null>(null);
   const [llmKey, setLlmKey] = useState('');
@@ -1026,13 +1024,6 @@ export default function TeacherPage() {
                     onEditContent={(pageId) => setEditingPageId(pageId)}
                     onEditText={(page) => setEditingBuiltin({ id: page.id, kind: page.kind, refKey: page.refKey, overrides: page.overrides })}
                   />
-                  <SlotContentManager
-                    moduleId={currentModuleId}
-                    onAdd={(slot) => {
-                      setMediaInitialSlot(slot);
-                      setShowMedia(true);
-                    }}
-                  />
                   <button className="secondary" style={{ alignSelf: 'flex-start' }} disabled={busy || status === 'closed'} onClick={() => control('lock', { locked: !moduleLocked })}>
                     {moduleLocked ? '解锁学员输入' : '锁定学员输入'}
                   </button>
@@ -1250,7 +1241,7 @@ export default function TeacherPage() {
         </div>
       </div>
 
-      {showMedia && <MediaManager onClose={() => setShowMedia(false)} initialSlot={mediaInitialSlot} />}
+      {showMedia && <MediaManager onClose={() => setShowMedia(false)} />}
 
       {editingPageId && <ContentPageEditor pageId={editingPageId} onClose={() => setEditingPageId(null)} />}
 

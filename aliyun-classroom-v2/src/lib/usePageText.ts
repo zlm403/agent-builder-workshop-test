@@ -68,3 +68,37 @@ export function usePageOverrides(subState: string | null | undefined): Record<st
 
   return ov;
 }
+
+// 当前内置页的 LessonPage id（用于渲染该页的内容块 slot=page:{id}）
+export function useCurrentPageId(subState: string | null | undefined): string | null {
+  const [pageId, setPageId] = useState<string | null>(null);
+  const group = groupOfSubState(subState);
+
+  useEffect(() => {
+    if (!group || !subState) return;
+    const g = group;
+    let closed = false;
+
+    async function fetchIt() {
+      try {
+        const cached = _cache.get(g);
+        let pages: any[];
+        if (cached && Date.now() - cached.ts < TTL) {
+          pages = cached.pages;
+        } else {
+          const r = await fetch(`/api/pages?group=${g}`);
+          const d = await r.json();
+          pages = d.pages ?? [];
+          _cache.set(g, { ts: Date.now(), pages });
+        }
+        const p = pages.find((x: any) => x.kind === 'builtin' && x.refKey === subState);
+        if (!closed) setPageId(p?.id ?? null);
+      } catch { /* noop */ }
+    }
+    fetchIt();
+    const iv = setInterval(fetchIt, 10000);
+    return () => { closed = true; clearInterval(iv); };
+  }, [group, subState]);
+
+  return pageId;
+}

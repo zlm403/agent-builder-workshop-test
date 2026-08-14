@@ -8,7 +8,7 @@ import { A1_STAGES, A1_HOOK } from '@/features/avatarLesson/config';
 import CogCompare from './CogCompare';
 import MediaPlayer from './MediaPlayer';
 import ContentSlot from './ContentSlot';
-import { usePageOverrides, pageText } from '@/lib/usePageText';
+import { usePageOverrides, pageText, useCurrentPageId } from '@/lib/usePageText';
 
 interface A1Data {
   total: number;
@@ -28,6 +28,7 @@ export default function AvatarA1Screen({
 }) {
   const [data, setData] = useState<A1Data | null>(null);
   const ov = usePageOverrides(subState);
+  const pageId = useCurrentPageId(subState);
 
   useEffect(() => {
     let closed = false;
@@ -105,6 +106,8 @@ export default function AvatarA1Screen({
           {tStageTask !== null && <div style={{ fontSize: 'clamp(15px,1.8vw,24px)', color: '#cbd5e1', maxWidth: 900, lineHeight: 1.7 }}>
             {tStageTask}
           </div>}
+          {/* 该环节页的内容块：教师可在页面序列里给本页加图/视频/链接等 */}
+          {pageId && <ContentSlot slot={`page:${pageId}`} />}
           {/* 内容槽：教师可在此环节放额外文案/示例/图片/视频 */}
           <ContentSlot slot={`a1_${A1_STAGES[stageIdx].key}_after`} />
         </div>

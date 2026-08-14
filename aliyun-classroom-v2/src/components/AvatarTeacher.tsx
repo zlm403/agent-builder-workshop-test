@@ -230,7 +230,9 @@ export default function AvatarTeacher({
         {pages.map((p) => {
           const active = isActive(p);
           const hidden = p.hidden;
-          const isContent = p.kind === 'content';
+          // A1 的环节页（avatar:*）大屏只有文字，按"内容页"对待：可加图/视频/链接 + 可改默认文字
+          const isContent = p.kind === 'content' || (group === 'A1' && !!p.refKey && p.refKey.startsWith('avatar:'));
+          const canDelete = p.kind === 'content';
           return (
             <div key={p.id} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
               {/* 插入点（每页上方） */}
@@ -262,16 +264,17 @@ export default function AvatarTeacher({
                 <span onClick={(e) => e.stopPropagation()} style={{ display: 'inline-flex', gap: 3 }}>
                   <button className="secondary" style={{ fontSize: 10, padding: '1px 6px' }} disabled={busyLocal} title="上移" onClick={() => move(p, -1)}>↑</button>
                   <button className="secondary" style={{ fontSize: 10, padding: '1px 6px' }} disabled={busyLocal} title="下移" onClick={() => move(p, 1)}>↓</button>
-                  {isContent ? (
-                    <>
-                      <button className="secondary" style={{ fontSize: 10, padding: '1px 6px' }} title="编辑内容" onClick={() => onEditContent(p.id)}>✎ 内容</button>
-                      <button className="secondary" style={{ fontSize: 10, padding: '1px 6px' }} title="改标题" onClick={() => { setEditingId(p.id); setEditTitle(p.title || ''); }}>改标题</button>
-                    </>
-                  ) : (
-                    <button className="secondary" style={{ fontSize: 10, padding: '1px 6px' }} title="改文字" onClick={() => onEditText(p)}>✎ 改文字</button>
+                  {isContent && (
+                    <button className="secondary" style={{ fontSize: 10, padding: '1px 6px' }} title="编辑内容" onClick={() => onEditContent(p.id)}>✎ 内容</button>
+                  )}
+                  {p.kind === 'builtin' && (
+                    <button className="secondary" style={{ fontSize: 10, padding: '1px 6px' }} title="改默认文字" onClick={() => onEditText(p)}>✎ 改文字</button>
+                  )}
+                  {p.kind === 'content' && (
+                    <button className="secondary" style={{ fontSize: 10, padding: '1px 6px' }} title="改标题" onClick={() => { setEditingId(p.id); setEditTitle(p.title || ''); }}>改标题</button>
                   )}
                   <button className="secondary" style={{ fontSize: 10, padding: '1px 6px' }} title={hidden ? '显示' : '隐藏'} onClick={() => toggleHidden(p)}>{hidden ? '显示' : '隐藏'}</button>
-                  {isContent && (
+                  {canDelete && (
                     <button className="danger" style={{ fontSize: 10, padding: '1px 6px' }} title="删除" onClick={() => remove(p)}>删除</button>
                   )}
                 </span>
