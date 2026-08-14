@@ -39,7 +39,7 @@ const BUILTIN_SEEDS: BuiltinSeed[] = [
   // 系统判定页已与揭晓结果页合并（2026-08-14），不再作为独立页
   { group: 'A0', moduleId: 'A0N_REVEAL', refKey: 'reveal:1', label: '揭晓结果' },
   { group: 'A0', moduleId: 'A0N_REVEAL', refKey: 'reveal:2', label: '三种形态' },
-  { group: 'A0', moduleId: 'A0N_REVEAL', refKey: 'reveal:4', label: '六步滑块' },
+  // 六步滑块页已去掉（2026-08-14）：滑块移到手机端，挂在"三种形态"时推给学生滑，不提交
   { group: 'A0', moduleId: 'A0N_REVEAL', refKey: 'reveal:3', label: '工具/伙伴两图' },
   { group: 'A0', moduleId: 'A0N_REVEAL', refKey: 'a0:mirror', label: '我们在哪儿' },
   { group: 'A0', moduleId: 'A0N_REVEAL', refKey: 'a0:closing', label: '收束·已经来了' },

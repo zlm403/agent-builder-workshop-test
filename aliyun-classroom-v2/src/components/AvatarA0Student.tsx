@@ -30,7 +30,6 @@ export default function AvatarA0Student({
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState('');
   const [sliders, setSliders] = useState<Record<string, number>>({});
-  const [sliderSubmitted, setSliderSubmitted] = useState(false);
 
   // 恢复已提交内容
   useEffect(() => {
@@ -57,29 +56,6 @@ export default function AvatarA0Student({
         setMsg(d.error?.code === 'MODULE_LOCKED' ? '本环节已截止/锁定' : '提交失败');
         return;
       }
-      onSubmitted();
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function submitSliders() {
-    const allSet = A0_SLIDER_STEPS.every((s) => typeof sliders[s.key] === 'number');
-    if (!allSet || busy || locked) return;
-    setBusy(true);
-    setMsg('');
-    try {
-      const res = await fetch('/api/avatar/a0/sliders', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ anonymousId, sessionId, sliders }),
-      });
-      const d = await res.json();
-      if (!res.ok) {
-        setMsg(d.error?.code === 'MODULE_LOCKED' ? '本环节已截止/锁定' : '提交失败');
-        return;
-      }
-      setSliderSubmitted(true);
       onSubmitted();
     } finally {
       setBusy(false);
@@ -139,7 +115,7 @@ export default function AvatarA0Student({
     );
   }
 
-  // A0-3 揭晓等待：请看大屏；教师推送到 reveal:4 时显示滑杆
+  // A0-3 揭晓等待：请看大屏；教师推送到三种形态(reveal:2)时显示滑杆（不提交，纯感受）
   if (type === 'A0N_REVEAL') {
     const ss = String(subState ?? '');
     // 镜子 / 收束页：学生端请看大屏
@@ -159,12 +135,13 @@ export default function AvatarA0Student({
         </div>
       );
     }
-    const isSliderOpen = ss.startsWith('reveal:4');
+    // 三种形态（reveal:2）时推滑块：学生自己滑，感受人和 AI 的分工，不提交
+    const isSliderOpen = ss.startsWith('reveal:2');
     if (isSliderOpen) {
       return (
         <div className="a0-slider-wrap">
           <div className="a0-slider-title">{A0_SLIDERS.title}</div>
-          <p className="a0-slider-sub">做一件事，每一步到底谁更适合？把 6 条都滑到你心里的位置——最左全由人做，最右全交给 AI。滑完点提交。</p>
+          <p className="a0-slider-sub">做一件事，每一步到底谁更适合？把 6 条都滑到你心里的位置——最左全由人做，最右全交给 AI。滑着感受一下就好，不用提交。</p>
           {A0_SLIDER_STEPS.map((s, i) => (
             <div key={s.key} className="a0-slider-row">
               <div className="a0-slider-label">{s.label}</div>
@@ -177,7 +154,7 @@ export default function AvatarA0Student({
                   max={100}
                   step={5}
                   value={typeof sliders[s.key] === 'number' ? sliders[s.key] : 50}
-                  disabled={locked || sliderSubmitted}
+                  disabled={locked}
                   onChange={(e) => setSliders((v) => ({ ...v, [s.key]: Number(e.target.value) }))}
                   className="a0-range"
                   style={{
@@ -197,19 +174,9 @@ export default function AvatarA0Student({
               </div>
             </div>
           ))}
-          {sliderSubmitted ? (
-            <p className="note" style={{ color: 'var(--green)', textAlign: 'center' }}>已提交，请看大屏全班分布。</p>
-          ) : (
-            <button
-              disabled={busy || locked || A0_SLIDER_STEPS.some((s) => typeof sliders[s.key] !== 'number')}
-              onClick={submitSliders}
-              className="primary"
-              style={{ width: '100%' }}
-            >
-              {busy ? '提交中…' : A0_SLIDERS.submitText}
-            </button>
-          )}
-          {msg ? <p style={{ color: 'var(--red)', marginTop: 8, textAlign: 'center' }}>{msg}</p> : null}
+          <p className="note" style={{ color: 'var(--muted)', textAlign: 'center', marginTop: 10 }}>
+            不用提交，跟着老师边听边滑，感受一下人和 AI 的分工变化。
+          </p>
         </div>
       );
     }

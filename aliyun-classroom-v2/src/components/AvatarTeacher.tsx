@@ -35,7 +35,6 @@ const BUILTIN_LABEL: Record<string, string> = {
   'a0:intro2': '开场·发展图',
   'reveal:1': '揭晓结果',
   'reveal:2': '三种形态',
-  'reveal:4': '六步滑块',
   'reveal:3': '工具/伙伴两图',
   'a0:mirror': '我们在哪儿',
   'a0:closing': '收束·已经来了',

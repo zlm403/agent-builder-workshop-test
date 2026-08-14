@@ -17,14 +17,6 @@ interface A0Data {
   answerCountByQuestion: number[];
 }
 
-interface A0SlidersData {
-  total: number;
-  submitted: number;
-  byStep: { label: string; buckets: [number, number, number] }[];
-  avgHuman: number;
-  avgAi: number;
-}
-
 export default function AvatarA0Screen({
   type,
   sessionId,
@@ -37,8 +29,6 @@ export default function AvatarA0Screen({
   total: number;
 }) {
   const [data, setData] = useState<A0Data | null>(null);
-  const [imgFailed, setImgFailed] = useState<boolean[]>([false, false]);
-  const [sliders, setSliders] = useState<A0SlidersData | null>(null);
   const ov = usePageOverrides(subState);
 
   useEffect(() => {
@@ -53,22 +43,6 @@ export default function AvatarA0Screen({
     const iv = setInterval(fetchIt, 4000);
     return () => { closed = true; clearInterval(iv); };
   }, [sessionId]);
-
-  // reveal:4 时额外轮询滑杆分布
-  const isReveal4 = type === 'A0N_REVEAL' && /^reveal:4(?::\d+)?$/.test(String(subState ?? ''));
-  useEffect(() => {
-    if (!isReveal4) return;
-    let closed = false;
-    async function fetchSliders() {
-      try {
-        const r = await fetch(`/api/avatar/a0/sliders?sessionId=${sessionId}`);
-        if (!closed) setSliders(await r.json());
-      } catch { /* noop */ }
-    }
-    fetchSliders();
-    const iv = setInterval(fetchSliders, 4000);
-    return () => { closed = true; clearInterval(iv); };
-  }, [isReveal4, sessionId]);
 
   // 三问进行中（含开场页：P1 手指图 → P2 二维发展图 → 三问）
   if (type === 'A0N_QUESTIONS') {
@@ -193,17 +167,9 @@ export default function AvatarA0Screen({
     );
   }
 
-  // 图序号：reveal:3 或 reveal:3:1 = 第1张，reveal:3:2 = 第2张（默认第1张）
-  const parseArtIdx = (prefix: string): number => {
-    const m = String(reveal).match(new RegExp(`^${prefix}(?::(\\d+))?$`));
-    const n = m ? parseInt(m[1] ?? '1', 10) : 1;
-    return Math.min(2, Math.max(1, n));
-  };
+  // 屏幕判定：reveal:3=工具伙伴两图，reveal:2=三种形态，其余=揭晓结果
   const isArt = /^reveal:3(?::\d+)?$/.test(rs);
-  const isSliders = /^reveal:4(?::\d+)?$/.test(rs);
-  const screen = isArt ? 'art' : isSliders ? 'sliders' : reveal === 'reveal:2' ? 'pvf' : 'result';
-  const artIdx = isArt ? parseArtIdx('reveal:3') : isSliders ? parseArtIdx('reveal:4') : 1;
-  const artImg = A0_REVEAL.artImages[artIdx - 1];
+  const screen = isArt ? 'art' : reveal === 'reveal:2' ? 'pvf' : 'result';
   const tHeadline = pageText(ov, 'headline', A0_REVEAL.headline);
   const tFormTitle = pageText(ov, 'screenTitle', A0_REVEAL.formsTable.title);
   const tFormSub = pageText(ov, 'screenQuestion', A0_REVEAL.formsTable.subtitle);
@@ -263,77 +229,12 @@ export default function AvatarA0Screen({
       )}
 
       {screen === 'art' && (
-        <>
-          <div className="a0-reveal-statement" style={{ fontSize: 'clamp(24px,3vw,40px)' }}>你更愿意成为哪一种？</div>
-          <div style={{ fontSize: 'clamp(16px,2vw,26px)', color: '#e2e8f0', maxWidth: 900, textAlign: 'center', lineHeight: 1.7 }}>
-            左边：一个人驾驭工具；右边：一个人拥有了一群强大的 AI。
-          </div>
-          <div style={{ width: 'min(1200px, 88vw)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
-            <div style={{ borderRadius: 18, border: '1px solid rgba(124,58,237,0.35)', background: 'rgba(124,58,237,0.10)', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-              {imgFailed[artIdx - 1] ? (
-                <div style={{ padding: '10vh 0', textAlign: 'center' }}>
-                  <div style={{ fontSize: 56 }}>{artIdx === 1 ? '🛠️' : '🤝'}</div>
-                  <div style={{ fontSize: 18, color: '#c4b5fd', marginTop: 10 }}>{artIdx === 1 ? '人驾驭工具' : '拥有一群 AI 力量'}</div>
-                  <div style={{ fontSize: 13, color: 'var(--muted)', marginTop: 6 }}>图片位 · /story/A0-tool.png / A0-partner.png</div>
-                </div>
-              ) : (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={artImg} alt={`A0-${artIdx}`} style={{ width: '100%', objectFit: 'contain', maxHeight: '66vh' }} onError={() => setImgFailed((f) => f.map((v, j) => (j === artIdx - 1 ? true : v)))} />
-              )}
-            </div>
-            <div className="a0-sliders-progress">第 {artIdx} / 2 张 · 上一张/下一张由教师控制</div>
-          </div>
-          <div className="a0-next" style={{ fontSize: 'clamp(17px,2.1vw,26px)' }}>先不急着解释——先想：如果一个普通人真的拥有这样的 AI 力量，他还能做什么？</div>
-          <ContentSlot slot="a0_art_after" />
-        </>
-      )}
-
-      {screen === 'sliders' && (
-        <>
-          <div className="a0-reveal-statement" style={{ fontSize: 'clamp(24px,3vw,40px)' }}>先别急着分"工具还是伙伴"——我们来想：做一件事，每一步到底谁更适合？</div>
-          <div style={{ fontSize: 'clamp(16px,2vw,26px)', color: '#e2e8f0', maxWidth: 1000, textAlign: 'center', lineHeight: 1.7 }}>
-            在手机上，把这 6 步都滑到你心里的位置：最左全由人做，最右全交给 AI。
-          </div>
-          <div className="a0-sliders-progress">
-            已提交 {sliders?.submitted ?? 0} / {sliders?.total ?? total} 人 · 全体人机比例：人 {sliders?.avgHuman ?? 0}% · AI {sliders?.avgAi ?? 0}%
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.1fr', gap: 26, width: 'min(1400px, 96vw)' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <div style={{ borderRadius: 16, border: '1px solid rgba(124,58,237,0.35)', background: 'rgba(124,58,237,0.10)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-                {imgFailed[artIdx - 1] ? (
-                  <div style={{ padding: '12vh 0', textAlign: 'center' }}>
-                    <div style={{ fontSize: 48 }}>{artIdx === 1 ? '🛠️' : '🤝'}</div>
-                    <div style={{ fontSize: 15, color: '#c4b5fd', marginTop: 8 }}>{artIdx === 1 ? '把 AI 当工具（过去）' : '把 AI 当伙伴（未来）'}</div>
-                  </div>
-                ) : (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={artImg} alt={`A0-${artIdx}`} style={{ width: '100%', objectFit: 'contain', maxHeight: '52vh' }} onError={() => setImgFailed((f) => f.map((v, j) => (j === artIdx - 1 ? true : v)))} />
-                )}
-              </div>
-              <div style={{ fontSize: 13, color: 'var(--muted)', textAlign: 'center' }}>第 {artIdx} / 2 张 · 教师可切换</div>
-            </div>
-            <div className="a0-sliders-chart">
-              <div className="a0-sliders-chart-title">全班 6 步 · 人机分工分布</div>
-              {(sliders?.byStep ?? []).map((s) => (
-                <div key={s.label} className="a0-slider-bar-row">
-                  <div className="a0-slider-bar-label">{s.label}</div>
-                  <div className="a0-slider-bar-track">
-                    <span className="a0-slider-bar-seg a0-human" style={{ flex: s.buckets[0] }} title={`偏人 ${s.buckets[0]} 人`}>{s.buckets[0] > 0 ? s.buckets[0] : ''}</span>
-                    <span className="a0-slider-bar-seg a0-mid" style={{ flex: s.buckets[1] }} title={`中间 ${s.buckets[1]} 人`}>{s.buckets[1] > 0 ? s.buckets[1] : ''}</span>
-                    <span className="a0-slider-bar-seg a0-ai" style={{ flex: s.buckets[2] }} title={`偏AI ${s.buckets[2]} 人`}>{s.buckets[2] > 0 ? s.buckets[2] : ''}</span>
-                  </div>
-                </div>
-              ))}
-              <div className="a0-sliders-chart-legend">
-                <span><i className="lg lg-human" />偏人</span>
-                <span><i className="lg lg-mid" />中间</span>
-                <span><i className="lg lg-ai" />偏AI</span>
-              </div>
-            </div>
-          </div>
-          <div className="a0-next">大家滑完提交后，我们进入下一个环节</div>
-          <ContentSlot slot="a0_slider_after" />
-        </>
+        <div style={{ width: '100%', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, alignItems: 'center', justifyContent: 'center', padding: '0 2vw' }}>
+          {A0_REVEAL.artImages.map((src, i) => (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img key={i} src={src} alt={`A0 关系图 ${i + 1}`} style={{ width: '100%', maxHeight: '90vh', objectFit: 'contain', borderRadius: 16 }} />
+          ))}
+        </div>
       )}
 
       <ContentSlot slot="a0_reveal_after" />
