@@ -92,13 +92,8 @@ export default function AvatarA0Screen({
     // P2 二维发展图 · 横轴时间 / 纵轴"人们开始用 AI 做什么"
     if (s === 'a0:intro2') {
       return (
-        <div style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 18, textAlign: 'center', padding: '0 4vw' }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: '#fbbf24', letterSpacing: '0.12em' }}>{ov.eyebrow ?? A0_INTRO.intro2.eyebrow}</div>
-          <div style={{ fontSize: 'clamp(26px,3.4vw,44px)', fontWeight: 900, lineHeight: 1.3, background: 'linear-gradient(180deg,#f8fafc,#fbbf24)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent', maxWidth: 1100 }}>
-            {ov.title ?? A0_INTRO.intro2.title}
-          </div>
-          <div style={{ fontSize: 'clamp(16px,1.9vw,24px)', color: '#e2e8f0', lineHeight: 1.7, maxWidth: 900 }}>{ov.body1 ?? A0_INTRO.intro2.body1}</div>
-          <iframe src={A0_INTRO.intro2.image} title="AI 发展时间线" style={{ width: 'min(1300px, 94vw)', height: '62vh', border: '1px solid rgba(251,146,60,.3)', borderRadius: 16, background: '#0b1120' }} />
+        <div style={{ height: '100%', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 2vw' }}>
+          <iframe src={A0_INTRO.intro2.image} title="AI 发展时间线" style={{ width: 'min(1700px, 100%)', height: '94vh', border: 'none', borderRadius: 0, background: '#0b1120' }} />
         </div>
       );
     }

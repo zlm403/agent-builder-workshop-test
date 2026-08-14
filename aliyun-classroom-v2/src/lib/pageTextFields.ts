@@ -41,11 +41,8 @@ export function getFieldDefs(refKey: string | null): TextFieldDef[] {
     { key: 'eyebrow', label: '小标题', def: A0_INTRO.intro1.eyebrow },
     { key: 'title', label: '大标题', def: A0_INTRO.intro1.title },
   ];
-  if (refKey === 'a0:intro2') return [
-    { key: 'eyebrow', label: '小标题', def: A0_INTRO.intro2.eyebrow },
-    { key: 'title', label: '大标题', def: A0_INTRO.intro2.title },
-    { key: 'body1', label: '正文', def: A0_INTRO.intro2.body1 },
-  ];
+  // a0:intro2（二维发展图）文字已不渲染（只显示图本身 + 图内标题），故不可编辑
+  if (refKey === 'a0:intro2') return [];
   if (refKey === 'a0:mirror') return [
     { key: 'eyebrow', label: '小标题', def: A0_INTRO.mirror.eyebrow },
     { key: 'title', label: '大标题', def: A0_INTRO.mirror.title },
