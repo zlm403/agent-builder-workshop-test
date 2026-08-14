@@ -14,6 +14,7 @@ interface MediaItem {
   content?: string | null;
   slot: string;
   sort: number;
+  align?: string;
   hidden?: boolean;
 }
 
@@ -78,6 +79,11 @@ export default function ContentPageEditor({ pageId, onClose }: { pageId: string;
 
   async function toggleHidden(id: string, hidden: boolean) {
     await fetch('/api/media', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, hidden }) });
+    await load();
+  }
+
+  async function setAlign(id: string, align: string) {
+    await fetch('/api/media', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, align }) });
     await load();
   }
 
@@ -158,6 +164,16 @@ export default function ContentPageEditor({ pageId, onClose }: { pageId: string;
             </div>
             <button className="secondary" style={{ fontSize: 11, padding: '3px 8px' }} onClick={() => move(it.id, -1)}>↑</button>
             <button className="secondary" style={{ fontSize: 11, padding: '3px 8px' }} onClick={() => move(it.id, 1)}>↓</button>
+            <select
+              value={it.align ?? 'center'}
+              onChange={(e) => setAlign(it.id, e.target.value)}
+              style={{ fontSize: 11, padding: '3px 6px', width: 'auto', background: 'var(--panel2)', color: 'var(--txt)', border: '1px solid var(--border)', borderRadius: 6 }}
+              title="对齐方式"
+            >
+              <option value="left">左对齐</option>
+              <option value="center">居中</option>
+              <option value="right">右对齐</option>
+            </select>
             <button className="secondary" style={{ fontSize: 11, padding: '3px 8px' }} onClick={() => toggleHidden(it.id, !it.hidden)}>{it.hidden ? '显示' : '隐藏'}</button>
             <button className="danger" style={{ fontSize: 11, padding: '3px 8px' }} onClick={() => remove(it.id)}>删</button>
           </div>

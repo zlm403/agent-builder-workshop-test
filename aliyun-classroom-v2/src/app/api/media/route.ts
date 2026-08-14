@@ -38,6 +38,7 @@ export async function POST(req: NextRequest) {
       content: content || null,
       slot: String(body.slot ?? 'custom'),
       sort: Number(body.sort ?? 0),
+      align: String(body.align ?? 'center'),
       hidden: Boolean(body.hidden ?? false),
     });
     return NextResponse.json({ item });
@@ -69,6 +70,7 @@ export async function PATCH(req: NextRequest) {
       content: body.content,
       slot: body.slot,
       sort: body.sort,
+      align: body.align,
       hidden: body.hidden,
     });
     return NextResponse.json({ item });

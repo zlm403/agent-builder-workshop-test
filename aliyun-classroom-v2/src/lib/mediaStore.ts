@@ -7,11 +7,12 @@ import { prisma } from '@/lib/db';
 
 export interface MediaItemInput {
   title: string;
-  kind?: string; // text | image | video | link
+  kind?: string; // text | image | video | link | embed
   url?: string | null;
   content?: string | null;
   slot?: string;
   sort?: number;
+  align?: string; // left | center | right
   hidden?: boolean;
 }
 
@@ -34,6 +35,7 @@ export async function createMedia(input: MediaItemInput) {
       content: input.content ?? null,
       slot: input.slot ?? 'custom',
       sort: input.sort ?? 0,
+      align: input.align ?? 'center',
       hidden: input.hidden ?? false,
     },
   });
@@ -46,7 +48,7 @@ export async function deleteMedia(id: string) {
 
 export async function updateMedia(
   id: string,
-  patch: Partial<{ title: string; kind: string; url: string | null; content: string | null; slot: string; sort: number; hidden: boolean }>,
+  patch: Partial<{ title: string; kind: string; url: string | null; content: string | null; slot: string; sort: number; align: string; hidden: boolean }>,
 ) {
   return prisma.mediaItem.update({ where: { id }, data: patch });
 }

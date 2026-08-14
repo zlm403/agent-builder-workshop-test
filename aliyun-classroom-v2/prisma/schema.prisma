@@ -272,6 +272,7 @@ model MediaItem {
   content   String?  // 文字内容（kind=text 时使用）或补充说明
   slot      String   // 插到哪个环节之后：a1_goal_after / a1_wall_after / finale_after / page:{pageId}
   sort      Int      @default(0) // 排序
+  align     String   @default("center") // 对齐：left | center | right（大屏渲染时使用）
   hidden    Boolean  @default(false) // 隐藏：大屏/学生端不渲染，但媒体库保留可恢复
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
