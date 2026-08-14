@@ -744,7 +744,7 @@ export default function TeacherPage() {
   }
 
   const isA0 = currentModuleId === 'A0_SCREENING';
-  const isA0New = currentModuleId === 'A0N_QUESTIONS' || currentModuleId === 'A0N_VOTE' || currentModuleId === 'A0N_REVEAL' || currentModuleId === 'A1_AVATAR' || currentModuleId === 'A2_SITE';
+  const isA0New = currentModuleId === 'A0N_QUESTIONS' || currentModuleId === 'A0N_VOTE' || currentModuleId === 'A0N_REVEAL' || currentModuleId === 'A1_AVATAR' || currentModuleId === 'A2_SITE' || currentModuleId === 'A3_WORLD';
 
   function buildA0Dirs(s: ScreeningData | null): { kind: 'more' | 'less' | 'watch' | 'good'; text: string }[] {
     const out: { kind: 'more' | 'less' | 'watch' | 'good'; text: string }[] = [];
@@ -1012,6 +1012,9 @@ export default function TeacherPage() {
                     onEditContent={(pageId) => setEditingPageId(pageId)}
                     onEditText={(page) => setEditingBuiltin({ id: page.id, kind: page.kind, refKey: page.refKey, overrides: page.overrides })}
                   />
+                  {currentModuleId === 'A3_WORLD' && (
+                    <WorldControlBar busy={busy} onChanged={() => loadState(sessionId!)} />
+                  )}
                   <button className="secondary" style={{ alignSelf: 'flex-start' }} disabled={busy || status === 'closed'} onClick={() => control('lock', { locked: !moduleLocked })}>
                     {moduleLocked ? '解锁学员输入' : '锁定学员输入'}
                   </button>
@@ -1336,5 +1339,62 @@ export default function TeacherPage() {
         </div>
       )}
     </>
+  );
+}
+
+// 《我的世界》教师控制栏：驱动 world-control.json 状态机（creating/running/revising/finished）
+function WorldControlBar({ busy, onChanged }: { busy: boolean; onChanged: () => void }) {
+  const [status, setStatus] = useState<string>('creating');
+  const [round, setRound] = useState<number>(1);
+  const [submitting, setSubmitting] = useState(false);
+
+  async function refresh() {
+    try {
+      const r = await fetch('/api/world');
+      const d = await r.json();
+      setStatus(d.status);
+      setRound(d.round);
+    } catch { /* noop */ }
+  }
+
+  useEffect(() => { refresh(); const t = setInterval(refresh, 3000); return () => clearInterval(t); }, []);
+
+  async function doAction(action: string) {
+    if (submitting || busy) return;
+    setSubmitting(true);
+    try {
+      const res = await fetch('/api/world/control', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action }),
+      });
+      if (res.ok) { await refresh(); onChanged(); }
+      else alert('操作失败：' + res.statusText);
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  const STATUS_LABEL: Record<string, string> = {
+    creating: '创建阶段',
+    running: `运行中 · 第 ${round} 轮`,
+    revising: '修改阶段',
+    finished: '已结束',
+  };
+
+  return (
+    <div style={{ border: '1px solid rgba(56,189,248,0.4)', borderRadius: 10, padding: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+        <span style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 700 }}>《我的世界》控制</span>
+        <span className="pill blue" style={{ fontSize: 11 }}>{STATUS_LABEL[status] ?? status}</span>
+      </div>
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+        <button className="secondary" style={{ fontSize: 11, padding: '4px 10px' }} disabled={submitting || busy} onClick={() => doAction('startCreate')}>开始创造</button>
+        <button className="secondary" style={{ fontSize: 11, padding: '4px 10px' }} disabled={submitting || busy} onClick={() => doAction('startRound1')}>开始第一轮</button>
+        <button className="secondary" style={{ fontSize: 11, padding: '4px 10px' }} disabled={submitting || busy} onClick={() => doAction('startRevise')}>开始修改</button>
+        <button className="secondary" style={{ fontSize: 11, padding: '4px 10px' }} disabled={submitting || busy} onClick={() => doAction('startRound2')}>开始第二轮</button>
+        <button className="danger" style={{ fontSize: 11, padding: '4px 10px' }} disabled={submitting || busy} onClick={() => doAction('finish')}>结束</button>
+      </div>
+    </div>
   );
 }

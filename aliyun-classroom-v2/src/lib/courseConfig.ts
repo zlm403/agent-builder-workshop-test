@@ -425,6 +425,26 @@ const TEMPLATE: CourseTemplateData = {
     },
 
     {
+      id: 'A3_WORLD',
+      type: 'world',
+      title: '我的世界',
+      durationSeconds: 1800,
+      teacherContent: {
+        headline: 'A3 · 一起创造数字生命，看它活进同一个世界',
+        subline: '创建生命 → 教师发布 → 大屏自主运行 → 观察行为原因 → 修改一个倾向 → 第二轮看变化',
+        bullets: [
+          '学生创建一个生命：名字、颜色、三个倾向（亲近/帮助/谨慎）',
+          '教师统一发布，所有生命进入大屏公共世界',
+          '生命自主移动、找资源、靠近、帮助、回避，每步带一句真实原因',
+          '学生看自己的生命为什么这样动，和 AI 讨论',
+          '学生修改一个倾向 → 教师开启第二轮 → 看到前后变化',
+        ],
+      },
+      studentTask: {},
+      screenContent: { phase: 'world' },
+    },
+
+    {
       id: 'A08_WRAP',
       type: 'wrap_up',
       title: '你想做什么？',

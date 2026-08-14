@@ -9,6 +9,7 @@ import L2StudentFlow from './L2StudentFlow';
 import AvatarA0Student from '@/components/AvatarA0Student';
 import AvatarA1Student from '@/components/AvatarA1Student';
 import SiteEntryStudent from '@/components/SiteEntryStudent';
+import WorldStudent from '@/components/WorldStudent';
 
 interface ModuleDef {
   id: string;
@@ -707,6 +708,10 @@ export default function StudentPage() {
 
             {current.type === 'site_entry' && (
               <SiteEntryStudent anonymousId={anonymousId} sessionId={sessionId} locked={locked} subState={subState} />
+            )}
+
+            {current.type === 'world' && (
+              <WorldStudent anonymousId={anonymousId} sessionId={sessionId} locked={locked} />
             )}
 
             {current.type === 'grow_game' && (

@@ -24,6 +24,9 @@ Thumbs.db
 /ar-class-monitor-demo/server_out.log
 /ar-class-monitor-demo/server_err.log
 
+# ===== 《我的世界》运行时世界数据（试听课实时生成）=====
+/aliyun-classroom-v2/data/world/
+
 # ===== 其它非代码目录（不纳入本次课程代码仓库）=====
 /ai-dreamlab/
 

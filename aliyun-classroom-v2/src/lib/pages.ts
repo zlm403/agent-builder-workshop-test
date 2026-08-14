@@ -8,7 +8,7 @@
 import { prisma } from '@/lib/db';
 import { Prisma } from '@prisma/client';
 
-export const PAGE_GROUPS = ['A0', 'A1', 'A2'] as const;
+export const PAGE_GROUPS = ['A0', 'A1', 'A2', 'A3'] as const;
 export type PageGroup = (typeof PAGE_GROUPS)[number];
 
 export interface LessonPageDef {
@@ -59,19 +59,63 @@ const BUILTIN_SEEDS: BuiltinSeed[] = [
   { group: 'A1', moduleId: 'A1_AVATAR', refKey: 'avatar:c10', label: '现实信号' },
   { group: 'A1', moduleId: 'A1_AVATAR', refKey: 'avatar:c11', label: 'A1收束 → A2问题' },
 
-  // ---- A2 快速入门网站 ----
+  // ---- A2 快速入门网站（仅"交互功能页"：会前准备/AI团队开会/检验提交/梦想墙 + 钩子/作品墙）
+  //      纯展示环节（发布任务/产生疑问/找到方法/认知思考/未来展开/最后升华）见 CONTENT_SEEDS，做成内容页（铁律）
   { group: 'A2', moduleId: 'A2_SITE', refKey: 'a2:hook', label: '钩子开场' },
-  { group: 'A2', moduleId: 'A2_SITE', refKey: 'a2:s1', label: '发布任务' },
-  { group: 'A2', moduleId: 'A2_SITE', refKey: 'a2:s2', label: '产生疑问' },
-  { group: 'A2', moduleId: 'A2_SITE', refKey: 'a2:s3', label: '找到方法' },
   { group: 'A2', moduleId: 'A2_SITE', refKey: 'a2:s4', label: '会前准备' },
   { group: 'A2', moduleId: 'A2_SITE', refKey: 'a2:s5', label: 'AI团队开会→自动执行' },
   { group: 'A2', moduleId: 'A2_SITE', refKey: 'a2:s6', label: '检验、迭代，最后提交' },
   { group: 'A2', moduleId: 'A2_SITE', refKey: 'a2:wall', label: '作品墙' },
-  { group: 'A2', moduleId: 'A2_SITE', refKey: 'a2:s7', label: '认知思考' },
   { group: 'A2', moduleId: 'A2_SITE', refKey: 'a2:s8', label: '梦想互动/梦想墙' },
-  { group: 'A2', moduleId: 'A2_SITE', refKey: 'a2:s9', label: '未来展开' },
-  { group: 'A2', moduleId: 'A2_SITE', refKey: 'a2:s10', label: '最后升华' },
+
+  // ---- A3 我的世界 ----
+  { group: 'A3', moduleId: 'A3_WORLD', refKey: 'world:hook', label: '世界预告' },
+  { group: 'A3', moduleId: 'A3_WORLD', refKey: 'world:create', label: '创建生命' },
+  { group: 'A3', moduleId: 'A3_WORLD', refKey: 'world:submit', label: '提交截止' },
+  { group: 'A3', moduleId: 'A3_WORLD', refKey: 'world:publish', label: '发布生命' },
+  { group: 'A3', moduleId: 'A3_WORLD', refKey: 'world:run', label: '世界运行' },
+  { group: 'A3', moduleId: 'A3_WORLD', refKey: 'world:observe', label: '观察讨论' },
+  { group: 'A3', moduleId: 'A3_WORLD', refKey: 'world:revise', label: '修改新版本' },
+  { group: 'A3', moduleId: 'A3_WORLD', refKey: 'world:apply', label: '应用新版本' },
+  { group: 'A3', moduleId: 'A3_WORLD', refKey: 'world:compare', label: '前后比较' },
+];
+
+// =========================================================
+// 内容页种子（铁律：A2 纯展示环节 = 只显示文字/图/视频的页，必须做成内容页）
+// 纯展示：发布任务(s1)/产生疑问(s2)/找到方法(s3)/认知思考(s7)/未来展开(s9)/最后升华(s10)
+// 交互环节（会前准备 s4 / AI团队开会 s5 / 检验提交 s6 / 梦想墙 s8）保持功能页。
+// 内容页 = title + 内容块（MediaItem slot=page:{id}），教师可自由编辑+调位置。
+// 种子页保留 refKey（= 原内置页 subState）作为身份标识，用于幂等 seed 与迁移；可隐藏不可删。
+// =========================================================
+export interface ContentSeedDef {
+  group: PageGroup;
+  moduleId: string;
+  refKey: string; // 原内置页 subState（如 a2:s1），内容页身份标识
+  title: string; // 内容页大标题
+  blocks: { kind: 'text' | 'image' | 'video' | 'link' | 'embed'; title?: string; content?: string; url?: string }[];
+}
+
+export const CONTENT_SEEDS: ContentSeedDef[] = [
+  { group: 'A2', moduleId: 'A2_SITE', refKey: 'a2:s1', title: '发布任务', blocks: [
+    { kind: 'text', title: '任务标题', content: '做一个帮助小白进入陌生领域的手机网站' },
+    { kind: 'text', title: '任务说明', content: '帮一个完全不懂的人，快速进入一个陌生领域。' },
+  ]},
+  { group: 'A2', moduleId: 'A2_SITE', refKey: 'a2:s2', title: '产生疑问', blocks: [
+    { kind: 'text', title: '图片位', content: '（图片位：深夜，一个年轻人面对电脑和大量资料，茫然不知所措）' },
+  ]},
+  { group: 'A2', moduleId: 'A2_SITE', refKey: 'a2:s3', title: '找到方法', blocks: [
+    { kind: 'text', title: '点题', content: '那就找会做的人。' },
+    { kind: 'text', title: '说明', content: '不会做，就找会做的人。' },
+  ]},
+  { group: 'A2', moduleId: 'A2_SITE', refKey: 'a2:s7', title: '认知思考', blocks: [
+    { kind: 'text', title: '图片位', content: '（图片位：放一张认知总结图）' },
+  ]},
+  { group: 'A2', moduleId: 'A2_SITE', refKey: 'a2:s9', title: '未来展开', blocks: [
+    { kind: 'text', title: '视频位', content: '（视频位：播放一段视频，让情绪继续向上）' },
+  ]},
+  { group: 'A2', moduleId: 'A2_SITE', refKey: 'a2:s10', title: '最后升华', blocks: [
+    { kind: 'text', title: '升华', content: '最重要的是什么？' },
+  ]},
 ];
 
 // 内置页显示名（教师端页卡片用）
@@ -89,6 +133,7 @@ export function groupOfModule(moduleId: string | null | undefined): PageGroup | 
   if (moduleId.startsWith('A0N_')) return 'A0';
   if (moduleId === 'A1_AVATAR') return 'A1';
   if (moduleId === 'A2_SITE') return 'A2';
+  if (moduleId === 'A3_WORLD') return 'A3';
   return null;
 }
 
@@ -183,6 +228,7 @@ export async function createContentPage(group: PageGroup, afterId: string | null
 function defaultModuleOf(group: PageGroup): string {
   if (group === 'A0') return 'A0N_QUESTIONS';
   if (group === 'A1') return 'A1_AVATAR';
+  if (group === 'A3') return 'A3_WORLD';
   return 'A2_SITE';
 }
 

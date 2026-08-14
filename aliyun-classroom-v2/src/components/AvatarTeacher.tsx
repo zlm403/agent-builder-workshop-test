@@ -8,11 +8,12 @@
 import { useCallback, useEffect, useState } from 'react';
 
 // 模块 → 组 映射（纯函数，客户端内联，避免 import 含 prisma 的服务端模块）
-function groupOfModule(moduleId: string | null | undefined): 'A0' | 'A1' | 'A2' | null {
+function groupOfModule(moduleId: string | null | undefined): 'A0' | 'A1' | 'A2' | 'A3' | null {
   if (!moduleId) return null;
   if (moduleId.startsWith('A0N_')) return 'A0';
   if (moduleId === 'A1_AVATAR') return 'A1';
   if (moduleId === 'A2_SITE') return 'A2';
+  if (moduleId === 'A3_WORLD') return 'A3';
   return null;
 }
 
@@ -45,6 +46,16 @@ const BUILTIN_LABEL: Record<string, string> = {
   // A2
   'a2:hook': '钩子开场',
   'a2:wall': '作品墙',
+  // A3 我的世界
+  'world:hook': '世界预告',
+  'world:create': '创建生命',
+  'world:submit': '提交截止',
+  'world:publish': '发布生命',
+  'world:run': '世界运行',
+  'world:observe': '观察讨论',
+  'world:revise': '修改新版本',
+  'world:apply': '应用新版本',
+  'world:compare': '前后比较',
 };
 
 // A1 环节名（c1..c11）

@@ -8,6 +8,7 @@ import { KNOWLEDGE_DOCS, SKILL_BLOCKS } from '@/lib/courseConfig';
 import AvatarA0Screen from '@/components/AvatarA0Screen';
 import AvatarA1Screen from '@/components/AvatarA1Screen';
 import SiteEntryScreen from '@/components/SiteEntryScreen';
+import WorldScreen from '@/components/WorldScreen';
 import ContentPage from '@/components/ContentPage';
 
 interface Summary {
@@ -246,6 +247,8 @@ export default function ScreenPage() {
         <AvatarA1Screen sessionId={sessionId} subState={summary?.moduleSubState ?? null} />
       ) : module.type === 'site_entry' ? (
         <SiteEntryScreen sessionId={sessionId} subState={summary?.moduleSubState ?? null} />
+      ) : module.type === 'world' ? (
+        <WorldScreen sessionId={sessionId} />
       ) : module.type === 'grow_game' ? (
         <PlaceholderModule title={module.title} />
       ) : module.type === 'ai_task' ? (
