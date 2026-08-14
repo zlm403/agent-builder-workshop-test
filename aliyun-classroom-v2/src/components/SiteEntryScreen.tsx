@@ -7,7 +7,7 @@
 import { useEffect, useState } from 'react';
 import { P2_STAGES, P2_HOOK, P2_GOAL } from '@/features/siteEntry/config';
 import ContentSlot from './ContentSlot';
-import { usePageOverrides } from '@/lib/usePageText';
+import { usePageOverrides, pageText } from '@/lib/usePageText';
 
 interface P2Data {
   total: number;
@@ -43,14 +43,19 @@ export default function SiteEntryScreen({
 
   // 钩子开场
   if (String(subState ?? '') === 'p2:hook') {
+    const tEyebrow = pageText(ov, 'eyebrow', P2_HOOK.eyebrow);
+    const tTitle = pageText(ov, 'title', P2_HOOK.title);
+    const tBody1 = pageText(ov, 'body1', P2_HOOK.body1);
+    const tBody2 = pageText(ov, 'body2', P2_HOOK.body2);
+    const tBridge = pageText(ov, 'bridge', P2_HOOK.bridge);
     return (
       <div style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 22, textAlign: 'center', padding: '0 6vw' }}>
         <ContentSlot slot="p2_top" />
-        <div style={{ fontSize: 14, fontWeight: 700, color: '#38bdf8', letterSpacing: '0.12em' }}>{ov.eyebrow ?? P2_HOOK.eyebrow}</div>
-        <div style={{ fontSize: 'clamp(30px,4vw,52px)', fontWeight: 900, lineHeight: 1.3, background: 'linear-gradient(180deg,#f8fafc,#38bdf8)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent', maxWidth: 1000 }}>{ov.title ?? P2_HOOK.title}</div>
-        <div style={{ fontSize: 'clamp(18px,2.2vw,28px)', color: '#e2e8f0', lineHeight: 1.7, maxWidth: 900 }}>{ov.body1 ?? P2_HOOK.body1}</div>
-        <div style={{ fontSize: 'clamp(18px,2.2vw,28px)', color: '#fde047', fontWeight: 700, lineHeight: 1.7, maxWidth: 900 }}>{ov.body2 ?? P2_HOOK.body2}</div>
-        <div style={{ fontSize: 'clamp(16px,1.9vw,24px)', color: '#7dd3fc', lineHeight: 1.7, maxWidth: 900, marginTop: 8 }}>{ov.bridge ?? P2_HOOK.bridge}</div>
+        {tEyebrow !== null && <div style={{ fontSize: 14, fontWeight: 700, color: '#38bdf8', letterSpacing: '0.12em' }}>{tEyebrow}</div>}
+        {tTitle !== null && <div style={{ fontSize: 'clamp(30px,4vw,52px)', fontWeight: 900, lineHeight: 1.3, background: 'linear-gradient(180deg,#f8fafc,#38bdf8)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent', maxWidth: 1000 }}>{tTitle}</div>}
+        {tBody1 !== null && <div style={{ fontSize: 'clamp(18px,2.2vw,28px)', color: '#e2e8f0', lineHeight: 1.7, maxWidth: 900 }}>{tBody1}</div>}
+        {tBody2 !== null && <div style={{ fontSize: 'clamp(18px,2.2vw,28px)', color: '#fde047', fontWeight: 700, lineHeight: 1.7, maxWidth: 900 }}>{tBody2}</div>}
+        {tBridge !== null && <div style={{ fontSize: 'clamp(16px,1.9vw,24px)', color: '#7dd3fc', lineHeight: 1.7, maxWidth: 900, marginTop: 8 }}>{tBridge}</div>}
         <ContentSlot slot="p2_hook_after" />
       </div>
     );
@@ -61,6 +66,12 @@ export default function SiteEntryScreen({
   const stageIdx = stageMatch ? P2_STAGES.findIndex((s) => s.key === stageMatch[1]) : -1;
   const launched = String(subState ?? '') === 'p2:wall';
 
+  const tBanner = pageText(ov, 'banner', P2_GOAL.banner);
+  const tStageTitle = stageIdx >= 0 ? pageText(ov, 'screenTitle', P2_STAGES[stageIdx].screenTitle) : null;
+  const tStageQuestion = stageIdx >= 0 ? pageText(ov, 'screenQuestion', P2_STAGES[stageIdx].screenQuestion) : null;
+  const tStageTask = stageIdx >= 0 ? pageText(ov, 'studentTask', P2_STAGES[stageIdx].studentTask) : null;
+  const tWallTitle = pageText(ov, 'screenTitle', '全班入门网站 · 作品墙');
+
   return (
     <div style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column', gap: 20, padding: '6px 0' }}>
       <ContentSlot slot="p2_top" />
@@ -70,12 +81,14 @@ export default function SiteEntryScreen({
       </div>
 
       {/* 目标横幅 · 常驻 */}
+      {tBanner !== null && (
       <div style={{
         border: '1px solid rgba(250,204,21,0.45)', background: 'rgba(250,204,21,0.10)', borderRadius: 14,
         padding: '12px 20px', fontSize: 'clamp(15px,1.7vw,22px)', color: '#fde047', fontWeight: 700, textAlign: 'center',
       }}>
-        {ov.banner ?? P2_GOAL.banner}
+        {tBanner}
       </div>
+      )}
 
       {/* 十二阶段进度条 */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: 6 }}>
@@ -99,15 +112,15 @@ export default function SiteEntryScreen({
       {/* 当前阶段内容 */}
       {stageIdx >= 0 && !launched && (
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 20, textAlign: 'center' }}>
-          <div style={{ fontSize: 'clamp(26px,3.4vw,46px)', fontWeight: 900, maxWidth: 1100, background: 'linear-gradient(180deg,#f8fafc,#38bdf8)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent' }}>
-            {ov.screenTitle ?? P2_STAGES[stageIdx].screenTitle}
-          </div>
-          <div style={{ fontSize: 'clamp(18px,2.2vw,30px)', color: '#fde047', fontWeight: 700, maxWidth: 1000, lineHeight: 1.6 }}>
-            {ov.screenQuestion ?? P2_STAGES[stageIdx].screenQuestion}
-          </div>
-          <div style={{ fontSize: 'clamp(15px,1.8vw,24px)', color: '#cbd5e1', maxWidth: 900, lineHeight: 1.7 }}>
-            {ov.studentTask ?? P2_STAGES[stageIdx].studentTask}
-          </div>
+          {tStageTitle !== null && <div style={{ fontSize: 'clamp(26px,3.4vw,46px)', fontWeight: 900, maxWidth: 1100, background: 'linear-gradient(180deg,#f8fafc,#38bdf8)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent' }}>
+            {tStageTitle}
+          </div>}
+          {tStageQuestion !== null && <div style={{ fontSize: 'clamp(18px,2.2vw,30px)', color: '#fde047', fontWeight: 700, maxWidth: 1000, lineHeight: 1.6 }}>
+            {tStageQuestion}
+          </div>}
+          {tStageTask !== null && <div style={{ fontSize: 'clamp(15px,1.8vw,24px)', color: '#cbd5e1', maxWidth: 900, lineHeight: 1.7 }}>
+            {tStageTask}
+          </div>}
           {/* 内容槽：教师可在此阶段放额外文案/示例/图片/视频 */}
           <ContentSlot slot={`p2_${P2_STAGES[stageIdx].key}_after`} />
           <div style={{ fontSize: 14, color: 'var(--muted)' }}>
@@ -121,9 +134,9 @@ export default function SiteEntryScreen({
       {launched && (
         <div style={{ flex: 1, overflowY: 'auto', padding: '6px 4px' }}>
           <ContentSlot slot="p2_wall_after" style={{ marginBottom: 12 }} />
-          <div style={{ fontSize: 18, fontWeight: 800, color: '#86efac', marginBottom: 14 }}>
-            {ov.screenTitle ?? "全班入门网站 · 作品墙"} ({data?.finished ?? 0} 人已提交)
-          </div>
+          {tWallTitle !== null && <div style={{ fontSize: 18, fontWeight: 800, color: '#86efac', marginBottom: 14 }}>
+            {tWallTitle} ({data?.finished ?? 0} 人已提交)
+          </div>}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 14 }}>
             {(data?.cols ?? []).map((c, i) => (
               <div key={i} style={{ background: 'rgba(15,23,42,0.5)', border: '1px solid var(--border)', borderRadius: 14, padding: 14, whiteSpace: 'pre-wrap', fontSize: 13, lineHeight: 1.6 }}>

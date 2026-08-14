@@ -8,7 +8,7 @@ import { A1_STAGES, A1_HOOK, A1_GOAL } from '@/features/avatarLesson/config';
 import CogCompare from './CogCompare';
 import MediaPlayer from './MediaPlayer';
 import ContentSlot from './ContentSlot';
-import { usePageOverrides } from '@/lib/usePageText';
+import { usePageOverrides, pageText } from '@/lib/usePageText';
 
 interface A1Data {
   total: number;
@@ -44,14 +44,19 @@ export default function AvatarA1Screen({
 
   // 钩子开场
   if (String(subState ?? '') === 'avatar:hook') {
+    const tEyebrow = pageText(ov, 'eyebrow', A1_HOOK.eyebrow);
+    const tTitle = pageText(ov, 'title', A1_HOOK.title);
+    const tBody1 = pageText(ov, 'body1', A1_HOOK.body1);
+    const tBody2 = pageText(ov, 'body2', A1_HOOK.body2);
+    const tBridge = pageText(ov, 'bridge', A1_HOOK.bridge);
     return (
       <div style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 22, textAlign: 'center', padding: '0 6vw' }}>
         <ContentSlot slot="a1_top" />
-        <div style={{ fontSize: 14, fontWeight: 700, color: '#c4b5fd', letterSpacing: '0.12em' }}>{ov.eyebrow ?? A1_HOOK.eyebrow}</div>
-        <div style={{ fontSize: 'clamp(30px,4vw,52px)', fontWeight: 900, lineHeight: 1.3, background: 'linear-gradient(180deg,#f8fafc,#c4b5fd)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent', maxWidth: 1000 }}>{ov.title ?? A1_HOOK.title}</div>
-        <div style={{ fontSize: 'clamp(18px,2.2vw,28px)', color: '#e2e8f0', lineHeight: 1.7, maxWidth: 900 }}>{ov.body1 ?? A1_HOOK.body1}</div>
-        <div style={{ fontSize: 'clamp(18px,2.2vw,28px)', color: '#fde047', fontWeight: 700, lineHeight: 1.7, maxWidth: 900 }}>{ov.body2 ?? A1_HOOK.body2}</div>
-        <div style={{ fontSize: 'clamp(16px,1.9vw,24px)', color: '#93c5fd', lineHeight: 1.7, maxWidth: 900, marginTop: 8 }}>{ov.bridge ?? A1_HOOK.bridge}</div>
+        {tEyebrow !== null && <div style={{ fontSize: 14, fontWeight: 700, color: '#c4b5fd', letterSpacing: '0.12em' }}>{tEyebrow}</div>}
+        {tTitle !== null && <div style={{ fontSize: 'clamp(30px,4vw,52px)', fontWeight: 900, lineHeight: 1.3, background: 'linear-gradient(180deg,#f8fafc,#c4b5fd)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent', maxWidth: 1000 }}>{tTitle}</div>}
+        {tBody1 !== null && <div style={{ fontSize: 'clamp(18px,2.2vw,28px)', color: '#e2e8f0', lineHeight: 1.7, maxWidth: 900 }}>{tBody1}</div>}
+        {tBody2 !== null && <div style={{ fontSize: 'clamp(18px,2.2vw,28px)', color: '#fde047', fontWeight: 700, lineHeight: 1.7, maxWidth: 900 }}>{tBody2}</div>}
+        {tBridge !== null && <div style={{ fontSize: 'clamp(16px,1.9vw,24px)', color: '#93c5fd', lineHeight: 1.7, maxWidth: 900, marginTop: 8 }}>{tBridge}</div>}
         <ContentSlot slot="a1_hook_after" />
       </div>
     );
@@ -75,6 +80,12 @@ export default function AvatarA1Screen({
 
   const launched = String(subState ?? '') === 'avatar:wall';
 
+  const tBanner = pageText(ov, 'banner', A1_GOAL.banner);
+  const tStageTitle = stageIdx >= 0 ? pageText(ov, 'screenTitle', A1_STAGES[stageIdx].screenTitle) : null;
+  const tStageQuestion = stageIdx >= 0 ? pageText(ov, 'screenQuestion', A1_STAGES[stageIdx].screenQuestion) : null;
+  const tStageTask = stageIdx >= 0 ? pageText(ov, 'studentTask', A1_STAGES[stageIdx].studentTask) : null;
+  const tWallTitle = pageText(ov, 'screenTitle', '全班数字分身 · 朋友圈墙');
+
   return (
     <div style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column', gap: 20, padding: '6px 0' }}>
       <ContentSlot slot="a1_top" />
@@ -84,12 +95,14 @@ export default function AvatarA1Screen({
       </div>
 
       {/* 目标横幅 · 常驻 */}
+      {tBanner !== null && (
       <div style={{
         border: '1px solid rgba(250,204,21,0.45)', background: 'rgba(250,204,21,0.10)', borderRadius: 14,
         padding: '12px 20px', fontSize: 'clamp(15px,1.7vw,22px)', color: '#fde047', fontWeight: 700, textAlign: 'center',
       }}>
-        {ov.banner ?? A1_GOAL.banner}
+        {tBanner}
       </div>
+      )}
 
       {/* 十七环节进度条（任务链 1-12 / 升华链 13-17） */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -119,15 +132,15 @@ export default function AvatarA1Screen({
       {/* 当前环节内容 */}
       {stageIdx >= 0 && !launched && (
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 18, textAlign: 'center' }}>
-          <div style={{ fontSize: 'clamp(26px,3.4vw,46px)', fontWeight: 900, maxWidth: 1100, background: 'linear-gradient(180deg,#f8fafc,#c4b5fd)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent' }}>
-            {ov.screenTitle ?? A1_STAGES[stageIdx].screenTitle}
-          </div>
-          <div style={{ fontSize: 'clamp(18px,2.2vw,30px)', color: '#fde047', fontWeight: 700, maxWidth: 1000, lineHeight: 1.6 }}>
-            {ov.screenQuestion ?? A1_STAGES[stageIdx].screenQuestion}
-          </div>
-          <div style={{ fontSize: 'clamp(15px,1.8vw,24px)', color: '#cbd5e1', maxWidth: 900, lineHeight: 1.7 }}>
-            {ov.studentTask ?? A1_STAGES[stageIdx].studentTask}
-          </div>
+          {tStageTitle !== null && <div style={{ fontSize: 'clamp(26px,3.4vw,46px)', fontWeight: 900, maxWidth: 1100, background: 'linear-gradient(180deg,#f8fafc,#c4b5fd)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent' }}>
+            {tStageTitle}
+          </div>}
+          {tStageQuestion !== null && <div style={{ fontSize: 'clamp(18px,2.2vw,30px)', color: '#fde047', fontWeight: 700, maxWidth: 1000, lineHeight: 1.6 }}>
+            {tStageQuestion}
+          </div>}
+          {tStageTask !== null && <div style={{ fontSize: 'clamp(15px,1.8vw,24px)', color: '#cbd5e1', maxWidth: 900, lineHeight: 1.7 }}>
+            {tStageTask}
+          </div>}
           {/* 内容槽：教师可在此环节放额外文案/示例/图片/视频 */}
           <ContentSlot slot={`a1_${A1_STAGES[stageIdx].key}_after`} />
           <div style={{ fontSize: 14, color: 'var(--muted)' }}>
@@ -141,9 +154,9 @@ export default function AvatarA1Screen({
       {launched && (
         <div style={{ flex: 1, overflowY: 'auto', padding: '6px 4px' }}>
           <ContentSlot slot="a1_wall_after" style={{ marginBottom: 12 }} />
-          <div style={{ fontSize: 18, fontWeight: 800, color: '#86efac', marginBottom: 14 }}>
-            {ov.screenTitle ?? "全班数字分身 · 朋友圈墙"} ({data?.finished ?? 0} 人完成)
-          </div>
+          {tWallTitle !== null && <div style={{ fontSize: 18, fontWeight: 800, color: '#86efac', marginBottom: 14 }}>
+            {tWallTitle} ({data?.finished ?? 0} 人完成)
+          </div>}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 14 }}>
             {(data?.cols ?? []).map((c, i) => (
               <div key={i} style={{ background: 'rgba(15,23,42,0.5)', border: '1px solid var(--border)', borderRadius: 14, padding: 14, whiteSpace: 'pre-wrap', fontSize: 13, lineHeight: 1.6 }}>

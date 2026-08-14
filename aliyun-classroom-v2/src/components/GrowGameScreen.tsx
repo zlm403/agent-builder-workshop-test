@@ -8,7 +8,7 @@ import { useEffect, useState } from 'react';
 import { P3_STAGES, P3_HOOK, P3_GOAL } from '@/features/growGame/config';
 import ContentSlot from './ContentSlot';
 import Tank from './Tank';
-import { usePageOverrides } from '@/lib/usePageText';
+import { usePageOverrides, pageText } from '@/lib/usePageText';
 
 export default function GrowGameScreen({
   sessionId,
@@ -36,14 +36,19 @@ export default function GrowGameScreen({
 
   // 钩子开场
   if (String(subState ?? '') === 'p3:hook') {
+    const tEyebrow = pageText(ov, 'eyebrow', P3_HOOK.eyebrow);
+    const tTitle = pageText(ov, 'title', P3_HOOK.title);
+    const tBody1 = pageText(ov, 'body1', P3_HOOK.body1);
+    const tBody2 = pageText(ov, 'body2', P3_HOOK.body2);
+    const tBridge = pageText(ov, 'bridge', P3_HOOK.bridge);
     return (
       <div style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 22, textAlign: 'center', padding: '0 6vw' }}>
         <ContentSlot slot="p3_top" />
-        <div style={{ fontSize: 14, fontWeight: 700, color: '#fb923c', letterSpacing: '0.12em' }}>{ov.eyebrow ?? P3_HOOK.eyebrow}</div>
-        <div style={{ fontSize: 'clamp(30px,4vw,52px)', fontWeight: 900, lineHeight: 1.3, background: 'linear-gradient(180deg,#f8fafc,#fb923c)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent', maxWidth: 1000 }}>{ov.title ?? P3_HOOK.title}</div>
-        <div style={{ fontSize: 'clamp(18px,2.2vw,28px)', color: '#e2e8f0', lineHeight: 1.7, maxWidth: 900 }}>{ov.body1 ?? P3_HOOK.body1}</div>
-        <div style={{ fontSize: 'clamp(18px,2.2vw,28px)', color: '#fde047', fontWeight: 700, lineHeight: 1.7, maxWidth: 900 }}>{ov.body2 ?? P3_HOOK.body2}</div>
-        <div style={{ fontSize: 'clamp(16px,1.9vw,24px)', color: '#fdba74', lineHeight: 1.7, maxWidth: 900, marginTop: 8 }}>{ov.bridge ?? P3_HOOK.bridge}</div>
+        {tEyebrow !== null && <div style={{ fontSize: 14, fontWeight: 700, color: '#fb923c', letterSpacing: '0.12em' }}>{tEyebrow}</div>}
+        {tTitle !== null && <div style={{ fontSize: 'clamp(30px,4vw,52px)', fontWeight: 900, lineHeight: 1.3, background: 'linear-gradient(180deg,#f8fafc,#fb923c)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent', maxWidth: 1000 }}>{tTitle}</div>}
+        {tBody1 !== null && <div style={{ fontSize: 'clamp(18px,2.2vw,28px)', color: '#e2e8f0', lineHeight: 1.7, maxWidth: 900 }}>{tBody1}</div>}
+        {tBody2 !== null && <div style={{ fontSize: 'clamp(18px,2.2vw,28px)', color: '#fde047', fontWeight: 700, lineHeight: 1.7, maxWidth: 900 }}>{tBody2}</div>}
+        {tBridge !== null && <div style={{ fontSize: 'clamp(16px,1.9vw,24px)', color: '#fdba74', lineHeight: 1.7, maxWidth: 900, marginTop: 8 }}>{tBridge}</div>}
         <ContentSlot slot="p3_hook_after" />
       </div>
     );
@@ -56,21 +61,29 @@ export default function GrowGameScreen({
   })();
   const inTank = String(subState ?? '') === 'p3:wall';
 
+  const tModuleTitle = pageText(ov, 'screenTitle', '数字生命 · 共生缸');
+  const tBanner = pageText(ov, 'banner', P3_GOAL.banner);
+  const tStageTitle = stageIdx >= 0 ? pageText(ov, 'screenTitle', P3_STAGES[stageIdx].screenTitle) : null;
+  const tStageQuestion = stageIdx >= 0 ? pageText(ov, 'screenQuestion', P3_STAGES[stageIdx].screenQuestion) : null;
+  const tStageTask = stageIdx >= 0 ? pageText(ov, 'studentTask', P3_STAGES[stageIdx].studentTask) : null;
+
   return (
     <div style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column', gap: 20, padding: '6px 0' }}>
       <ContentSlot slot="p3_top" />
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
-        <div style={{ fontSize: 22, fontWeight: 800, color: '#fb923c' }}>{ov.screenTitle ?? '数字生命 · 共生缸'}</div>
+        {tModuleTitle !== null && <div style={{ fontSize: 22, fontWeight: 800, color: '#fb923c' }}>{tModuleTitle}</div>}
         <div style={{ fontSize: 15, color: 'var(--muted)' }}>已投入 {ready} 个生命</div>
       </div>
 
       {/* 目标横幅 · 常驻 */}
+      {tBanner !== null && (
       <div style={{
         border: '1px solid rgba(250,204,21,0.45)', background: 'rgba(250,204,21,0.10)', borderRadius: 14,
         padding: '12px 20px', fontSize: 'clamp(15px,1.7vw,22px)', color: '#fde047', fontWeight: 700, textAlign: 'center',
       }}>
-        {ov.banner ?? P3_GOAL.banner}
+        {tBanner}
       </div>
+      )}
 
       {/* 阶段进度条 */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(10, 1fr)', gap: 4 }}>
@@ -101,15 +114,15 @@ export default function GrowGameScreen({
       {/* 当前阶段内容 */}
       {stageIdx >= 0 && !inTank && (
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 18, textAlign: 'center' }}>
-          <div style={{ fontSize: 'clamp(26px,3.4vw,46px)', fontWeight: 900, maxWidth: 1100, background: 'linear-gradient(180deg,#f8fafc,#fb923c)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent' }}>
-            {ov.screenTitle ?? P3_STAGES[stageIdx].screenTitle}
-          </div>
-          <div style={{ fontSize: 'clamp(18px,2.2vw,30px)', color: '#fde047', fontWeight: 700, maxWidth: 1000, lineHeight: 1.6 }}>
-            {ov.screenQuestion ?? P3_STAGES[stageIdx].screenQuestion}
-          </div>
-          <div style={{ fontSize: 'clamp(15px,1.8vw,24px)', color: '#cbd5e1', maxWidth: 900, lineHeight: 1.7 }}>
-            {ov.studentTask ?? P3_STAGES[stageIdx].studentTask}
-          </div>
+          {tStageTitle !== null && <div style={{ fontSize: 'clamp(26px,3.4vw,46px)', fontWeight: 900, maxWidth: 1100, background: 'linear-gradient(180deg,#f8fafc,#fb923c)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent' }}>
+            {tStageTitle}
+          </div>}
+          {tStageQuestion !== null && <div style={{ fontSize: 'clamp(18px,2.2vw,30px)', color: '#fde047', fontWeight: 700, maxWidth: 1000, lineHeight: 1.6 }}>
+            {tStageQuestion}
+          </div>}
+          {tStageTask !== null && <div style={{ fontSize: 'clamp(15px,1.8vw,24px)', color: '#cbd5e1', maxWidth: 900, lineHeight: 1.7 }}>
+            {tStageTask}
+          </div>}
           <ContentSlot slot={`p3_${P3_STAGES[stageIdx].key}_after`} />
           <div style={{ fontSize: 14, color: 'var(--muted)' }}>
             阶段 {stageIdx + 1} / 10 · {P3_STAGES[stageIdx].output}

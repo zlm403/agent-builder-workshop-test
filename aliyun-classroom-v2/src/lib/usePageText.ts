@@ -3,8 +3,24 @@
 // 内置页文字覆盖 hook（客户端）
 // 大屏组件渲染内置页时，用此 hook 取该页的 overrides，
 // 渲染用「覆盖值 ?? 默认值」。教师端在页面序列里点"改文字"编辑。
+// 特殊约定：overrides 中字段值 = REMOVED 表示该行被删除（大屏不显示）。
 // =========================================================
 import { useEffect, useState } from 'react';
+
+// 删除标记：overrides 中某字段值为它 = 这一行被删掉，大屏不显示
+export const REMOVED = '__REMOVED__';
+
+// 渲染辅助：返回要显示的文字；null 表示这一行被删除（不渲染）
+export function pageText(
+  ov: Record<string, string>,
+  key: string,
+  def: string,
+): string | null {
+  const v = ov[key];
+  if (v === REMOVED) return null;
+  if (v !== undefined && v !== '') return v;
+  return def;
+}
 
 // subState → 组 映射（纯函数，客户端安全）
 export function groupOfSubState(subState: string | null | undefined): 'A0' | 'A1' | 'P2' | 'P3' | null {

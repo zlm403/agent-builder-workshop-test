@@ -6,7 +6,7 @@
 // =========================================================
 import { useEffect, useRef, useState } from 'react';
 import { P2_STAGES } from '@/features/siteEntry/config';
-import { usePageOverrides } from '@/lib/usePageText';
+import { usePageOverrides, pageText } from '@/lib/usePageText';
 
 interface Bubble {
   role: 'ai' | 'user';
@@ -270,8 +270,8 @@ export default function SiteEntryStudent({
       {/* 当前任务卡 */}
       <div className="zone" style={{ borderLeft: '4px solid #38bdf8' }}>
         <h3 style={{ color: '#38bdf8', margin: 0 }}>第 {stageIdx + 1} 阶段 · {stage?.name}</h3>
-        <p className="task-hint" style={{ color: '#fde047', fontWeight: 600, lineHeight: 1.6, margin: '8px 0 4px' }}>{ov.screenTitle ?? stage?.screenTitle}</p>
-        <p className="task-hint" style={{ color: '#cbd5e1', lineHeight: 1.6, margin: 0 }}>{ov.studentTask ?? stage?.studentTask}</p>
+        {pageText(ov, 'screenTitle', stage?.screenTitle ?? '') !== null && <p className="task-hint" style={{ color: '#fde047', fontWeight: 600, lineHeight: 1.6, margin: '8px 0 4px' }}>{pageText(ov, 'screenTitle', stage?.screenTitle ?? '')}</p>}
+        {pageText(ov, 'studentTask', stage?.studentTask ?? '') !== null && <p className="task-hint" style={{ color: '#cbd5e1', lineHeight: 1.6, margin: 0 }}>{pageText(ov, 'studentTask', stage?.studentTask ?? '')}</p>}
       </div>
 
       <div className="zone ai-zone">

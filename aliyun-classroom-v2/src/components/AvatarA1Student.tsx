@@ -6,7 +6,7 @@
 // =========================================================
 import { useEffect, useRef, useState } from 'react';
 import { A1_STAGES } from '@/features/avatarLesson/config';
-import { usePageOverrides } from '@/lib/usePageText';
+import { usePageOverrides, pageText } from '@/lib/usePageText';
 
 interface Bubble {
   role: 'ai' | 'user';
@@ -222,8 +222,8 @@ export default function AvatarA1Student({
       {/* 当前任务卡 */}
       <div className="zone" style={{ borderLeft: '4px solid #c4b5fd' }}>
         <h3 style={{ color: '#c4b5fd', margin: 0 }}>环节 {stageIdx + 1} · {stage?.name}</h3>
-        <p className="task-hint" style={{ color: '#fde047', fontWeight: 600, lineHeight: 1.6, margin: '8px 0 4px' }}>{ov.screenTitle ?? stage?.screenTitle}</p>
-        <p className="task-hint" style={{ color: '#cbd5e1', lineHeight: 1.6, margin: 0 }}>{ov.studentTask ?? stage?.studentTask}</p>
+        {pageText(ov, 'screenTitle', stage?.screenTitle ?? '') !== null && <p className="task-hint" style={{ color: '#fde047', fontWeight: 600, lineHeight: 1.6, margin: '8px 0 4px' }}>{pageText(ov, 'screenTitle', stage?.screenTitle ?? '')}</p>}
+        {pageText(ov, 'studentTask', stage?.studentTask ?? '') !== null && <p className="task-hint" style={{ color: '#cbd5e1', lineHeight: 1.6, margin: 0 }}>{pageText(ov, 'studentTask', stage?.studentTask ?? '')}</p>}
       </div>
 
       <div className="zone ai-zone">
