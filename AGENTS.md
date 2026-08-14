@@ -46,7 +46,7 @@
 > 2. `aliyun-classroom-v2` 是试听课方案，和正式课无关。
 > 3. `ai-dreamlab` 是不该存在的废弃原型，不维护。
 > 4. 顷悟系统三端已按**三项目**改造：学生/教师/大屏 tab = 项目一(接金币游戏, course 1) / 项目二(心情电量, course 2) / 项目三(内心戏, course 4)。预备课（教"把话说清楚"）已停用为独立 tab，`warmup/` 代码与数据保留，内容作为正式课开场集中讲。
-> 5. **《我的世界》规划中（第四模块，内部 course=3，A3）**：产品需求+系统对接硬约束已定稿（`docs/A3-我的世界-V1产品与系统需求.md`），待 OpenCode 架构映射确认后编码，不属现有三项目正式课范围。
+> 5. **《我的世界》规划中（试听课 A3 环节，模块 `A3_WORLD`）**：目标系统是 `aliyun-classroom-v2`（非 ar-class-monitor-demo）；文档与引擎待落地，见 `aliyun-classroom-v2/docs/my-world/`。
 
 ---
 
@@ -66,10 +66,9 @@
 | 项目一 · 接金币游戏 | `game/` | 游戏 | 资料与边界 | 边界棱镜 5 格 | 1 |
 | 项目二 · 心情电量 | `tool/` | 工具 | 流程与规则 | 规则棱镜 6 格 | 2 |
 | 项目三 · 内心戏 | `agent-team/` | AI 应用 | 能力与工具 | 系统棱镜 5 格 | 4 |
-| （《我的世界》规划中） | `world/`（待建） | 数字社会世界（模拟生态） | 规则与系统思维 | — | 3 |
 | （预备课已停用） | `warmup/` | 轻量表达（表达梳理台） | 对象与目标 | 语言棱镜 10 格 | 0 |
 
-> 《我的世界》为规划中第四模块（内部 course=3，A3）：教师端/大屏端/学生端共演公共世界，学生创造数字生命发布到大屏运行。**硬约束**：A3/编号只在教师端与代码配置出现，学生/大屏只显示《我的世界》；不新建推送协议（沿用 /api/lesson+task_push+feed+大屏 block）；事件统一 {ts,sid,event,payload}；世界模拟由独立进程 `world-engine.py`→`world-state.json`→`server.py` 只读接口→三端轮询（参考 water-analyzer.py）；AI 讨论复用 .deepseek_key+规则回退。详见 `docs/A3-我的世界-V1产品与系统需求.md`。
+> 《我的世界》为试听课 `aliyun-classroom-v2` 规划中的 A3 环节（接在 A2 之后，模块 `A3_WORLD` 待建）：教师/大屏/学生三端共演公共世界，学生创造数字生命发布到大屏运行。**硬约束**：A3 只在教师端与代码配置出现，学生/大屏只显示《我的世界》；学生页面切换复用现有 `currentModuleId+moduleSubState`+SSE 机制，不新建推送协议；世界模拟由独立 TS 进程 `world-engine` 连同一 PostgreSQL 推进，Next.js 只读；AI 讨论复用 `llm.ts`（DeepSeek+规则回退）；A/B 关系反馈实验先实现 A 组、不调参美化。文档待落地 `aliyun-classroom-v2/docs/my-world/`。
 
 ### 数据链路（一核多表，三端共用同一算法）
 ```
@@ -150,4 +149,4 @@ python server.py 8099        （或 powershell -ExecutionPolicy Bypass -File sta
 - 顷悟 Agent 真实对话 → 事件流：**已通过 `lib/qw-chat-fwd.js` 注入块打通**（包装 ai.chat 自动上报 agent_dialog_req/resp，带签到上课号 sid）——方案已定：作品页引一行脚本即生效，不依赖 agent 自觉。**待真机验证**：学生作品页实际引一次、对话一轮，教师端确认归到正确学生。
 - 大屏匿名投影：本仓 `bigscreen/` 已做（P5 落地），轻物侧另有原型。
 - 三项目已按 course 1/2/4 映射落地（三端 tab + `正式课文档/上课执行方案.md`）；顷悟侧三项目应用是否就绪、学生发布链接格式待确认。
-- **《我的世界》模块（A3，内部 course=3）**：需求文档 `docs/A3-我的世界-V1产品与系统需求.md` 已定稿；下一步 OpenCode 做架构映射（三端调用链/状态机/事件协议/world-engine 进程/state 模型/AI 接入/文件清单），完成后等待确认再编码。详见待办清单.md。
+- **《我的世界》模块（试听课 A3 环节，模块 `A3_WORLD`）**：目标系统 `aliyun-classroom-v2`（Next.js+Prisma+PostgreSQL）。文档已对齐真实架构，待落地 `aliyun-classroom-v2/docs/my-world/` 后按架构映射→最小闭环→A组关系反馈→6次A/B实验→画面 的顺序实施。详见待办清单.md。
