@@ -253,9 +253,9 @@ export default function ScreenPage() {
         <WorldScreen sessionId={sessionId} />
       ) : module.type === 'closing' ? (
         (() => {
-          // 收官模块：第一屏=痛点墙(pain:N)，第二屏=四翼(wings:N)；无 subState 时默认第一屏
-          const st = summary?.moduleSubState ?? '';
-          if (st.startsWith('wings:')) return <FourWingsScreen subState={st} />;
+          // 收官模块：按当前环节 subState 渲染对应屏
+          const st = String(summary?.moduleSubState ?? '');
+          if (st.startsWith('closing:wings')) return <FourWingsScreen subState={st} />;
           return <PainWallScreen subState={st} />;
         })()
       ) : module.type === 'grow_game' ? (

@@ -11,9 +11,9 @@ export default function FourWingsScreen({ subState }: { subState: string | null 
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const lastSent = useRef<number>(-1);
 
-  // subState → step（0 开场，1..4 点亮各翼，5 成长链）
+  // subState → step（0 开场，1..4 点亮各翼，5 成长链）。支持 closing:wings:N 与 wings:N 两种格式
   const step = (() => {
-    const m = String(subState ?? '').match(/^wings:(\d+)$/);
+    const m = String(subState ?? '').match(/(?:^|:)wings:(\d+)$/);
     if (m) return Math.max(0, Math.min(5, parseInt(m[1], 10)));
     return 0;
   })();

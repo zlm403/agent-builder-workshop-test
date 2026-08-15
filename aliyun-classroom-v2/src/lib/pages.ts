@@ -8,7 +8,7 @@
 import { prisma } from '@/lib/db';
 import { Prisma } from '@prisma/client';
 
-export const PAGE_GROUPS = ['A0', 'A1', 'A2', 'A3'] as const;
+export const PAGE_GROUPS = ['A0', 'A1', 'A2', 'A3', 'CLOSING'] as const;
 export type PageGroup = (typeof PAGE_GROUPS)[number];
 
 export interface LessonPageDef {
@@ -70,6 +70,10 @@ const BUILTIN_SEEDS: BuiltinSeed[] = [
 
   // ---- A3 我的世界（只留第一页"世界预告"加载大屏；课堂玩法全部走"发布 Tips"弹窗，无需页面序列） ----
   { group: 'A3', moduleId: 'A3_WORLD', refKey: 'world:hook', label: '世界预告' },
+
+  // ---- 收官（每屏一个环节，教师端点环节页投屏；子控制条跟随当前环节显示在教师端）----
+  { group: 'CLOSING', moduleId: 'CLOSING', refKey: 'closing:pain', label: '痛点墙' },
+  { group: 'CLOSING', moduleId: 'CLOSING', refKey: 'closing:wings', label: '四翼展示' },
 ];
 
 // =========================================================
@@ -126,6 +130,7 @@ export function groupOfModule(moduleId: string | null | undefined): PageGroup | 
   if (moduleId === 'A1_AVATAR') return 'A1';
   if (moduleId === 'A2_SITE') return 'A2';
   if (moduleId === 'A3_WORLD') return 'A3';
+  if (moduleId === 'CLOSING') return 'CLOSING';
   return null;
 }
 
@@ -285,6 +290,7 @@ function defaultModuleOf(group: PageGroup): string {
   if (group === 'A0') return 'A0N_QUESTIONS';
   if (group === 'A1') return 'A1_AVATAR';
   if (group === 'A3') return 'A3_WORLD';
+  if (group === 'CLOSING') return 'CLOSING';
   return 'A2_SITE';
 }
 

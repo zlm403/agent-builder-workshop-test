@@ -1019,7 +1019,7 @@ export default function TeacherPage() {
                     <WorldTipsBar />
                   )}
                   {currentModuleId === 'CLOSING' && (
-                    (String(summary?.moduleSubState ?? '').startsWith('wings:')) ? (
+                    (String(summary?.moduleSubState ?? '').startsWith('closing:wings')) ? (
                       <FourWingsTeacherBar
                         subState={summary?.moduleSubState ?? null}
                         busy={busy}
@@ -1497,7 +1497,7 @@ function FourWingsTeacherBar({
   control: (action: string, payload?: any) => void;
 }) {
   const cur = (() => {
-    const m = String(subState ?? '').match(/^wings:(\d+)$/);
+    const m = String(subState ?? '').match(/(?:^|:)wings:(\d+)$/);
     return m ? Math.max(0, Math.min(5, parseInt(m[1], 10))) : 0;
   })();
   const WINGS = [
@@ -1518,7 +1518,7 @@ function FourWingsTeacherBar({
             className={cur === w.n ? 'primary' : 'secondary'}
             style={{ fontSize: 11, padding: '4px 10px' }}
             disabled={busy}
-            onClick={() => control('setSubState', { subState: `wings:${w.n}` })}
+            onClick={() => control('setSubState', { subState: `closing:wings:${w.n}` })}
           >
             {w.label}
           </button>
@@ -1539,10 +1539,10 @@ function PainWallTeacherBar({
   control: (action: string, payload?: any) => void;
 }) {
   const cur = (() => {
-    const m = String(subState ?? '').match(/^pain:(\d+)$/);
+    const m = String(subState ?? '').match(/(?:^|:)pain:(\d+)$/);
     return m ? Math.max(0, Math.min(8, parseInt(m[1], 10))) : 0;
   })();
-  const go = (n: number) => control('setSubState', { subState: `pain:${n}` });
+  const go = (n: number) => control('setSubState', { subState: `closing:pain:${n}` });
   return (
     <div style={{ border: '1px solid rgba(96,165,250,0.4)', borderRadius: 10, padding: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
       <span style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 700 }}>痛点墙 · 逐张点亮（AI坑 ↔ 我们自己的坑）</span>

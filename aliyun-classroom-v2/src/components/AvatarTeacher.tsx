@@ -8,12 +8,13 @@
 import { useCallback, useEffect, useState } from 'react';
 
 // 模块 → 组 映射（纯函数，客户端内联，避免 import 含 prisma 的服务端模块）
-function groupOfModule(moduleId: string | null | undefined): 'A0' | 'A1' | 'A2' | 'A3' | null {
+function groupOfModule(moduleId: string | null | undefined): 'A0' | 'A1' | 'A2' | 'A3' | 'CLOSING' | null {
   if (!moduleId) return null;
   if (moduleId.startsWith('A0N_')) return 'A0';
   if (moduleId === 'A1_AVATAR') return 'A1';
   if (moduleId === 'A2_SITE') return 'A2';
   if (moduleId === 'A3_WORLD') return 'A3';
+  if (moduleId === 'CLOSING') return 'CLOSING';
   return null;
 }
 
@@ -56,6 +57,9 @@ const BUILTIN_LABEL: Record<string, string> = {
   'world:revise': '修改新版本',
   'world:apply': '应用新版本',
   'world:compare': '前后比较',
+  // CLOSING 收官
+  'closing:pain': '痛点墙',
+  'closing:wings': '四翼展示',
 };
 
 // A1 环节名（c1..c11）

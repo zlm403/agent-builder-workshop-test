@@ -11,9 +11,9 @@ export default function PainWallScreen({ subState }: { subState: string | null }
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const lastSent = useRef<number>(-1);
 
-  // subState → step（0 全灭，1..8 逐张点亮）
+  // subState → step（0 全灭，1..8 逐张点亮）。支持 closing:pain:N 与 pain:N 两种格式
   const step = (() => {
-    const m = String(subState ?? '').match(/^pain:(\d+)$/);
+    const m = String(subState ?? '').match(/(?:^|:)pain:(\d+)$/);
     if (m) return Math.max(0, Math.min(8, parseInt(m[1], 10)));
     return 0;
   })();
