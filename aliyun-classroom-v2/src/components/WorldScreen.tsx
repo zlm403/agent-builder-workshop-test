@@ -54,8 +54,8 @@ interface FxLight {
 }
 
 // 生命大小范围（世界坐标归一化后的像素基准在 draw 里换算）
-const LIFE_SIZE_MIN = 8;
-const LIFE_SIZE_MAX = 16;
+const LIFE_SIZE_MIN = 14;
+const LIFE_SIZE_MAX = 26;
 const FX_LIFE = 1800; // 事件光点存活 1.8s
 
 // 事件标签映射：从事件文本关键词 → 标签 + 颜色
@@ -84,8 +84,13 @@ export default function WorldScreen({ sessionId }: { sessionId: string }) {
   const posRef = useRef<Record<string, { x: number; y: number }>>({});
   const fxRef = useRef<FxLight[]>([]);
   const seenRef = useRef<Set<string>>(new Set());
-  // 环境光点（空世界不空，纯视觉）
-  const ambRef = useRef<{ x: number; y: number; vx: number; vy: number; size: number; hue: number }[]>([]);
+  // 环境光点（鱼缸 Light 风格：慢、亮、大、带拖尾与标签，纯视觉）
+  const ambRef = useRef<{
+    x: number; y: number; dirx: number; diry: number;
+    baseSpeed: number; t: number; oscFreq: number;
+    size: number; hue: number; label: string; life: number;
+    trail: { x: number; y: number }[];
+  }[]>([]);
 
   // 轮询数据
   useEffect(() => {
@@ -129,27 +134,51 @@ export default function WorldScreen({ sessionId }: { sessionId: string }) {
 
     function resize() {
       const rect = canvas!.getBoundingClientRect();
+      if (rect.width <= 0 || rect.height <= 0) return; // 未布局完成，跳过
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
       canvas!.width = rect.width * dpr;
       canvas!.height = rect.height * dpr;
-      // 首次初始化环境光点（约占满世界，若已有生命则少放些）
+      // 首次初始化环境光点（鱼缸 Light 风格：大、亮、慢，带标签与拖尾）
       if (ambRef.current.length === 0) {
-        for (let i = 0; i < 26; i++) {
-          const a = Math.random() * Math.PI * 2;
-          const sp = 0.0006 + Math.random() * 0.0016;
+        const TYPES = [
+          { label: '机遇', hue: 150 },
+          { label: '变故', hue: 0 },
+          { label: '惊喜', hue: 320 },
+          { label: '考验', hue: 40 },
+          { label: '风暴', hue: 265 },
+          { label: '平静', hue: 200 },
+          { label: '偶然', hue: 180 },
+          { label: '礼物', hue: 340 },
+        ];
+        for (let i = 0; i < 14; i++) {
+          const ang = Math.random() * Math.PI * 2;
+          const type = TYPES[(Math.random() * TYPES.length) | 0];
           ambRef.current.push({
             x: Math.random(),
             y: Math.random(),
-            vx: Math.cos(a) * sp,
-            vy: Math.sin(a) * sp,
-            size: 1.5 + Math.random() * 3.5,
-            hue: 150 + Math.random() * 120,
+            dirx: Math.cos(ang),
+            diry: Math.sin(ang),
+            baseSpeed: 0.0001 + Math.random() * 0.00035, // 慢（归一化/ms），整体比之前再慢约 30%
+            t: Math.random() * 1000,
+            oscFreq: 0.003 + Math.random() * 0.012,
+            size: 12 + Math.random() * 22, // 大：12-34px
+            hue: type.hue,
+            label: type.label,
+            life: 600 + Math.random() * 600,
+            trail: [],
           });
         }
       }
     }
-    resize();
+    // 延迟到下一帧再量尺寸（组件刚挂载时 canvas 可能还没布局）
+    requestAnimationFrame(() => requestAnimationFrame(resize));
     window.addEventListener('resize', resize);
+    // 用 ResizeObserver 监听容器尺寸，确保 canvas 始终正确
+    let ro: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== 'undefined') {
+      ro = new ResizeObserver(() => resize());
+      ro.observe(canvas);
+    }
 
     function draw(now: number) {
       const dt = Math.min(100, now - last);
@@ -163,34 +192,71 @@ export default function WorldScreen({ sessionId }: { sessionId: string }) {
 
       const d = dataRef.current;
 
-      // 深海渐变背景
+      // 深海渐变背景（鱼缸多层渐变风格）
       const bg = ctx!.createLinearGradient(0, 0, 0, H);
-      bg.addColorStop(0, '#0a1d2f');
-      bg.addColorStop(0.5, '#071525');
-      bg.addColorStop(1, '#04101c');
+      bg.addColorStop(0, '#0a2233');
+      bg.addColorStop(0.5, '#06202f');
+      bg.addColorStop(1, '#031018');
       ctx!.fillStyle = bg;
       ctx!.fillRect(0, 0, W, H);
+      // 两团柔光，让深海底有层次
+      const glow1 = ctx!.createRadialGradient(W * 0.3, H * 0.2, 0, W * 0.3, H * 0.2, W * 0.6);
+      glow1.addColorStop(0, 'rgba(20,70,95,0.35)');
+      glow1.addColorStop(1, 'transparent');
+      ctx!.fillStyle = glow1;
+      ctx!.fillRect(0, 0, W, H);
+      const glow2 = ctx!.createRadialGradient(W * 0.8, H * 0.9, 0, W * 0.8, H * 0.9, W * 0.5);
+      glow2.addColorStop(0, 'rgba(10,50,70,0.4)');
+      glow2.addColorStop(1, 'transparent');
+      ctx!.fillStyle = glow2;
+      ctx!.fillRect(0, 0, W, H);
 
-      // 环境光点（漂浮，纯视觉，让世界始终"活"着）
+      // 环境光点（鱼缸 Light 风格：慢速起伏、拖尾光晕、带 2 字标签）
       for (const a of ambRef.current) {
-        a.x += a.vx * dt;
-        a.y += a.vy * dt;
-        if (a.x < 0 || a.x > 1) a.vx *= -1;
-        if (a.y < 0 || a.y > 1) a.vy *= -1;
-        a.x = Math.max(0, Math.min(1, a.x));
-        a.y = Math.max(0, Math.min(1, a.y));
+        a.t++;
+        const speed = a.baseSpeed * (1 + 0.5 * Math.sin(a.t * a.oscFreq));
+        a.x += a.dirx * speed * dt;
+        a.y += a.diry * speed * dt;
+        if (a.x < 0) { a.x = 0; a.dirx *= -1; }
+        if (a.x > 1) { a.x = 1; a.dirx *= -1; }
+        if (a.y < 0) { a.y = 0; a.diry *= -1; }
+        if (a.y > 1) { a.y = 1; a.diry *= -1; }
+        a.life--;
+        a.trail.push({ x: a.x, y: a.y });
+        if (a.trail.length > 14) a.trail.shift();
+        if (a.life <= 0) { a.life = 600 + Math.random() * 600; }
+
         const gx = a.x * W;
         const gy = a.y * H;
+        const al = Math.min(1, a.life / 120);
         ctx!.globalCompositeOperation = 'lighter';
-        const g = ctx!.createRadialGradient(gx, gy, 0, gx, gy, a.size * 4);
-        g.addColorStop(0, `hsla(${a.hue},80%,75%,0.22)`);
+        // 拖尾
+        for (let i = 0; i < a.trail.length; i++) {
+          const t = a.trail[i];
+          const trailAlpha = (i / a.trail.length) * 0.28 * al;
+          ctx!.fillStyle = `hsla(${a.hue},90%,80%,${trailAlpha})`;
+          ctx!.beginPath();
+          ctx!.arc(t.x * W, t.y * H, a.size * (i / a.trail.length) * 0.6, 0, Math.PI * 2);
+          ctx!.fill();
+        }
+        // 光晕
+        const g = ctx!.createRadialGradient(gx, gy, 0, gx, gy, a.size * 2.2);
+        g.addColorStop(0, `hsla(${a.hue},100%,92%,${0.9 * al})`);
+        g.addColorStop(0.4, `hsla(${a.hue},95%,70%,${0.5 * al})`);
         g.addColorStop(1, 'transparent');
         ctx!.fillStyle = g;
         ctx!.beginPath();
-        ctx!.arc(gx, gy, a.size * 4, 0, Math.PI * 2);
+        ctx!.arc(gx, gy, a.size * 2.2, 0, Math.PI * 2);
         ctx!.fill();
+        // 标签（2 字，画在光点上方）
         ctx!.globalCompositeOperation = 'source-over';
+        ctx!.fillStyle = `hsla(${a.hue},90%,78%,${0.9 * al})`;
+        ctx!.font = '14px sans-serif';
+        ctx!.textAlign = 'center';
+        ctx!.textBaseline = 'middle';
+        ctx!.fillText(a.label, gx, gy - a.size * 2.2 - 8);
       }
+      ctx!.globalCompositeOperation = 'source-over';
 
       if (d) {
         // 收集新事件 → 生成光点
@@ -271,16 +337,19 @@ export default function WorldScreen({ sessionId }: { sessionId: string }) {
           const y = p.y * H;
           const size = sizeOf(l.id);
           const sleeping = l.state === 'sleeping';
-          const dim = sleeping ? 0.25 : Math.max(0.35, Math.min(1, l.energy / 80));
+          const dim = sleeping ? 0.3 : Math.max(0.45, Math.min(1, l.energy / 80));
 
-          // 光晕
-          const glow = ctx!.createRadialGradient(x, y, 0, x, y, size * 2.6);
-          glow.addColorStop(0, `${l.color}${Math.round(dim * 120).toString(16).padStart(2, '0')}`);
+          ctx!.globalCompositeOperation = 'lighter';
+          // 光晕（更大更亮）
+          const glow = ctx!.createRadialGradient(x, y, 0, x, y, size * 3);
+          glow.addColorStop(0, `${l.color}${Math.round(dim * 200).toString(16).padStart(2, '0')}`);
+          glow.addColorStop(0.5, `${l.color}${Math.round(dim * 90).toString(16).padStart(2, '0')}`);
           glow.addColorStop(1, 'transparent');
           ctx!.fillStyle = glow;
           ctx!.beginPath();
-          ctx!.arc(x, y, size * 2.6, 0, Math.PI * 2);
+          ctx!.arc(x, y, size * 3, 0, Math.PI * 2);
           ctx!.fill();
+          ctx!.globalCompositeOperation = 'source-over';
 
           // 实心核
           ctx!.globalAlpha = dim;
@@ -291,10 +360,10 @@ export default function WorldScreen({ sessionId }: { sessionId: string }) {
           ctx!.globalAlpha = 1;
 
           // 名字
-          ctx!.fillStyle = sleeping ? '#64748b' : '#cfeaf6';
-          ctx!.font = '12px sans-serif';
+          ctx!.fillStyle = sleeping ? '#64748b' : '#e2f4ff';
+          ctx!.font = 'bold 14px sans-serif';
           ctx!.textAlign = 'center';
-          ctx!.fillText(l.name, x, y - size - 6);
+          ctx!.fillText(l.name, x, y - size - 8);
 
           if (sleeping) {
             ctx!.fillText('💤', x, y + 4);
@@ -307,21 +376,24 @@ export default function WorldScreen({ sessionId }: { sessionId: string }) {
         for (const fx of fxRef.current) {
           const age = (nowMs - fx.born) / fx.life; // 0..1
           const x = fx.x * W;
-          const y = fx.y * H - age * 46; // 上浮
+          const y = fx.y * H - age * 60; // 上浮
           const alpha = 1 - age;
-          // 光点
-          const g = ctx!.createRadialGradient(x, y, 0, x, y, 16);
-          g.addColorStop(0, `${fx.color}${Math.round(alpha * 200).toString(16).padStart(2, '0')}`);
+          // 光点（大而亮）
+          ctx!.globalCompositeOperation = 'lighter';
+          const g = ctx!.createRadialGradient(x, y, 0, x, y, 26);
+          g.addColorStop(0, `${fx.color}${Math.round(alpha * 240).toString(16).padStart(2, '0')}`);
+          g.addColorStop(0.5, `${fx.color}${Math.round(alpha * 120).toString(16).padStart(2, '0')}`);
           g.addColorStop(1, 'transparent');
           ctx!.fillStyle = g;
           ctx!.beginPath();
-          ctx!.arc(x, y, 16, 0, Math.PI * 2);
+          ctx!.arc(x, y, 26, 0, Math.PI * 2);
           ctx!.fill();
+          ctx!.globalCompositeOperation = 'source-over';
           // 标签
           ctx!.fillStyle = `rgba(255,255,255,${alpha})`;
-          ctx!.font = '12px sans-serif';
+          ctx!.font = 'bold 15px sans-serif';
           ctx!.textAlign = 'center';
-          ctx!.fillText(fx.label, x, y - 14);
+          ctx!.fillText(fx.label, x, y - 20);
         }
       } else {
         ctx!.fillStyle = '#64748b';
@@ -337,11 +409,26 @@ export default function WorldScreen({ sessionId }: { sessionId: string }) {
     return () => {
       cancelAnimationFrame(raf);
       window.removeEventListener('resize', resize);
+      ro?.disconnect();
     };
   }, []);
 
   if (!data) {
-    return <div style={{ color: '#94a3b8', textAlign: 'center', marginTop: '30vh' }}>《我的世界》加载中…</div>;
+    // data 未到：Canvas 照常挂载（渲染循环依赖 mount 时挂载的 canvas），左右栏显示占位
+    return (
+      <div style={{ display: 'grid', gridTemplateColumns: '220px 1fr 260px', gap: 14, height: 'calc(100vh - 120px)' }}>
+        <div style={{ background: 'rgba(14,40,58,0.55)', border: '1px solid rgba(120,200,230,0.18)', borderRadius: 14, padding: 16, color: '#7fa6b8' }}>
+          世界状态
+        </div>
+        <div style={{ position: 'relative', borderRadius: 14, overflow: 'hidden', border: '1px solid rgba(120,200,230,0.18)' }}>
+          <canvas ref={canvasRef} style={{ width: '100%', height: '100%', display: 'block' }} />
+          <PopupOverlay show={popup.show} content={popup.content} />
+        </div>
+        <div style={{ background: 'rgba(14,40,58,0.55)', border: '1px solid rgba(120,200,230,0.18)', borderRadius: 14, padding: 16, color: '#7fa6b8' }}>
+          世界正在发生
+        </div>
+      </div>
+    );
   }
 
   const active = data.lives.filter((l) => l.state === 'active').length;
