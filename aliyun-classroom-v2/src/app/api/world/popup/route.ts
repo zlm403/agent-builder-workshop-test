@@ -1,8 +1,13 @@
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
-import { setPopup, POPUP_CONTENTS, type PopupContent } from '@/lib/world/store';
+import { setPopup, readPopup, POPUP_CONTENTS, type PopupContent } from '@/lib/world/store';
 
 // 教师控制大屏弹窗：{ content: 'usage' | 'method' | 'tip01'..'tip08' | null, show: boolean }
+// GET：大屏/学生端轮询读取当前弹窗状态
+export async function GET() {
+  return NextResponse.json(readPopup());
+}
+
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
   const content = body.content as PopupContent | null;
