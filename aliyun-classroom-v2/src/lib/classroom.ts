@@ -239,7 +239,7 @@ export async function resetModuleProgress(sessionId: string, moduleId: string) {
     : moduleId === 'A0N_REVEAL' ? 'reveal:1'
     : moduleId === 'A2_SITE' ? 'a2:hook'
     : moduleId === 'A3_WORLD' ? 'world:hook'
-    : moduleId === 'CLOSING' ? 'wings:0'
+    : moduleId === 'CLOSING' ? 'pain:0'
     : null;
   if (initialSubState !== null) await writeModuleSubState(sessionId, initialSubState);
 

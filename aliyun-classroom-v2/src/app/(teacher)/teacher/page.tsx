@@ -1019,11 +1019,19 @@ export default function TeacherPage() {
                     <WorldTipsBar />
                   )}
                   {currentModuleId === 'CLOSING' && (
-                    <FourWingsTeacherBar
-                      subState={summary?.moduleSubState ?? null}
-                      busy={busy}
-                      control={control}
-                    />
+                    (String(summary?.moduleSubState ?? '').startsWith('wings:')) ? (
+                      <FourWingsTeacherBar
+                        subState={summary?.moduleSubState ?? null}
+                        busy={busy}
+                        control={control}
+                      />
+                    ) : (
+                      <PainWallTeacherBar
+                        subState={summary?.moduleSubState ?? null}
+                        busy={busy}
+                        control={control}
+                      />
+                    )
                   )}
                   <button className="secondary" style={{ alignSelf: 'flex-start' }} disabled={busy || status === 'closed'} onClick={() => control('lock', { locked: !moduleLocked })}>
                     {moduleLocked ? '解锁学员输入' : '锁定学员输入'}
@@ -1515,6 +1523,34 @@ function FourWingsTeacherBar({
             {w.label}
           </button>
         ))}
+      </div>
+    </div>
+  );
+}
+
+// 收官 · 痛点墙控制条：教师端逐张点亮痛点（pain:0 全灭 → 1..8 逐张点亮）
+function PainWallTeacherBar({
+  subState,
+  busy,
+  control,
+}: {
+  subState: string | null;
+  busy: boolean;
+  control: (action: string, payload?: any) => void;
+}) {
+  const cur = (() => {
+    const m = String(subState ?? '').match(/^pain:(\d+)$/);
+    return m ? Math.max(0, Math.min(8, parseInt(m[1], 10))) : 0;
+  })();
+  const go = (n: number) => control('setSubState', { subState: `pain:${n}` });
+  return (
+    <div style={{ border: '1px solid rgba(96,165,250,0.4)', borderRadius: 10, padding: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <span style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 700 }}>痛点墙 · 逐张点亮（AI坑 ↔ 我们自己的坑）</span>
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+        <button className="secondary" style={{ fontSize: 11, padding: '4px 10px' }} disabled={busy || cur <= 0} onClick={() => go(Math.max(0, cur - 1))}>◀ 上一张</button>
+        <button className="secondary" style={{ fontSize: 11, padding: '4px 10px' }} disabled={busy || cur >= 8} onClick={() => go(Math.min(8, cur + 1))}>下一张 ▶</button>
+        <span style={{ fontSize: 11, color: 'var(--muted)', minWidth: 64, textAlign: 'center' }}>{cur} / 8</span>
+        <button className={cur === 8 ? 'primary' : 'secondary'} style={{ fontSize: 11, padding: '4px 10px' }} disabled={busy} onClick={() => go(8)}>全部点亮</button>
       </div>
     </div>
   );

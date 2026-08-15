@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>这些年我踩过的坑</title>
+<style>
+  :root {
+    --bg-0: #070b16;
+    --bg-1: #0d1424;
+    --card-bg: rgba(255, 255, 255, 0.045);
+    --card-border: rgba(255, 255, 255, 0.10);
+    --text-dim: rgba(226, 232, 240, 0.30);
+    --text-soft: rgba(226, 232, 240, 0.62);
+    --text-strong: #e8edf6;
+    --c-ai:    #60a5fa;
+    --c-human: #fbbf24;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    height: 100%;
+    background: radial-gradient(120% 120% at 50% 18%, var(--bg-1) 0%, var(--bg-0) 70%);
+    color: var(--text-strong);
+    font-family: "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB", system-ui, -apple-system, sans-serif;
+    overflow: hidden;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(35% 30% at 22% 35%, rgba(96, 165, 250, 0.06), transparent 70%),
+      radial-gradient(35% 30% at 78% 65%, rgba(251, 191, 36, 0.06), transparent 70%);
+    pointer-events: none;
+  }
+
+  .stage {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: clamp(18px, 3vh, 40px) clamp(24px, 4vw, 64px);
+  }
+
+  .title {
+    position: relative;
+    z-index: 10;
+    text-align: center;
+    margin-bottom: clamp(24px, 4vh, 48px);
+  }
+  .title h1 {
+    font-size: clamp(30px, 5vw, 64px);
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    background: linear-gradient(90deg, #cfe9ff 0%, #ffffff 50%, #fff4d7 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    text-shadow: 0 0 40px rgba(120, 180, 255, 0.18);
+  }
+  .title p {
+    margin-top: 10px;
+    font-size: clamp(13px, 1.6vw, 20px);
+    color: var(--text-soft);
+    letter-spacing: 0.18em;
+  }
+
+  .pain-cols {
+    position: relative;
+    z-index: 10;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: clamp(16px, 2.6vw, 44px);
+    width: min(1120px, 94vw);
+  }
+
+  .pain-col { display: flex; flex-direction: column; gap: clamp(12px, 1.6vh, 20px); }
+
+  .pain-col-h {
+    text-align: center;
+    font-size: clamp(14px, 1.7vw, 20px);
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    color: var(--text-soft);
+    padding-bottom: clamp(10px, 1.4vh, 14px);
+    border-bottom: 1px solid var(--card-border);
+    margin-bottom: clamp(4px, 0.6vh, 8px);
+  }
+
+  .pain-card {
+    border-radius: 16px;
+    padding: clamp(16px, 2vh, 26px) clamp(18px, 1.8vw, 28px);
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    opacity: 0;
+    transform: translateY(16px);
+    filter: grayscale(0.7) brightness(0.7);
+    transition: opacity 0.55s ease, transform 0.55s ease, border-color 0.4s ease, filter 0.55s ease, box-shadow 0.4s ease;
+  }
+
+  .pain-card.show {
+    opacity: 1;
+    transform: translateY(0);
+    filter: none;
+  }
+
+  .pain-card.ai.show {
+    border-color: rgba(96, 165, 250, 0.55);
+    box-shadow: 0 0 26px rgba(96, 165, 250, 0.18);
+  }
+  .pain-card.human.show {
+    border-color: rgba(251, 191, 36, 0.55);
+    box-shadow: 0 0 26px rgba(251, 191, 36, 0.18);
+  }
+
+  /* 高亮当前正在讲的卡片 */
+  .pain-card.active {
+    transform: translateY(0) scale(1.025);
+  }
+  .pain-card.ai.active {
+    box-shadow: 0 0 38px rgba(96, 165, 250, 0.42);
+    border-color: rgba(96, 165, 250, 0.9);
+  }
+  .pain-card.human.active {
+    box-shadow: 0 0 38px rgba(251, 191, 36, 0.42);
+    border-color: rgba(251, 191, 36, 0.9);
+  }
+
+  .pain-card .head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: clamp(16px, 1.9vw, 22px);
+    font-weight: 600;
+    line-height: 1.4;
+    color: var(--text-strong);
+  }
+
+  .pain-card.ai .dot { background: var(--c-ai); box-shadow: 0 0 12px rgba(96, 165, 250, 0.45); }
+  .pain-card.human .dot { background: var(--c-human); box-shadow: 0 0 12px rgba(251, 191, 36, 0.45); }
+
+  /* 标题分色：左栏柔蓝，右栏柔黄，各叠一层很淡的同色柔光 */
+  .pain-card.ai .head { color: var(--c-ai); text-shadow: 0 0 16px rgba(96, 165, 250, 0.45); }
+  .pain-card.human .head { color: var(--c-human); text-shadow: 0 0 16px rgba(251, 191, 36, 0.40); }
+
+  .dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .pain-card .desc {
+    margin-top: 8px;
+    margin-left: 22px;
+    font-size: clamp(12px, 1.3vw, 15px);
+    line-height: 1.55;
+    color: var(--text-soft);
+  }
+
+  /* 如果你现场不想显示解释，就把这一行取消注释：
+     .pain-card .desc { display: none; }
+  */
+
+  .footer-note {
+    position: absolute;
+    bottom: clamp(18px, 3vh, 40px);
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: clamp(12px, 1.3vw, 15px);
+    color: var(--text-dim);
+    letter-spacing: 0.12em;
+    opacity: 0;
+    transition: opacity 0.8s ease;
+  }
+  .footer-note.show { opacity: 1; }
+
+  .hint {
+    position: absolute;
+    bottom: clamp(18px, 3vh, 40px);
+    right: clamp(20px, 3vw, 48px);
+    font-size: clamp(11px, 1.2vw, 14px);
+    color: var(--text-dim);
+    letter-spacing: 0.08em;
+  }
+
+  @media (max-width: 720px) {
+    .pain-cols { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="stage">
+  <div class="title">
+    <h1>这些年我踩过的坑</h1>
+    <p>用 AI 的路上，有些坑不是你一个人的</p>
+  </div>
+
+  <div class="pain-cols">
+    <div class="pain-col">
+      <div class="pain-col-h">AI 自己的坑</div>
+      <div class="pain-card ai">
+        <div class="head"><span class="dot"></span>一本正经地胡说</div>
+        <div class="desc">答案看起来合理，但可能是错的。</div>
+      </div>
+      <div class="pain-card ai">
+        <div class="head"><span class="dot"></span>不真正理解你的意思</div>
+        <div class="desc">你说得模糊，它就容易做偏。</div>
+      </div>
+      <div class="pain-card ai">
+        <div class="head"><span class="dot"></span>结果不稳定</div>
+        <div class="desc">同一个问题，不同时间可能给出不同答案。</div>
+      </div>
+      <div class="pain-card ai">
+        <div class="head"><span class="dot"></span>可能把错误放大</div>
+        <div class="desc">自动化程度越高，错误传播得越快。</div>
+      </div>
+    </div>
+
+    <div class="pain-col">
+      <div class="pain-col-h">我们自己的坑</div>
+      <div class="pain-card human">
+        <div class="head"><span class="dot"></span>以为自己说清楚了</div>
+        <div class="desc">其实 AI 听到的和你想表达的并不一样。</div>
+      </div>
+      <div class="pain-card human">
+        <div class="head"><span class="dot"></span>一次想要太多</div>
+        <div class="desc">要求太多太复杂，AI 反而抓不住重点。</div>
+      </div>
+      <div class="pain-card human">
+        <div class="head"><span class="dot"></span>过程很爽，结果很差</div>
+        <div class="desc">生成时很过瘾，最后发现跑不通、用不上。</div>
+      </div>
+      <div class="pain-card human">
+        <div class="head"><span class="dot"></span>在报错里崩溃</div>
+        <div class="desc">错误和混乱越滚越大，人先慌了。</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer-note">这些坑，我踩过，你也可能正在踩</div>
+  <div class="hint">由教师端逐张点亮</div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    // 左右对照顺序：AI1 → 人1 → AI2 → 人2 → ...
+    const ai = Array.from(document.querySelectorAll('.pain-card.ai'));
+    const human = Array.from(document.querySelectorAll('.pain-card.human'));
+    const order = [];
+    const n = Math.max(ai.length, human.length);
+    for (let i = 0; i < n; i++) {
+      if (ai[i]) order.push(ai[i]);
+      if (human[i]) order.push(human[i]);
+    }
+
+    let idx = -1; // 当前已点亮到的索引（含）
+
+    // 统一点亮到第 n 张（0 = 全灭；1..8 = 亮到前 n 张），供本页交互与教师端远程控制共用
+    function setLit(n) {
+      idx = Math.max(-1, Math.min(order.length - 1, n - 1));
+      order.forEach((c, i) => c.classList.toggle('show', i <= idx));
+      order.forEach((c, i) => c.classList.toggle('active', i === idx));
+      document.querySelector('.footer-note').classList.toggle('show', idx >= 0);
+    }
+
+    function lightNext() {
+      if (idx + 1 >= order.length) return;
+      setLit(idx + 2);
+    }
+
+    function lightPrev() {
+      if (idx < 0) return;
+      setLit(idx);
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.code === 'Space' || e.code === 'ArrowRight') {
+        e.preventDefault();
+        lightNext();
+      } else if (e.code === 'Backspace' || e.code === 'ArrowLeft') {
+        e.preventDefault();
+        lightPrev();
+      }
+    });
+
+    document.querySelector('.stage').addEventListener('click', lightNext);
+
+    // 教师端远程控制入口：收到 postMessage { type:'painwall', step:n } 就点亮到第 n 张
+    window.addEventListener('message', (e) => {
+      const d = e.data;
+      if (d && d.type === 'painwall' && typeof d.step === 'number') {
+        setLit(Math.max(0, Math.min(order.length, Math.floor(d.step))));
+      }
+    });
+  });
+</script>
+
+</body>
+</html>

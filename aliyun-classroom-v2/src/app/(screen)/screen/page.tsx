@@ -10,6 +10,7 @@ import AvatarA1Screen from '@/components/AvatarA1Screen';
 import SiteEntryScreen from '@/components/SiteEntryScreen';
 import WorldScreen from '@/components/WorldScreen';
 import FourWingsScreen from '@/components/FourWingsScreen';
+import PainWallScreen from '@/components/PainWallScreen';
 import ContentPage from '@/components/ContentPage';
 
 interface Summary {
@@ -251,7 +252,12 @@ export default function ScreenPage() {
       ) : module.type === 'world' ? (
         <WorldScreen sessionId={sessionId} />
       ) : module.type === 'closing' ? (
-        <FourWingsScreen subState={summary?.moduleSubState ?? null} />
+        (() => {
+          // 收官模块：第一屏=痛点墙(pain:N)，第二屏=四翼(wings:N)；无 subState 时默认第一屏
+          const st = summary?.moduleSubState ?? '';
+          if (st.startsWith('wings:')) return <FourWingsScreen subState={st} />;
+          return <PainWallScreen subState={st} />;
+        })()
       ) : module.type === 'grow_game' ? (
         <PlaceholderModule title={module.title} />
       ) : module.type === 'ai_task' ? (
