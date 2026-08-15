@@ -11,10 +11,10 @@ export default function PriceRevealScreen({ subState }: { subState: string | nul
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const lastSent = useRef<number>(-1);
 
-  // subState → step（0..6，对应价格颁布页七步）
+  // subState → step（0..21：0-6 前七屏，7-20 三列价值 build 子步，21 全显+CTA）
   const step = (() => {
     const m = String(subState ?? '').match(/(?:^|:)price:(\d+)$/);
-    if (m) return Math.max(0, Math.min(6, parseInt(m[1], 10)));
+    if (m) return Math.max(0, Math.min(21, parseInt(m[1], 10)));
     return 0;
   })();
 

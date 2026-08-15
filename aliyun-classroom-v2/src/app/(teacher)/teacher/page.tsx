@@ -1615,7 +1615,7 @@ function PriceRevealTeacherBar({
 }) {
   const cur = (() => {
     const m = String(subState ?? '').match(/(?:^|:)price:(\d+)$/);
-    return m ? Math.max(0, Math.min(6, parseInt(m[1], 10))) : 0;
+    return m ? Math.max(0, Math.min(21, parseInt(m[1], 10))) : 0;
   })();
   const STEPS = [
     { n: 0, label: '值多少' },
@@ -1624,16 +1624,17 @@ function PriceRevealTeacherBar({
     { n: 3, label: '转折' },
     { n: 4, label: '悬念 ???' },
     { n: 5, label: '¥299 揭晓' },
-    { n: 6, label: '价值+报名' },
+    { n: 6, label: '三样价值' },
+    { n: 21, label: '立即报名' },
   ];
   const go = (n: number) => control('setSubState', { subState: `closing:price:${n}` });
   return (
     <div style={{ border: '1px solid rgba(251,191,36,0.4)', borderRadius: 10, padding: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
-      <span style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 700 }}>价格颁布 · 逐步推进（锚点 → 悬念 → ¥299 → 价值+报名）</span>
+      <span style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 700 }}>价格颁布 · 逐步推进（锚点 → 悬念 → ¥299 → 三样价值逐列垒 → 报名）</span>
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
         <button className="secondary" style={{ fontSize: 11, padding: '4px 10px' }} disabled={busy || cur <= 0} onClick={() => go(Math.max(0, cur - 1))}>◀ 上一步</button>
-        <button className="secondary" style={{ fontSize: 11, padding: '4px 10px' }} disabled={busy || cur >= 6} onClick={() => go(Math.min(6, cur + 1))}>下一步 ▶</button>
-        <span style={{ fontSize: 11, color: 'var(--muted)', minWidth: 56, textAlign: 'center' }}>{cur} / 6</span>
+        <button className="secondary" style={{ fontSize: 11, padding: '4px 10px' }} disabled={busy || cur >= 21} onClick={() => go(Math.min(21, cur + 1))}>下一步 ▶</button>
+        <span style={{ fontSize: 11, color: 'var(--muted)', minWidth: 56, textAlign: 'center' }}>{cur} / 21</span>
         {STEPS.map((s) => (
           <button
             key={s.n}

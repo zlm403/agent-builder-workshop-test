@@ -197,7 +197,7 @@
     100% { opacity: 1; transform: scale(1); }
   }
 
-  /* step7：对比 + CTA */
+  /* step7：对比 + CTA（保留备用，build 步骤内已自带 CTA） */
   .compare-line {
     font-size: clamp(20px, 2.8vw, 38px);
     opacity: 0;
@@ -248,27 +248,6 @@
   .step.cta-step.active .cta { animation: rise 0.6s ease 0.9s forwards; }
   .step.cta-step.active .early-bird { animation: rise 0.6s ease 1.3s forwards; }
 
-  /* step7：三组价值 */
-  .values {
-    margin-top: clamp(18px, 3vh, 32px);
-    display: flex;
-    flex-direction: column;
-    gap: clamp(10px, 1.6vh, 18px);
-    opacity: 0;
-    transform: translateY(12px);
-  }
-  .step.cta-step.active .values { animation: rise 0.6s ease 0.7s forwards; }
-  .v-item {
-    font-size: clamp(15px, 2vw, 24px);
-    line-height: 1.5;
-    color: var(--text-strong);
-    letter-spacing: 0.03em;
-  }
-  .v-item b {
-    font-weight: 800;
-    color: var(--text-strong);
-  }
-
   /* 底部进度与提示 */
   .progress {
     position: absolute;
@@ -296,6 +275,136 @@
 
   @media (max-width: 720px) {
     .hint { display: none; }
+  }
+
+  /* ============== build 步骤：¥299 顶置，三列横排，逐列向上垒 ============== */
+  .step.build {
+    justify-content: flex-start;
+    padding-top: clamp(30px, 6vh, 70px);
+    padding-bottom: clamp(30px, 4vh, 50px);
+  }
+
+  .build-inner {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  /* 顶部 ¥299 一直停在这里 */
+  .top-price {
+    flex: 0 0 auto;
+    text-align: center;
+    margin-bottom: clamp(12px, 2vh, 26px);
+  }
+  .top-price .anchor-price {
+    font-size: clamp(70px, 12vw, 170px);
+    font-weight: 800;
+    line-height: 1;
+    color: #ffffff;
+    text-shadow: 0 0 50px rgba(255, 255, 255, 0.35), 0 0 90px rgba(120, 180, 255, 0.18);
+  }
+  .top-price .anchor-price .cur { font-size: 0.42em; vertical-align: 0.22em; margin-right: 0.05em; }
+  .top-price .anchor-cap {
+    margin-top: 6px;
+    font-size: clamp(14px, 2vw, 22px);
+    color: var(--text-soft);
+    letter-spacing: 0.04em;
+    transition: opacity 0.4s ease;
+  }
+
+  /* 下面三列 */
+  .grid-three {
+    flex: 1 1 auto;
+    width: 100%;
+    max-width: 1400px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: clamp(14px, 2vw, 28px);
+    align-items: start;
+    overflow-y: auto;
+    padding: 0 clamp(12px, 2vw, 32px) 10px;
+  }
+
+  .value-col {
+    background: rgba(255, 255, 255, 0.045);
+    border: 1px solid rgba(96, 165, 250, 0.22);
+    border-radius: 16px;
+    padding: clamp(14px, 1.6vw, 22px);
+    opacity: 0;
+    transform: translateY(30px);
+    transition: opacity 0.5s ease, transform 0.6s cubic-bezier(.2,.85,.25,1);
+  }
+  .value-col.in { opacity: 1; transform: none; }
+
+  .value-col .cat-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: clamp(15px, 1.8vw, 21px);
+    font-weight: 700;
+    color: var(--c-gold);
+    margin-bottom: 4px;
+  }
+  .value-col .cat-no {
+    flex: 0 0 30px;
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    background: var(--c-ai);
+    color: #07111f;
+    font-size: 16px;
+    font-weight: 800;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .value-col .cat-sub {
+    font-size: clamp(11px, 1.2vw, 14px);
+    color: var(--text-dim);
+    margin-bottom: 10px;
+    letter-spacing: 0.03em;
+  }
+  .value-col .stack-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .v-line {
+    position: relative;
+    padding-left: 22px;
+    font-size: clamp(12px, 1.4vw, 15px);
+    line-height: 1.55;
+    color: var(--text-strong);
+    opacity: 0;
+    transform: translateY(16px);
+    transition: opacity 0.45s ease, transform 0.5s cubic-bezier(.2,.85,.25,1);
+  }
+  .v-line::before {
+    content: "✓";
+    position: absolute;
+    left: 0; top: 0;
+    color: var(--c-ai);
+    font-weight: 700;
+  }
+  .v-line.in { opacity: 1; transform: none; }
+  .v-line b { color: #ffffff; font-weight: 700; }
+  .v-line i.todo { color: var(--c-old); font-style: normal; }
+
+  .build-cta {
+    flex: 0 0 auto;
+    text-align: center;
+    margin-top: clamp(12px, 2vh, 22px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.5s ease;
+  }
+  .build-cta.show { opacity: 1; pointer-events: auto; }
+  .build-cta .cta { opacity: 1; transform: none; animation: none; margin-top: 0; }
+  .build-cta .early-bird { margin-top: 10px; }
+
+  @media (max-width: 900px) {
+    .grid-three { grid-template-columns: 1fr; overflow-y: auto; }
+    .step.build { justify-content: flex-start; }
   }
 </style>
 </head>
@@ -343,19 +452,37 @@
     <div class="final-sub">就 <b>一天</b>，帮你把第一个 AI 应用做出来</div>
   </section>
 
-  <!-- step 7：三组价值 + CTA -->
-  <section class="step cta-step" data-step="6">
-    <div class="compare-line price"><span class="was">¥3,300–9,800</span><span class="now">¥299</span></div>
-    <div class="save-tag">一天实战 + 之后长期陪跑</div>
-    <div class="values">
-      <div class="v-item">手把手做出你的第一个 AI 应用</div>
-      <div class="v-item">专属群 · 真人答疑陪跑</div>
-      <div class="v-item">做得好，帮你推广 · 一人公司全链条扶持</div>
+  <!-- step 7：¥299 顶置，三列横向逐列向上垒 + CTA -->
+  <section class="step build" data-step="6">
+    <div class="build-inner">
+      <div class="top-price">
+        <div class="anchor-price price"><span class="cur">¥</span>299</div>
+        <div class="anchor-cap" id="anchorCap">这个价钱，你买到的不是一节课，是这三样</div>
+      </div>
+
+      <div class="grid-three">
+        <div class="value-col" id="col0" data-cat="0">
+          <div class="cat-head"><span class="cat-no">①</span><span>我带你做第一个应用</span></div>
+          <div class="cat-sub">6小时，亲手做出能上线的东西</div>
+          <div class="stack-list"></div>
+        </div>
+        <div class="value-col" id="col1" data-cat="1">
+          <div class="cat-head"><span class="cat-no">②</span><span>真人一对一答疑陪跑</span></div>
+          <div class="cat-sub">做完课，我还在</div>
+          <div class="stack-list"></div>
+        </div>
+        <div class="value-col" id="col2" data-cat="2">
+          <div class="cat-head"><span class="cat-no">③</span><span>作品推广 + 一人公司（OPC）</span></div>
+          <div class="cat-sub">帮你从"做出来"走到"推得开"</div>
+          <div class="stack-list"></div>
+        </div>
+      </div>
+
+      <div class="build-cta" id="buildCta">
+        <button class="cta" id="ctaBtn">立即报名 · <span id="ctaProduct">一天 AI Agent 实战课</span></button>
+        <div class="early-bird">仅限现场报名 · 以报名页规则为准</div>
+      </div>
     </div>
-    <div>
-      <button class="cta" id="ctaBtn">立即报名 · <span id="ctaProduct">一天 AI Agent 实战课</span></button>
-    </div>
-    <div class="early-bird">仅限现场报名 · 以报名页规则为准</div>
   </section>
 
   <div class="progress" id="progress"></div>
@@ -387,38 +514,146 @@
     });
     const dotEls = Array.from(dots.children);
 
-    let idx = -1;
     const stage = document.getElementById('stage');
 
+    // ——— 三类价值数据（抽出"效果"，只丢效果）———
+    const cats = [
+      {
+        no: '①', title: '我带你做第一个应用', sub: '6小时，亲手做出能上线的东西',
+        items: [
+          '6小时小班面授、一人一机，你亲手做出 <b>3 个能发布上线的应用</b>：一个能玩的小游戏、一个记心情的工具、一个"懂你"的 AI——从没碰过代码，也能拥有 3 个真实作品',
+          '一键发布到平台，<b>别人登录就能用你的作品</b>——你名下第一次有了"真实上线的产品"，不是一堆听课笔记',
+          '不教编程，你带走的是 AI 时代做事的 4 个能力：<b>会问、会改、会救、会发</b>——以后遇到新工具，你自己就能上手',
+          '六类最容易卡住的地方（说不清 / 不知下一步 / 手不会用 / 一做就错 / 怕改坏 / 记不住），<b>全部在你做项目时顺手学会</b>，不用背概念——学完就能用'
+        ]
+      },
+      {
+        no: '②', title: '真人一对一答疑陪跑', sub: '做完课，我还在',
+        items: [
+          '<b>真人一对一答疑</b>（不是机器人、不是客服话术）：你真实的业务场景问题，直接问，就能得到能落地的答案',
+          '卡住不用慌——走「说清卡点 → 查自救库 → 问 AI → 喊老师」这条被验证过的路，<b>老师兜底，不会让你一个人死磕</b>（陪跑期 XX 天 / 周，次数待定）',
+          '我陪你把每次「怎么解决的」记进你的知识库：<b>陪跑结束你带走一个越用越厚、越来越能自救的手册</b>——能力留给你自己'
+        ]
+      },
+      {
+        no: '③', title: '作品推广 + 一人公司（OPC）', sub: '帮你从"做出来"走到"推得开"',
+        items: [
+          '帮你做作品推广——<i class="todo">〔怎么推广：渠道 / 曝光位 / 物料，待填〕</i>',
+          '一人公司全面支持——<i class="todo">〔怎么支持：资源 / 背书 / 对接，待填〕</i>',
+          '从"做得出来"走到"用得起来、推得开"——<i class="todo">〔具体交付，待填〕</i>'
+        ]
+      }
+    ];
+
+    const anchorCap = document.getElementById('anchorCap');
+    const buildCta = document.getElementById('buildCta');
+    const cols = [document.getElementById('col0'), document.getElementById('col1'), document.getElementById('col2')];
+    const lists = cols.map(c => c.querySelector('.stack-list'));
+
+    // build 节奏：0=左列出现；1-4=左列4条；5=中列出现；6-8=中列3条；9=右列出现；10-12=右列3条；13=CTA
+    const colStart = [0, 5, 9];
+    const TOTAL_STEPS = 14;
+    let buildIdx = -1;
+
+    const clamp = (lo, hi, v) => Math.max(lo, Math.min(hi, v));
+
+    function updateCaption(k) {
+      if (k < 0) anchorCap.textContent = '这个价钱，你买到的不是一节课，是这三样';
+      else if (k < 5) anchorCap.textContent = '先来看第一类：我带你做第一个应用';
+      else if (k === 5) anchorCap.textContent = '第一类齐了——接着看第二类';
+      else if (k < 9) anchorCap.textContent = '第二类：真人一对一答疑陪跑';
+      else if (k === 9) anchorCap.textContent = '第二类也齐了——最后一类';
+      else if (k < 13) anchorCap.textContent = '第三类：作品推广 + 一人公司（OPC）';
+      else anchorCap.textContent = '就这些，全在 ¥299 里——现在锁定它';
+    }
+
+    function renderCol(i, k) {
+      const col = cols[i];
+      const list = lists[i];
+      const cat = cats[i];
+      const start = colStart[i];
+      const shown = k >= start;
+
+      col.classList.toggle('in', shown);
+      if (!shown) { list.innerHTML = ''; return; }
+
+      const want = clamp(0, cat.items.length, k - start);
+      const have = list.querySelectorAll('.v-line').length;
+      if (want > have) {
+        for (let j = have; j < want; j++) {
+          const line = document.createElement('div');
+          line.className = 'v-line';
+          line.innerHTML = cat.items[j];
+          list.appendChild(line);
+          requestAnimationFrame(() => requestAnimationFrame(() => line.classList.add('in')));
+        }
+      } else if (want < have) {
+        while (list.children.length > want) list.removeChild(list.lastChild);
+      }
+    }
+
+    function setBuild(k) {
+      k = clamp(-1, TOTAL_STEPS, k);
+      if (k === buildIdx) return;
+      for (let i = 0; i < 3; i++) renderCol(i, k);
+      buildIdx = k;
+      buildCta.classList.toggle('show', k >= TOTAL_STEPS);
+      updateCaption(k);
+    }
+
+    function resetBuild() {
+      lists.forEach(l => l.innerHTML = '');
+      cols.forEach(c => c.classList.remove('in'));
+      buildCta.classList.remove('show');
+      buildIdx = -1;
+      updateCaption(-1);
+    }
+
+    let cur = -1;
     function go(n) {
-      n = Math.max(0, Math.min(steps.length - 1, n));
+      n = clamp(0, steps.length - 1, n);
       steps.forEach((s, i) => s.classList.toggle('active', i === n));
       dotEls.forEach((d, i) => d.classList.toggle('on', i <= n));
-      idx = n;
+      cur = n;
       if (n >= 0) stage.classList.add('lit');
+      if (n === 6) resetBuild();
+    }
+
+    function next() {
+      if (cur < 6) go(cur + 1);
+      else if (cur === 6 && buildIdx < TOTAL_STEPS) setBuild(buildIdx + 1);
+    }
+    function prev() {
+      if (cur === 6) {
+        if (buildIdx > -1) setBuild(buildIdx - 1);
+        else go(5);
+      } else if (cur > 0) go(cur - 1);
     }
 
     document.addEventListener('keydown', (e) => {
-      if (e.code === 'Space' || e.code === 'ArrowRight') { e.preventDefault(); go(idx + 1); }
-      else if (e.code === 'Backspace' || e.code === 'ArrowLeft') { e.preventDefault(); go(idx - 1); }
+      if (e.code === 'Space' || e.code === 'ArrowRight') { e.preventDefault(); next(); }
+      else if (e.code === 'Backspace' || e.code === 'ArrowLeft') { e.preventDefault(); prev(); }
     });
     stage.addEventListener('click', (e) => {
-      if (e.target.closest('.cta')) return; // 按钮单独处理
-      go(idx + 1);
+      if (e.target.closest('.cta')) return;
+      next();
     });
 
     document.getElementById('ctaBtn').addEventListener('click', () => {
-      // 占位：真实下单/领取链接在这里接
       console.log('CTA clicked — 在此接入你的下单/领取链接');
     });
 
-    // 教师端远程控制入口：收到 postMessage { type:'pricereveal', step:n } 就跳到对应步骤
+    // 教师端远程控制：step 0..6 同原逻辑；step 7..20 控制 build 0..13；>=21 全显+CTA
     window.addEventListener('message', (e) => {
       const d = e.data;
       if (d && d.type === 'pricereveal' && typeof d.step === 'number') {
-        go(Math.max(0, Math.min(steps.length - 1, Math.floor(d.step))));
+        const s = Math.floor(d.step);
+        if (s <= 6) { go(s); }
+        else { go(6); setBuild(s - 7); }
       }
     });
+
+    go(0);
   });
 </script>
 
