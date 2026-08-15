@@ -136,7 +136,7 @@ export function upsertLife(
 
 export interface WorldPopup {
   show: boolean;
-  content: 'usage' | 'method' | null; // usage=手机怎么用 method=AI创作方法
+  content: 'usage' | 'method' | 'tip01' | 'tip02' | 'tip03' | 'tip04' | 'tip05' | 'tip06' | 'tip07' | 'tip08' | null;
   updatedAt: number;
 }
 
@@ -153,8 +153,22 @@ export function writePopup(popup: WorldPopup): void {
   writeJsonAtomic(POPUP_FILE, popup);
 }
 
-export function setPopup(content: 'usage' | 'method' | null, show: boolean): WorldPopup {
-  const next = { show, content, updatedAt: Date.now() };
+export const POPUP_CONTENTS = [
+  'usage',
+  'method',
+  'tip01',
+  'tip02',
+  'tip03',
+  'tip04',
+  'tip05',
+  'tip06',
+  'tip07',
+  'tip08',
+] as const;
+export type PopupContent = (typeof POPUP_CONTENTS)[number];
+
+export function setPopup(content: PopupContent | null, show: boolean): WorldPopup {
+  const next: WorldPopup = { show, content, updatedAt: Date.now() };
   writePopup(next);
   return next;
 }

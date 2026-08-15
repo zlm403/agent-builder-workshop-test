@@ -7,6 +7,7 @@
 // 逻辑与数据全部来自 /api/world（引擎），本组件只负责视觉。
 // =========================================================
 import { useEffect, useRef, useState } from 'react';
+import { findTip } from '@/lib/world/tips';
 
 interface WorldLife {
   id: string;
@@ -516,7 +517,7 @@ function fmtTime(t: number): string {
 }
 
 // =========================================================
-// 大屏按需弹窗（老师控制）：覆盖在游戏主屏上，讲操作方法 / AI 创作方法
+// 大屏按需弹窗（老师控制）：覆盖在游戏主屏上，讲 Tips 任务 / 操作方法 / AI 创作方法
 // =========================================================
 function PopupOverlay({ show, content }: { show: boolean; content: string | null }) {
   if (!show) return null;
@@ -541,7 +542,8 @@ function PopupOverlay({ show, content }: { show: boolean; content: string | null
     },
   };
 
-  const b = blocks[content ?? ''] ?? blocks.usage;
+  const tip = findTip(content);
+  const b = tip ? { title: tip.title, lines: tip.lines } : (blocks[content ?? ''] ?? blocks.usage);
 
   return (
     <div style={{

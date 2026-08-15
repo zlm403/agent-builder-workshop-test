@@ -1015,6 +1015,9 @@ export default function TeacherPage() {
                   {currentModuleId === 'A3_WORLD' && (
                     <WorldVisualBar />
                   )}
+                  {currentModuleId === 'A3_WORLD' && (
+                    <WorldTipsBar />
+                  )}
                   {currentModuleId === 'CLOSING' && (
                     <FourWingsTeacherBar
                       subState={summary?.moduleSubState ?? null}
@@ -1394,6 +1397,82 @@ function WorldVisualBar() {
         <span style={{ fontSize: 11, color: 'var(--muted)', width: 34, flexShrink: 0 }}>亮度</span>
         <input type="range" min={0.3} max={3} step={0.1} value={brightness} onChange={(e) => apply(speed, Number(e.target.value))} style={{ flex: 1 }} />
         <span style={{ fontSize: 11, width: 36, textAlign: 'right' }}>{brightness.toFixed(1)}×</span>
+      </div>
+    </div>
+  );
+}
+
+// 《我的世界》Tips 发布控件：8 条课堂任务，老师按序/按需点哪条，大屏就弹哪条
+function WorldTipsBar() {
+  const [active, setActive] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  async function load() {
+    try {
+      const r = await fetch('/api/world/popup', { cache: 'no-store' });
+      const d = await r.json();
+      if (d.show) setActive(d.content ?? null);
+      else setActive(null);
+    } catch { /* noop */ }
+  }
+
+  useEffect(() => { load(); }, []);
+
+  async function show(id: string) {
+    if (busy) return;
+    setBusy(true);
+    try {
+      await fetch('/api/world/popup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: id, show: true }),
+      });
+      setActive(id);
+    } finally {
+      setTimeout(() => setBusy(false), 200);
+    }
+  }
+
+  async function hide() {
+    if (busy) return;
+    setBusy(true);
+    try {
+      await fetch('/api/world/popup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: null, show: false }),
+      });
+      setActive(null);
+    } finally {
+      setTimeout(() => setBusy(false), 200);
+    }
+  }
+
+  const TIPS = [
+    { id: 'tip01', label: '01 造一个生命' },
+    { id: 'tip02', label: '02 给它一点感觉' },
+    { id: 'tip03', label: '03 让AI实现想法' },
+    { id: 'tip04', label: '04 放进世界观察' },
+    { id: 'tip05', label: '05 发现问题' },
+    { id: 'tip06', label: '06 让AI看看' },
+    { id: 'tip07', label: '07 只改一个地方' },
+    { id: 'tip08', label: '08 自由创造' },
+  ];
+
+  return (
+    <div style={{ border: '1px solid rgba(251,191,36,0.4)', borderRadius: 10, padding: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+        <span style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 700 }}>发布 Tips</span>
+        {active && <span className="pill blue" style={{ fontSize: 10 }}>大屏显示中</span>}
+      </div>
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+        {TIPS.map((t) => (
+          <button key={t.id} className="secondary" style={{ fontSize: 11, padding: '4px 9px', color: active === t.id ? 'var(--green)' : undefined }}
+            disabled={busy} onClick={() => show(t.id)}>
+            {t.label}
+          </button>
+        ))}
+        <button className="secondary" style={{ fontSize: 11, padding: '4px 9px' }} disabled={busy || !active} onClick={hide}>收起</button>
       </div>
     </div>
   );
