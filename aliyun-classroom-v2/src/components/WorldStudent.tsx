@@ -30,12 +30,7 @@ interface WorldData {
 
 const COLOR_CHOICES = ['#36CFC9', '#F3C84B', '#FF7A9C', '#7C9BFF', '#9BE15D', '#C77DFF'];
 
-const STAGE_HINT: Record<string, string> = {
-  creating: '第1步 · 它是谁',
-  running: '世界正在运行，看看你的生命在做什么',
-  revising: '修改阶段 · 重写它的生命定义，下一轮看变化',
-  finished: '本轮体验结束',
-};
+const STAGE_HINT = '在《我的世界》里创造你的数字生命，看它和其他生命一起生活。可以随时修改，改完提交就生效。';
 
 export default function WorldStudent({
   anonymousId,
@@ -65,10 +60,10 @@ export default function WorldStudent({
   const logRef = useRef<HTMLDivElement>(null);
 
   const my = data?.myLife;
-  const creating = data?.status === 'creating';
-  const revising = data?.status === 'revising';
-  const canEdit = creating || revising;
-  const version = data?.round === 1 ? 1 : 2;
+  // 世界自动运行：学生随时可以创建/修改自己的生命，提交即生效
+  const canEdit = true;
+  // 已有生命则提交下一个版本；没有则提交 V1
+  const version = my ? my.activeVersion + 1 : 1;
 
   async function load() {
     try {
@@ -78,7 +73,7 @@ export default function WorldStudent({
       if (d.myLife) {
         if (!name) setName(d.myLife.name);
         if (step === 1) setColor(d.myLife.color);
-        if (revising && !lifeText) setLifeText(d.myLife.text || '');
+        if (!lifeText) setLifeText(d.myLife.text || '');
       }
     } catch { /* noop */ }
   }
@@ -91,7 +86,7 @@ export default function WorldStudent({
 
   // 进入/刷新：预填草稿里的生命定义
   useEffect(() => {
-    if (my?.text && !lifeText && (creating || revising)) setLifeText(my.text || '');
+    if (my?.text && !lifeText) setLifeText(my.text || '');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [my?.id]);
 
@@ -102,7 +97,7 @@ export default function WorldStudent({
     setChatInput('');
     setChatLog((log) => [...log, { role: 'user', text }]);
     try {
-      const mode = creating || revising ? 'create' : 'observe';
+      const mode = my ? 'observe' : 'create';
       const res = await fetch('/api/world/ai', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -134,7 +129,7 @@ export default function WorldStudent({
       if (!res.ok) {
         setMsg(d.error?.message || '提交失败');
       } else {
-        setMsg(version === 1 ? '生命已创建，等待老师发布到世界。' : '新版本已提交，等待老师开启第二轮。');
+        setMsg(version === 1 ? '生命已创建，马上进入世界！' : '新版本已生效，看看它在世界里的变化。');
         load();
       }
     } finally {
@@ -146,12 +141,15 @@ export default function WorldStudent({
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       {/* 阶段提示条 */}
       <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--blue)' }}>
-        {STAGE_HINT[data?.status ?? 'creating'] ?? data?.status}
+        {STAGE_HINT}
       </div>
 
       {/* ===== 创建/修改：分步表单 ===== */}
       {canEdit && (
         <div className="card" style={{ padding: 20 }}>
+          <h2 style={{ margin: '0 0 12px', fontSize: 18 }}>
+            {my ? `修改 ${my.name}（新版本）` : '创造你的生命'}
+          </h2>
           <StepHeader step={step} />
 
           {step === 1 && (
@@ -220,8 +218,8 @@ export default function WorldStudent({
         </div>
       )}
 
-      {/* ===== 我的生命卡片（运行时） ===== */}
-      {my && !canEdit && (
+      {/* ===== 我的生命卡片（始终显示，有生命时） ===== */}
+      {my && (
         <div className="card" style={{ padding: 18 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
             <span style={{ width: 18, height: 18, borderRadius: '50%', background: my.color, display: 'inline-block' }} />
@@ -263,9 +261,9 @@ export default function WorldStudent({
             <div ref={logRef} style={{ maxHeight: 260, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 8 }}>
               {chatLog.length === 0 ? (
                 <div style={{ fontSize: 13, color: 'var(--muted)' }}>
-                  {creating || revising
-                    ? '说说你希望它是怎样的生命，AI 帮你写「生命定义」。'
-                    : '把它最近的行为告诉 AI，让它帮你分析"这是怎么回事、怎么玩、要不要改"。'}
+                  {my
+                    ? '把它最近的行为告诉 AI，让它帮你分析"这是怎么回事、怎么玩、要不要改"。'
+                    : '说说你希望它是怎样的生命，AI 帮你写「生命定义」。'}
                 </div>
               ) : (
                 chatLog.map((m, i) => (
@@ -283,7 +281,7 @@ export default function WorldStudent({
             <div style={{ display: 'flex', gap: 8 }}>
               <input value={chatInput} onChange={(e) => setChatInput(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter') askAI(); }}
-                placeholder={creating || revising ? '比如：我想要一个爱帮助别人但会保护自己的生命' : '比如：它为什么一直躲开别人？'} />
+                placeholder={my ? '比如：它为什么一直躲开别人？' : '比如：我想要一个爱帮助别人但会保护自己的生命'} />
               <button className="secondary" disabled={chatBusy || !chatInput.trim()} onClick={askAI}>
                 {chatBusy ? '…' : '发送'}
               </button>

@@ -218,6 +218,49 @@ export function createInitialState(
   };
 }
 
+// 把 lives.json 里已提交的生命同步进世界（提交即发布，无需教师控制）：
+//  - 新增生命：加入世界（随机出生点、满能量）
+//  - 已存在生命：更新为最新提交版本的倾向（新版本自动生效）
+export function syncLivesIntoWorld(state: WorldState, lives: LifeRecord[], config: EngineConfig, rng: Rng): void {
+  for (const rec of lives) {
+    const submitted = rec.versions.some((v) => v.submitted);
+    if (!submitted) continue;
+    const v = latestSubmitted(rec, state.round);
+    const ex = state.lives.find((l) => l.id === rec.id);
+    if (!ex) {
+      const p = randPos(rng);
+      state.lives.push({
+        id: rec.id,
+        name: rec.name,
+        color: rec.color,
+        x: p.x,
+        y: p.y,
+        energy: ENERGY_START,
+        state: 'active',
+        action: 'wander',
+        reason: '刚刚进入世界，正在熟悉环境',
+        relations: {},
+        activeVersion: v.version,
+        social: v.social,
+        helpful: v.helpful,
+        cautious: v.cautious,
+      });
+      state.keyEvents.push({ t: state.simulationTime, text: `${rec.name} 进入了世界`, lifeId: rec.id });
+    } else {
+      ex.name = rec.name;
+      ex.color = rec.color;
+      ex.social = v.social;
+      ex.helpful = v.helpful;
+      ex.cautious = v.cautious;
+      ex.activeVersion = v.version;
+      if (ex.state === 'sleeping') {
+        ex.energy = ENERGY_START;
+        ex.state = 'active';
+      }
+    }
+  }
+}
+
 // ---------- 单 tick 推进 ----------
 
 function tick(state: WorldState, config: EngineConfig, rng: Rng): void {

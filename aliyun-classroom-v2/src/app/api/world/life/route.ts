@@ -18,14 +18,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: { code: 'BAD_REQUEST', message: 'anonymousId and name required' } }, { status: 400 });
   }
 
-  const control = readControl();
-  // creating 阶段只收 V1；revising 阶段只收 V2
-  if (control.status === 'creating' && version !== 1) {
-    return NextResponse.json({ error: { code: 'WRONG_VERSION', message: '当前阶段只接受 V1' } }, { status: 400 });
-  }
-  if (control.status === 'revising' && version !== 2) {
-    return NextResponse.json({ error: { code: 'WRONG_VERSION', message: '当前阶段只接受 V2' } }, { status: 400 });
-  }
+  // 世界自动运行：不做阶段限制，任何版本都可提交（提交即发布/生效）
 
   // 文字 → 三个内部倾向
   const traits = text ? await textToTraits(text) : { social: 0.5, helpful: 0.5, cautious: 0.5, advice: '' };

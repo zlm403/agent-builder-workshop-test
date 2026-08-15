@@ -36,7 +36,8 @@ function writeJsonAtomic(file: string, data: unknown): void {
 // ---------- control ----------
 
 export function defaultControl(): WorldControl {
-  return { status: 'creating', round: 1, revision: 0, updatedAt: Date.now() };
+  // 世界自动运行：进入 A3 即 running，无需教师控制状态机
+  return { status: 'running', round: 1, revision: 0, updatedAt: Date.now() };
 }
 
 export function readControl(): WorldControl {

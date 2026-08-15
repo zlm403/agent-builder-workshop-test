@@ -1,9 +1,10 @@
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { readControl, readLives, readState, writeState } from '@/lib/world/store';
-import { advance, createInitialState, DEFAULT_CONFIG, makeRng, type WorldState } from '@/lib/world/engine';
+import { advance, createInitialState, syncLivesIntoWorld, DEFAULT_CONFIG, makeRng, type WorldState } from '@/lib/world/engine';
 
 // 惰性推进：读取时按墙钟差补算 tick，再返回裁剪后的状态。
+// 世界自动运行：不依赖教师控制状态机，提交即发布、新版本自动生效。
 // 角色裁剪：
 //   ?sessionId=&view=screen  大屏公共视图（所有生命的公开字段 + 资源 + 事件）
 //   ?sessionId=&anonymousId= 学生本人视图（自己的完整倾向/关系 + 其他生命公开字段）
@@ -42,25 +43,29 @@ export async function GET(req: NextRequest) {
   const anonymousId = req.nextUrl.searchParams.get('anonymousId');
 
   const control = readControl();
+  // 世界自动运行：强制 running（兼容旧数据里的 creating/revising）
+  const autoControl = { ...control, status: 'running' as const, round: control.round || 1 };
   const livesData = readLives();
   let state = readState();
 
   if (!state) {
     // 首次：按当前 control 初始化世界
-    state = createInitialState(livesData.lives, control, DEFAULT_CONFIG, makeRng(DEFAULT_CONFIG.seed));
+    state = createInitialState(livesData.lives, autoControl, DEFAULT_CONFIG, makeRng(DEFAULT_CONFIG.seed));
     writeState(state);
   } else {
-    // 惰性推进（running 时按墙钟差补算）
+    // 同步新提交的生命进世界（提交即发布）
+    syncLivesIntoWorld(state, livesData.lives, DEFAULT_CONFIG, makeRng(DEFAULT_CONFIG.seed + state.simulationTime));
+    // 惰性推进（按墙钟差补算）
     const r = advance(state, DEFAULT_CONFIG, Date.now());
     state = r.state;
-    if (r.advancedSeconds > 0) writeState(state);
+    writeState(state);
   }
 
   const lives = (state.lives ?? []).map((l) => (anonymousId && l.id === `life-${anonymousId}` ? selfLife(l) : publicLife(l)));
 
   return NextResponse.json({
-    status: control.status,
-    round: control.round,
+    status: 'running',
+    round: autoControl.round,
     updatedAt: state.updatedAt,
     simulationTime: state.simulationTime,
     lives,
