@@ -202,6 +202,7 @@ export default function WorldScreen({ sessionId }: { sessionId: string }) {
     }
 
     function draw(now: number) {
+      try {
       const dt = Math.min(100, now - last);
       last = now;
       const rect = canvas!.getBoundingClientRect();
@@ -404,22 +405,25 @@ export default function WorldScreen({ sessionId }: { sessionId: string }) {
           ctx!.fill();
           ctx!.globalAlpha = 1;
 
-          // AI 形状（SVG → Image → drawImage），只在 active 时完整显示
+          // AI 形状（SVG → Image → drawImage），只在 active 时完整显示；任何异常回退圆斑
           if (l.shape && !sleeping) {
-            let img = svgImgRef.current.get(l.id);
-            if (!img) {
-              // base64 data URL 最稳，避免 URL 编码导致 SVG 解析失败
-              const src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(l.shape)));
-              img = new Image();
-              img.onload = () => { /* 加载完成，下一帧会画出来 */ };
-              img.src = src;
-              svgImgRef.current.set(l.id, img);
-            }
-            if (img && img.complete && img.naturalWidth > 0) {
-              const s = sEff * 1.7;
-              ctx!.globalAlpha = dim;
-              ctx!.drawImage(img, x - s / 2, y - s / 2, s, s);
-              ctx!.globalAlpha = 1;
+            try {
+              let img = svgImgRef.current.get(l.id);
+              if (!img) {
+                const src = 'data:image/svg+xml;base64,' + toBase64(l.shape);
+                img = new Image();
+                img.onload = () => { /* 加载完成，下一帧会画出来 */ };
+                img.src = src;
+                svgImgRef.current.set(l.id, img);
+              }
+              if (img && img.complete && img.naturalWidth > 0) {
+                const s = sEff * 1.7;
+                ctx!.globalAlpha = dim;
+                ctx!.drawImage(img, x - s / 2, y - s / 2, s, s);
+                ctx!.globalAlpha = 1;
+              }
+            } catch (e) {
+              /* SVG 解析失败，保持圆斑，不中断渲染 */
             }
           }
 
@@ -466,10 +470,11 @@ export default function WorldScreen({ sessionId }: { sessionId: string }) {
         ctx!.fillText('世界空着，等待生命进入…', W / 2, H / 2);
       }
 
+      } catch (e) {
+        // 任何一帧绘制异常都不中断动画循环（否则画面会"停下来"）
+      }
       raf = requestAnimationFrame(draw);
     }
-
-    raf = requestAnimationFrame(draw);
     return () => {
       cancelAnimationFrame(raf);
       window.removeEventListener('resize', resize);
@@ -559,6 +564,18 @@ function fmtTime(t: number): string {
   const m = Math.floor(t / 60);
   const s = Math.floor(t % 60);
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
+
+// UTF-8 安全地转 base64（SVG 可能含中文，不用废弃的 unescape）
+function toBase64(str: string): string {
+  try {
+    const bytes = new TextEncoder().encode(str);
+    let bin = '';
+    for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+    return btoa(bin);
+  } catch {
+    return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, (_, p) => String.fromCharCode(parseInt(p, 16))));
+  }
 }
 
 // =========================================================
