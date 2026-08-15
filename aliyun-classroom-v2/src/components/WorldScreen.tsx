@@ -317,17 +317,20 @@ export default function WorldScreen({ sessionId }: { sessionId: string }) {
           posRef.current[l.id] = cur;
         }
 
-        // 碰撞检测：环境光点撞到生命 → 触发受击闪光
+        // 碰撞检测：环境光点撞到生命 → 触发受击闪光（纯前端，归一化坐标）
+        // 光点实际显示半径 ≈ a.size*2.2 px；生命半径 ≈ sEff px；换算成归一化距离
+        const px2u = 1 / Math.max(W, H); // 1px = 多少归一化单位
         for (const a of ambRef.current) {
+          const aR = a.size * 2.2 * px2u * 2; // 光点有效碰撞半径（归一化）
           for (const l of d.lives) {
             const p = posRef.current[l.id];
             if (!p) continue;
             const dx = a.x - p.x;
             const dy = a.y - p.y;
             const dist = Math.sqrt(dx * dx + dy * dy);
-            const hitRadius = (a.size * 2.2 + sizeOf(l.id)) / Math.max(W, H) * Math.max(W, H) / 1000 * 0.6 + 0.06;
-            if (dist < hitRadius) {
-              p.hit = Math.min(1, (p.hit || 0) + 0.35);
+            const lR = sizeOf(l.id) * (1 + (p.hit || 0) * 0.35) * px2u * 2.2;
+            if (dist < aR + lR) {
+              p.hit = Math.min(1, (p.hit || 0) + 0.5);
             }
           }
         }
@@ -405,8 +408,10 @@ export default function WorldScreen({ sessionId }: { sessionId: string }) {
           if (l.shape && !sleeping) {
             let img = svgImgRef.current.get(l.id);
             if (!img) {
-              const src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(l.shape);
+              // base64 data URL 最稳，避免 URL 编码导致 SVG 解析失败
+              const src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(l.shape)));
               img = new Image();
+              img.onload = () => { /* 加载完成，下一帧会画出来 */ };
               img.src = src;
               svgImgRef.current.set(l.id, img);
             }
