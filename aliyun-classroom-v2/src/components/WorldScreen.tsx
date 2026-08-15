@@ -153,43 +153,51 @@ export default function WorldScreen({ sessionId }: { sessionId: string }) {
     let raf = 0;
     let last = performance.now();
 
+    // mount 时无条件初始化环境光点（不依赖 canvas 尺寸，保证光点一定存在）
+    if (ambRef.current.length === 0) {
+      const TYPES = [
+        { label: '机遇', hue: 150 },
+        { label: '变故', hue: 0 },
+        { label: '惊喜', hue: 320 },
+        { label: '考验', hue: 40 },
+        { label: '风暴', hue: 265 },
+        { label: '平静', hue: 200 },
+        { label: '偶然', hue: 180 },
+        { label: '礼物', hue: 340 },
+      ];
+      for (let i = 0; i < 14; i++) {
+        const ang = Math.random() * Math.PI * 2;
+        const type = TYPES[(Math.random() * TYPES.length) | 0];
+        ambRef.current.push({
+          x: Math.random(),
+          y: Math.random(),
+          dirx: Math.cos(ang),
+          diry: Math.sin(ang),
+          baseSpeed: 0.0001 + Math.random() * 0.00035,
+          t: Math.random() * 1000,
+          oscFreq: 0.003 + Math.random() * 0.012,
+          size: 12 + Math.random() * 22,
+          hue: type.hue,
+          label: type.label,
+          life: 600 + Math.random() * 600,
+          trail: [],
+        });
+      }
+    }
+
     function resize() {
       const rect = canvas!.getBoundingClientRect();
-      if (rect.width <= 0 || rect.height <= 0) return; // 未布局完成，跳过
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      canvas!.width = rect.width * dpr;
-      canvas!.height = rect.height * dpr;
-      // 首次初始化环境光点（鱼缸 Light 风格：大、亮、慢，带标签与拖尾）
-      if (ambRef.current.length === 0) {
-        const TYPES = [
-          { label: '机遇', hue: 150 },
-          { label: '变故', hue: 0 },
-          { label: '惊喜', hue: 320 },
-          { label: '考验', hue: 40 },
-          { label: '风暴', hue: 265 },
-          { label: '平静', hue: 200 },
-          { label: '偶然', hue: 180 },
-          { label: '礼物', hue: 340 },
-        ];
-        for (let i = 0; i < 14; i++) {
-          const ang = Math.random() * Math.PI * 2;
-          const type = TYPES[(Math.random() * TYPES.length) | 0];
-          ambRef.current.push({
-            x: Math.random(),
-            y: Math.random(),
-            dirx: Math.cos(ang),
-            diry: Math.sin(ang),
-            baseSpeed: 0.0001 + Math.random() * 0.00035, // 慢（归一化/ms），整体比之前再慢约 30%
-            t: Math.random() * 1000,
-            oscFreq: 0.003 + Math.random() * 0.012,
-            size: 12 + Math.random() * 22, // 大：12-34px
-            hue: type.hue,
-            label: type.label,
-            life: 600 + Math.random() * 600,
-            trail: [],
-          });
-        }
+      let w = rect.width;
+      let h = rect.height;
+      if (w <= 0 || h <= 0) {
+        // canvas 尺寸为 0 时用父容器兜底
+        const parent = canvas!.parentElement?.getBoundingClientRect();
+        if (parent) { w = parent.width; h = parent.height; }
       }
+      if (w <= 0 || h <= 0) return; // 仍无尺寸，下次再试
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      canvas!.width = w * dpr;
+      canvas!.height = h * dpr;
     }
     // 延迟到下一帧再量尺寸（组件刚挂载时 canvas 可能还没布局）
     requestAnimationFrame(() => requestAnimationFrame(resize));
@@ -207,8 +215,16 @@ export default function WorldScreen({ sessionId }: { sessionId: string }) {
       last = now;
       const rect = canvas!.getBoundingClientRect();
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      const W = rect.width;
-      const H = rect.height;
+      let W = rect.width;
+      let H = rect.height;
+      if (W <= 0 || H <= 0) {
+        // 尺寸未就绪：先 resize（设 canvas.width/height），下一帧再画
+        resize();
+        // 用 canvas 实际像素尺寸兜底画背景（保证不是纯黑空框）
+        W = canvas!.width / dpr;
+        H = canvas!.height / dpr;
+        if (W <= 0 || H <= 0) return;
+      }
       ctx!.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx!.clearRect(0, 0, W, H);
 
@@ -472,8 +488,9 @@ export default function WorldScreen({ sessionId }: { sessionId: string }) {
 
       } catch (e) {
         // 任何一帧绘制异常都不中断动画循环（否则画面会"停下来"）
+      } finally {
+        raf = requestAnimationFrame(draw);
       }
-      raf = requestAnimationFrame(draw);
     }
     return () => {
       cancelAnimationFrame(raf);
@@ -489,8 +506,8 @@ export default function WorldScreen({ sessionId }: { sessionId: string }) {
         <div style={{ background: 'rgba(14,40,58,0.55)', border: '1px solid rgba(120,200,230,0.18)', borderRadius: 14, padding: 16, color: '#7fa6b8' }}>
           世界状态
         </div>
-        <div style={{ position: 'relative', borderRadius: 14, overflow: 'hidden', border: '1px solid rgba(120,200,230,0.18)' }}>
-          <canvas ref={canvasRef} style={{ width: '100%', height: '100%', display: 'block' }} />
+        <div style={{ position: 'relative', borderRadius: 14, overflow: 'hidden', border: '1px solid rgba(120,200,230,0.18)', minHeight: 300 }}>
+          <canvas ref={canvasRef} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', display: 'block' }} />
           <PopupOverlay show={popup.show} content={popup.content} />
         </div>
         <div style={{ background: 'rgba(14,40,58,0.55)', border: '1px solid rgba(120,200,230,0.18)', borderRadius: 14, padding: 16, color: '#7fa6b8' }}>
@@ -519,8 +536,8 @@ export default function WorldScreen({ sessionId }: { sessionId: string }) {
       </div>
 
       {/* 中：Canvas 世界 */}
-      <div style={{ position: 'relative', borderRadius: 14, overflow: 'hidden', border: '1px solid rgba(120,200,230,0.18)' }}>
-        <canvas ref={canvasRef} style={{ width: '100%', height: '100%', display: 'block' }} />
+      <div style={{ position: 'relative', borderRadius: 14, overflow: 'hidden', border: '1px solid rgba(120,200,230,0.18)', minHeight: 300 }}>
+        <canvas ref={canvasRef} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', display: 'block' }} />
         <PopupOverlay show={popup.show} content={popup.content} />
       </div>
 
