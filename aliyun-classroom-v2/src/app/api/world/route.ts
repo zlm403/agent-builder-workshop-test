@@ -35,6 +35,7 @@ function selfLife(l: WorldState['lives'][number]) {
     helpful: l.helpful,
     cautious: l.cautious,
     relations: l.relations,
+    shape: l.shape,
   };
 }
 

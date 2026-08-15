@@ -5,7 +5,7 @@
 // 主体：我的生命 + 和 AI 一起创造 + ✨创作工具
 // 创建走 Tips01 简化流程：一句话给 AI → 【试试看】→【让它进入世界】
 // =========================================================
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { findTip } from '@/lib/world/tips';
 
 interface MyLife {
@@ -29,7 +29,6 @@ interface WorldData {
   myLife: MyLife | null;
 }
 
-const COLOR_CHOICES = ['#36CFC9', '#F3C84B', '#FF7A9C', '#7C9BFF', '#9BE15D', '#C77DFF'];
 const DEFAULT_NAME = '我的生命';
 
 // 创作工具：点按钮 = 触发对应 AI 模式
@@ -52,12 +51,13 @@ export default function WorldStudent({
   const [data, setData] = useState<WorldData | null>(null);
   const [currentTip, setCurrentTip] = useState<string | null>(null); // 'tip01'...
 
-  // 创建状态（Tips01 简化流程）
-  const [name, setName] = useState('');
-  const [color, setColor] = useState(COLOR_CHOICES[0]);
-  const [createStep, setCreateStep] = useState<'idle' | 'asking' | 'preview' | 'in' >('idle');
+  // 创建状态（Tips01 纯对话流程：AI 生成名字/颜色/形状/定义）
+  const [createStep, setCreateStep] = useState<'idle' | 'preview' | 'in'>('idle');
   const [aiLine, setAiLine] = useState('');
   const [lifeText, setLifeText] = useState('');
+  const [aiName, setAiName] = useState('');
+  const [aiColor, setAiColor] = useState('#36CFC9');
+  const [aiShape, setAiShape] = useState('');
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState('');
 
@@ -76,10 +76,6 @@ export default function WorldStudent({
       const r = await fetch(`/api/world?anonymousId=${anonymousId}&sessionId=${sessionId}`);
       const d = await r.json();
       setData(d);
-      if (d.myLife) {
-        if (!name) setName(d.myLife.name);
-        setColor(d.myLife.color);
-      }
     } catch { /* noop */ }
   }
 
@@ -108,7 +104,7 @@ export default function WorldStudent({
     logRef.current?.scrollTo({ top: logRef.current.scrollHeight, behavior: 'smooth' });
   }, [chatLog]);
 
-  // ---------- 创建（Tips01：一句话给 AI → 试试看 → 进入世界） ----------
+  // ---------- 创建（Tips01：纯对话，AI 生成名字/颜色/形状/定义） ----------
 
   async function startCreate() {
     const text = aiLine.trim();
@@ -116,15 +112,18 @@ export default function WorldStudent({
     setBusy(true);
     setMsg('');
     try {
-      // 先让 AI 基于这句话生成生命定义草稿（mode=create）
+      // AI 基于这句话生成完整生命（mode=create）
       const res = await fetch('/api/world/ai', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ anonymousId, message: text, mode: 'create' }),
       });
       const d = await res.json();
-      if (d.draft) {
+      if (d.draft && d.name) {
         setLifeText(d.draft);
+        setAiName(d.name);
+        if (d.color) setAiColor(d.color);
+        if (d.shape) setAiShape(d.shape);
         setCreateStep('preview');
         setMsg('');
       } else {
@@ -137,14 +136,21 @@ export default function WorldStudent({
   }
 
   async function enterWorld() {
-    if (!name.trim() || busy || locked) return;
+    if (busy || locked) return;
     setBusy(true);
     setMsg('');
     try {
       const res = await fetch('/api/world/life', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ anonymousId, name: name.trim() || DEFAULT_NAME, color, version, text: lifeText }),
+        body: JSON.stringify({
+          anonymousId,
+          name: aiName || DEFAULT_NAME,
+          color: aiColor,
+          version,
+          text: lifeText,
+          shape: aiShape || undefined,
+        }),
       });
       const d = await res.json();
       if (!res.ok) {
@@ -250,35 +256,25 @@ export default function WorldStudent({
                 <input value={aiLine} onChange={(e) => setAiLine(e.target.value)} placeholder="我想创造一个喜欢帮助别人的小生命…" />
                 <button className="primary" disabled={busy || !aiLine.trim()} onClick={startCreate}>{busy ? '…' : '告诉 AI'}</button>
               </div>
-              <div style={{ display: 'flex', gap: 8, marginTop: 12, alignItems: 'center' }}>
-                <label style={{ fontSize: 12, color: 'var(--muted)' }}>名字</label>
-                <input value={name} maxLength={12} onChange={(e) => setName(e.target.value)} placeholder={DEFAULT_NAME} style={{ flex: 1 }} />
-              </div>
-              <div style={{ display: 'flex', gap: 8, marginTop: 10, alignItems: 'center' }}>
-                <label style={{ fontSize: 12, color: 'var(--muted)' }}>颜色</label>
-                <div style={{ display: 'flex', gap: 6 }}>
-                  {COLOR_CHOICES.map((c) => (
-                    <div key={c} onClick={() => setColor(c)}
-                      style={{ width: 24, height: 24, borderRadius: '50%', background: c, cursor: 'pointer', border: color === c ? '3px solid #fff' : '2px solid transparent' }} />
-                  ))}
-                </div>
-              </div>
-              <button className="secondary" style={{ marginTop: 10, fontSize: 12 }} disabled={chatBusy} onClick={() => { setChatOpen(true); setChatInput(''); }}>
-                💬 也可以和 AI 聊聊想法
-              </button>
+              <p style={{ margin: '10px 0 0', fontSize: 12, color: 'var(--muted)' }}>
+                名字、颜色、形状，全都让 AI 帮你定。跟它说你想创造什么，聊好了就点「确认创造」。
+              </p>
             </>
           )}
 
           {createStep === 'preview' && (
             <>
-              <div style={{ padding: 12, background: 'rgba(15,23,42,0.5)', borderRadius: 10, marginBottom: 10 }}>
-                <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 4 }}>AI 帮你生成的（可以先试试看）：</div>
-                <div style={{ fontSize: 14, whiteSpace: 'pre-wrap' }}>{lifeText}</div>
+              <div style={{ display: 'flex', gap: 14, alignItems: 'center', padding: 12, background: 'rgba(15,23,42,0.5)', borderRadius: 10, marginBottom: 10 }}>
+                <LifePreview name={aiName} color={aiColor} shape={aiShape} />
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 16, fontWeight: 700 }}>{aiName || '小生命'}</div>
+                  <div style={{ fontSize: 13, color: 'var(--muted)', whiteSpace: 'pre-wrap', marginTop: 4 }}>{lifeText}</div>
+                </div>
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
                 <button className="secondary" onClick={() => setCreateStep('idle')}>重来</button>
                 <button className="primary" disabled={busy || locked} onClick={enterWorld}>
-                  {busy ? '…' : '🚀 让它进入世界'}
+                  {busy ? '…' : '✨ 确认创造，进入世界'}
                 </button>
               </div>
             </>
@@ -358,6 +354,27 @@ function Info({ label, value }: { label: string; value: string }) {
       <div style={{ fontSize: 12, color: 'var(--muted)' }}>{label}</div>
       <div style={{ fontSize: 17, fontWeight: 700 }}>{value}</div>
     </div>
+  );
+}
+
+// 生命形状预览：SVG 字符串 → data URL → img 渲染（脚本不执行，安全）
+function LifePreview({ name, color, shape }: { name: string; color: string; shape: string }) {
+  const [failed, setFailed] = useState(false);
+  useEffect(() => setFailed(false), [shape]);
+  const src = useMemo(() => {
+    if (!shape) return '';
+    return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(shape);
+  }, [shape]);
+  if (failed || !src) {
+    return <div style={{ width: 72, height: 72, borderRadius: '50%', background: color, flexShrink: 0 }} />;
+  }
+  return (
+    <img
+      src={src}
+      alt={name}
+      onError={() => setFailed(true)}
+      style={{ width: 72, height: 72, flexShrink: 0, objectFit: 'contain' }}
+    />
   );
 }
 

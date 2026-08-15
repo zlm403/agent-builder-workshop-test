@@ -13,6 +13,7 @@ export async function POST(req: NextRequest) {
   const version = Number(body.version || 1);
   // 文字是生命定义的唯一输入；留空时用默认中性倾向
   const text = String(body.text || '').trim();
+  const shape = body.shape ? String(body.shape) : undefined;
 
   if (!sid || !name) {
     return NextResponse.json({ error: { code: 'BAD_REQUEST', message: 'anonymousId and name required' } }, { status: 400 });
@@ -28,6 +29,7 @@ export async function POST(req: NextRequest) {
     color,
     version,
     text: text || '',
+    shape,
     social: traits.social,
     helpful: traits.helpful,
     cautious: traits.cautious,

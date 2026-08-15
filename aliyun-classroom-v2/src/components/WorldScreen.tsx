@@ -13,6 +13,7 @@ interface WorldLife {
   id: string;
   name: string;
   color: string;
+  shape?: string;
   x: number;
   y: number;
   energy: number;
@@ -87,6 +88,8 @@ export default function WorldScreen({ sessionId }: { sessionId: string }) {
   const seenRef = useRef<Set<string>>(new Set());
   // 环境光斑整体速度/亮度系数（教师调节，渲染循环读 ref）
   const visualRef = useRef<{ speed: number; brightness: number }>({ speed: 1, brightness: 1 });
+  // SVG 形状缓存（lifeId -> Image），只加载一次
+  const svgImgRef = useRef<Map<string, HTMLImageElement>>(new Map());
   // 环境光点（鱼缸 Light 风格：慢、亮、大、带拖尾与标签，纯视觉）
   const ambRef = useRef<{
     x: number; y: number; dirx: number; diry: number;
@@ -348,7 +351,7 @@ export default function WorldScreen({ sessionId }: { sessionId: string }) {
           ctx!.fill();
         }
 
-        // 生命（发光光斑）
+        // 生命（发光光斑 + AI 形状）
         for (const l of d.lives) {
           const p = posRef.current[l.id];
           if (!p) continue;
@@ -370,13 +373,30 @@ export default function WorldScreen({ sessionId }: { sessionId: string }) {
           ctx!.fill();
           ctx!.globalCompositeOperation = 'source-over';
 
-          // 实心核
+          // 实心核（底色，AI 形状在其上）
           ctx!.globalAlpha = dim;
           ctx!.fillStyle = l.color;
           ctx!.beginPath();
           ctx!.arc(x, y, size * 0.62, 0, Math.PI * 2);
           ctx!.fill();
           ctx!.globalAlpha = 1;
+
+          // AI 形状（SVG → Image → drawImage），只在 active 时完整显示
+          if (l.shape && !sleeping) {
+            let img = svgImgRef.current.get(l.id);
+            if (!img) {
+              const src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(l.shape);
+              img = new Image();
+              img.src = src;
+              svgImgRef.current.set(l.id, img);
+            }
+            if (img && img.complete && img.naturalWidth > 0) {
+              const s = size * 1.7;
+              ctx!.globalAlpha = dim;
+              ctx!.drawImage(img, x - s / 2, y - s / 2, s, s);
+              ctx!.globalAlpha = 1;
+            }
+          }
 
           // 名字
           ctx!.fillStyle = sleeping ? '#64748b' : '#e2f4ff';

@@ -97,6 +97,7 @@ export function upsertLife(
     color: string;
     version: number;
     text?: string;
+    shape?: string;
     social: number;
     helpful: number;
     cautious: number;
@@ -108,6 +109,7 @@ export function upsertLife(
   const version = {
     version: input.version,
     text: input.text || '',
+    shape: input.shape || undefined,
     social: input.social,
     helpful: input.helpful,
     cautious: input.cautious,

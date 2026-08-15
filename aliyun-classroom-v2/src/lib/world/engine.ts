@@ -20,6 +20,7 @@ export interface WorldControl {
 export interface LifeVersion {
   version: number;
   text?: string; // 学生用文字描述的生命定义（"它喜欢……"）
+  shape?: string; // AI 生成的 SVG 图形（前端渲染，只限大小不定义形状）
   social: number; // 0..1 亲近倾向
   helpful: number; // 0..1 帮助倾向
   cautious: number; // 0..1 谨慎倾向
@@ -42,6 +43,7 @@ export interface StateLife {
   id: string;
   name: string;
   color: string;
+  shape?: string; // AI 生成的 SVG 图形（大屏渲染用）
   x: number;
   y: number;
   energy: number;
@@ -187,6 +189,7 @@ export function createInitialState(
       id: rec.id,
       name: rec.name,
       color: rec.color,
+      shape: v.shape,
       x: p.x,
       y: p.y,
       energy: ENERGY_START,
@@ -233,6 +236,7 @@ export function syncLivesIntoWorld(state: WorldState, lives: LifeRecord[], confi
         id: rec.id,
         name: rec.name,
         color: rec.color,
+        shape: v.shape,
         x: p.x,
         y: p.y,
         energy: ENERGY_START,
@@ -249,6 +253,7 @@ export function syncLivesIntoWorld(state: WorldState, lives: LifeRecord[], confi
     } else {
       ex.name = rec.name;
       ex.color = rec.color;
+      ex.shape = v.shape;
       ex.social = v.social;
       ex.helpful = v.helpful;
       ex.cautious = v.cautious;

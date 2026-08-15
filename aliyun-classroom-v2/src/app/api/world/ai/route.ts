@@ -4,6 +4,18 @@ import { chatWithLLM } from '@/lib/llm';
 import { readLives, readState } from '@/lib/world/store';
 import { ruleTraits } from '@/lib/world/traits';
 
+function extractJson(text: string): Record<string, unknown> | null {
+  try {
+    return JSON.parse(text);
+  } catch {
+    const m = text.match(/\{[\s\S]*\}/);
+    if (m) {
+      try { return JSON.parse(m[0]); } catch { return null; }
+    }
+    return null;
+  }
+}
+
 // AI 只做两件事（文字驱动，不调滑杆）：
 // 1. mode=create：学生说想法 → AI 生成一段"生命定义文字"，学生确认后填入表单提交
 // 2. mode=observe：学生把观察到的行为/困惑发给 AI → AI 基于引擎真实数据分析，并给下一步建议
@@ -28,20 +40,35 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({ reply });
 }
 
-async function createLifeText(message: string): Promise<{ reply: string; draft?: string }> {
+async function createLifeText(message: string): Promise<{
+  reply: string;
+  draft?: string;
+  name?: string;
+  color?: string;
+  shape?: string;
+}> {
   const sys =
     '你是《我的世界》里帮学生把想法变成生命的助手。学生用一句话描述他希望的生命。' +
-    '你帮他写出一段「生命定义」，这段文字会直接用于让生命在世界里行动。' +
-    '要求：用中文，2-4 句话，用「它」称呼生命，描述它的性格和它喜欢怎样行动（比如爱不爱靠近别人、爱不爱帮助别人、遇到拥挤/危险会怎样）。不要提"数值""倾向""参数"等字眼。' +
-    '只输出这段「生命定义」本身，不要其他说明。';
+    '你帮他设计一个完整的数字生命，包括：一个可爱的名字、一个主色、一个用 SVG 画的形状、一段生命定义。' +
+    '要求只返回 JSON，不要其他文字，结构：{"name":"名字(2-4字，中文)","color":"#RRGGBB 主色","svg":"SVG字符串","text":"2-4句中文生命定义，用「它」称呼，描述性格和它喜欢怎样行动"}。' +
+    'SVG 要求：viewBox="0 0 100 100"，width/height 都为 100，只用基础元素（circle/ellipse/rect/polygon/path），线条和填充用主色或其深浅变化，画出这个生命可爱有趣的形状（可以是小动物、物品、抽象图形等，发挥创意）。不要用 script、foreignObject、on* 属性、外部引用。只输出 JSON。';
   try {
-    const text = await chatWithLLM([{ role: 'user', content: message }], sys, { maxTokens: 200, timeoutMs: 15000 });
-    const clean = (text || '').trim();
-    if (clean) {
-      return {
-        reply: '已经帮你想好了一段生命定义，可以直接填入下面的「生命定义」，也可以自己改：',
-        draft: clean,
-      };
+    const text = await chatWithLLM([{ role: 'user', content: message }], sys, { json: true, maxTokens: 700, timeoutMs: 20000 });
+    const p = extractJson(text);
+    if (p) {
+      const name = String(p.name ?? '').trim();
+      const color = String(p.color ?? '#36CFC9').trim();
+      const svg = sanitizeSvg(String(p.svg ?? ''));
+      const def = String(p.text ?? '').trim();
+      if (name && def) {
+        return {
+          reply: `好，你的「${name}」设计好了。${def}想让它变成这样吗？`,
+          draft: def,
+          name,
+          color,
+          shape: svg,
+        };
+      }
     }
     return fallbackLifeText(message);
   } catch {
@@ -49,7 +76,27 @@ async function createLifeText(message: string): Promise<{ reply: string; draft?:
   }
 }
 
-function fallbackLifeText(message: string): { reply: string; draft: string } {
+// 只保留安全 SVG 元素，去掉 script/事件/外部引用
+function sanitizeSvg(svg: string): string {
+  const clean = String(svg || '')
+    .replace(/<\s*script[\s\S]*?<\s*\/\s*script\s*>/gi, '')
+    .replace(/\son\w+\s*=\s*("[^"]*"|'[^']*')/gi, '')
+    .replace(/javascript:/gi, '')
+    .replace(/<\s*foreignObject[\s\S]*?<\s*\/\s*foreignObject\s*>/gi, '')
+    .trim();
+  if (!clean) return '';
+  // 补全标准 svg 根
+  if (!/<\s*svg/i.test(clean)) return '';
+  return clean;
+}
+
+function fallbackLifeText(message: string): {
+  reply: string;
+  draft: string;
+  name: string;
+  color: string;
+  shape: string;
+} {
   const t = ruleTraits(message);
   const parts: string[] = [];
   if (t.social >= 0.7) parts.push('它喜欢热热闹闹，爱和其他生命靠近');
@@ -59,9 +106,14 @@ function fallbackLifeText(message: string): { reply: string; draft: string } {
   if (t.cautious >= 0.7) parts.push('遇到太挤的地方它会谨慎地躲开');
   if (parts.length === 0) parts.push('它在世界里自由探索，看看会发生什么');
   const draft = parts.join('；') + '。';
+  const color = t.helpful >= 0.7 ? '#36CFC9' : t.cautious >= 0.7 ? '#7C9BFF' : '#F3C84B';
+  const shape = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100"><circle cx="50" cy="55" r="30" fill="${color}" opacity="0.85"/><circle cx="40" cy="47" r="5" fill="#fff"/><circle cx="60" cy="47" r="5" fill="#fff"/></svg>`;
   return {
-    reply: '（基础模式）已经帮你想好了一段生命定义，可以直接填入下面的「生命定义」，也可以自己改：',
+    reply: '（基础模式）已经帮你想好了一个小生命，可以看看它的样子：',
     draft,
+    name: '小灵',
+    color,
+    shape,
   };
 }
 
