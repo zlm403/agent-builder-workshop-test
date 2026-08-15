@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AI 时代，为自己装上四只翅膀</title>
+<style>
+  :root {
+    --bg-0: #070b16;
+    --bg-1: #0d1424;
+    --card-bg: rgba(255, 255, 255, 0.045);
+    --card-border: rgba(255, 255, 255, 0.10);
+    --text-dim: rgba(226, 232, 240, 0.30);
+    --text-soft: rgba(226, 232, 240, 0.62);
+    --text-strong: #e8edf6;
+    --c-create: #3fd0c9;
+    --c-ride:   #a78bfa;
+    --c-grow:   #fbbf24;
+    --c-spread: #4ade80;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    height: 100%;
+    background: radial-gradient(120% 120% at 50% 18%, var(--bg-1) 0%, var(--bg-0) 70%);
+    color: var(--text-strong);
+    font-family: "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB", system-ui, -apple-system, sans-serif;
+    overflow: hidden;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(40% 30% at 22% 28%, rgba(63, 208, 201, 0.06), transparent 70%),
+      radial-gradient(40% 30% at 78% 28%, rgba(167, 139, 250, 0.06), transparent 70%),
+      radial-gradient(40% 30% at 22% 82%, rgba(251, 191, 36, 0.05), transparent 70%),
+      radial-gradient(40% 30% at 78% 82%, rgba(74, 222, 128, 0.06), transparent 70%);
+    pointer-events: none;
+  }
+
+  .stage {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: clamp(18px, 3vh, 40px) clamp(24px, 4vw, 64px);
+  }
+
+  /* 主标题：收尾时保持清晰不被模糊 */
+  .title {
+    position: relative;
+    z-index: 30;
+    text-align: center;
+    margin-bottom: clamp(18px, 3vh, 38px);
+    transition: opacity 0.6s ease, transform 0.6s ease;
+  }
+  .title h1 {
+    font-size: clamp(26px, 4.6vw, 58px);
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    background: linear-gradient(90deg, #cfe9ff 0%, #ffffff 50%, #d7ffe9 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    text-shadow: 0 0 40px rgba(120, 180, 255, 0.18);
+  }
+  .title .sub {
+    margin-top: 10px;
+    font-size: clamp(12px, 1.5vw, 18px);
+    color: var(--text-soft);
+    letter-spacing: 0.22em;
+  }
+
+  /* 中央区：含网格、暗罩、成长链 */
+  .center {
+    position: relative;
+    width: min(1120px, 94vw);
+  }
+
+  /* 四宫格 */
+  .grid {
+    position: relative;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: clamp(16px, 2.2vw, 34px);
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    max-height: 70vh;
+    transition: filter 0.7s ease, opacity 0.7s ease, transform 0.7s ease;
+  }
+
+  /* 卡片间淡路径线（连续成长） */
+  .path {
+    position: absolute;
+    background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.16) 50%, rgba(255,255,255,0) 100%);
+    opacity: 0.0;
+    transition: opacity 0.6s ease;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .path.h { height: 2px; top: 50%; transform: translateY(-50%); left: 12%; right: 12%; }
+  .path.v { width: 2px; left: 50%; transform: translateX(-50%); top: 12%; bottom: 12%;
+    background: linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.16) 50%, rgba(255,255,255,0) 100%); }
+  .stage.is-path .path { opacity: 1; }
+
+  .card {
+    position: relative;
+    z-index: 1;
+    border-radius: 18px;
+    padding: clamp(18px, 2.4vh, 34px) clamp(18px, 2.2vw, 34px);
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.55s cubic-bezier(.2,.8,.2,1),
+                border-color 0.55s ease,
+                box-shadow 0.55s ease,
+                opacity 0.55s ease,
+                background 0.55s ease;
+    opacity: 0.62;
+  }
+
+  .card .row { opacity: 0; transform: translateY(10px); transition: opacity 0.5s ease, transform 0.5s ease; }
+  .card.on .row { opacity: 1; transform: translateY(0); }
+  .card .lead.row    { transition-delay: 0s; }
+  .card .explain.row { transition-delay: 0.15s; }
+  .card .do.row      { transition-delay: 0.30s; }
+  .card .change.row  { transition-delay: 0.45s; }
+
+  .card .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: clamp(14px, 2.2vh, 26px);
+  }
+  .card .num {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    display: grid; place-items: center;
+    font-size: 18px; font-weight: 700;
+    border: 1px solid var(--card-border);
+    color: var(--text-soft);
+    transition: all 0.55s ease;
+    flex: 0 0 auto;
+  }
+  .card .wname {
+    font-size: clamp(19px, 2.6vw, 30px);
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    color: var(--text-soft);
+    transition: color 0.55s ease;
+  }
+
+  /* 统领句：把想法变成…… */
+  .card .lead {
+    font-size: clamp(17px, 2.2vw, 25px);
+    font-weight: 700;
+    line-height: 1.4;
+    color: var(--text-dim);
+    margin-bottom: clamp(16px, 2.6vh, 30px);
+    transition: color 0.55s ease;
+  }
+  /* (a) 解释：下移留白、稍微分开 */
+  .card .explain {
+    font-size: clamp(14px, 1.7vw, 19px);
+    line-height: 1.6;
+    color: var(--text-dim);
+    margin-top: clamp(10px, 1.8vh, 18px);
+    margin-bottom: clamp(14px, 2.2vh, 24px);
+    transition: color 0.55s ease;
+  }
+  .card .explain .tag,
+  .card .do .tag {
+    font-weight: 700;
+    color: var(--text-soft);
+    margin-right: 6px;
+  }
+  /* (b) 具体做法 */
+  .card .do {
+    font-size: clamp(13px, 1.5vw, 17px);
+    line-height: 1.6;
+    color: var(--text-dim);
+    letter-spacing: 0.02em;
+    transition: color 0.55s ease;
+  }
+  /* 带来变化：压到底部，作为淡脚注 */
+  .card .change {
+    font-size: clamp(12px, 1.35vw, 16px);
+    color: var(--text-dim);
+    border-left: 2px solid var(--card-border);
+    padding-left: 12px;
+    font-style: italic;
+    transition: color 0.55s ease, border-color 0.55s ease;
+    margin-top: auto;
+    padding-top: clamp(12px, 2vh, 20px);
+  }
+
+  /* 点亮状态：各翼染上配色 */
+  .card.on {
+    opacity: 1;
+    border-color: var(--ac);
+    background: color-mix(in srgb, var(--ac) 9%, rgba(255,255,255,0.03));
+    box-shadow: 0 0 0 1px var(--ac), 0 0 38px -6px var(--ac), 0 18px 40px -24px var(--ac);
+  }
+  .card.on .num {
+    color: #0a0f1c;
+    background: var(--ac);
+    border-color: var(--ac);
+    box-shadow: 0 0 18px -2px var(--ac);
+  }
+  .card.on .wname { color: var(--ac); }
+  .card.on .lead { color: var(--ac); }
+  .card.on .explain { color: var(--text-strong); }
+  .card.on .explain .tag { color: var(--ac); }
+  .card.on .do { color: var(--text-soft); }
+  .card.on .do .tag { color: var(--ac); }
+  .card.on .change { color: var(--text-soft); border-color: var(--ac); }
+
+  #card-create { --ac: var(--c-create); }
+  #card-ride   { --ac: var(--c-ride); }
+  #card-grow   { --ac: var(--c-grow); }
+  #card-spread { --ac: var(--c-spread); }
+
+  /* 收尾暗罩：盖住四张方框、模糊背景、但标题保持在上方清晰 */
+  .veil {
+    position: absolute;
+    inset: 0;
+    z-index: 10;
+    background: rgba(7, 11, 22, 0.55);
+    backdrop-filter: blur(7px);
+    -webkit-backdrop-filter: blur(7px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.7s ease;
+    border-radius: 22px;
+  }
+  .stage.is-final .veil { opacity: 1; }
+  .stage.is-final .grid { filter: blur(2px); opacity: 0.30; transform: scale(0.95); }
+
+  /* 成长链（step 5 才出现，不常驻）：只显示 创造 → 驾驭 → 成长 → 传播 */
+  .chain {
+    position: absolute;
+    z-index: 20;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%) scale(0.96);
+    width: 100%;
+    text-align: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.7s ease, transform 0.7s cubic-bezier(.2,.8,.2,1);
+  }
+  .stage.is-final .chain { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+
+  .chain .label {
+    font-size: clamp(13px, 1.5vw, 18px);
+    letter-spacing: 0.3em;
+    color: var(--text-soft);
+    margin-bottom: clamp(16px, 2.4vh, 28px);
+  }
+  .chain .flow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: clamp(8px, 1.2vw, 18px);
+  }
+  .chain .node {
+    font-size: clamp(20px, 3.2vw, 44px);
+    font-weight: 800;
+    padding: clamp(10px, 1.8vh, 20px) clamp(18px, 2.4vw, 38px);
+    border-radius: 16px;
+    color: #0a0f1c;
+    opacity: 0;
+    transform: translateY(12px);
+    transition: opacity 0.5s ease, transform 0.5s ease;
+    box-shadow: 0 0 30px -6px currentColor;
+  }
+  .stage.is-final .chain .node { opacity: 1; transform: translateY(0); }
+  .stage.is-final .chain .node:nth-child(1) { transition-delay: 0.15s; }
+  .stage.is-final .chain .node:nth-child(3) { transition-delay: 0.35s; }
+  .stage.is-final .chain .node:nth-child(5) { transition-delay: 0.55s; }
+  .stage.is-final .chain .node:nth-child(7) { transition-delay: 0.75s; }
+  .chain .node.n1 { background: var(--c-create); }
+  .chain .node.n2 { background: var(--c-ride); }
+  .chain .node.n3 { background: var(--c-grow); }
+  .chain .node.n4 { background: var(--c-spread); }
+  .chain .arrow {
+    font-size: clamp(20px, 3vw, 38px);
+    color: var(--text-soft);
+    opacity: 0.6;
+  }
+
+  /* 底部提示 */
+  .hint {
+    position: fixed;
+    left: 50%;
+    bottom: clamp(12px, 2.2vh, 26px);
+    transform: translateX(-50%);
+    font-size: clamp(11px, 1.2vw, 14px);
+    color: rgba(226, 232, 240, 0.40);
+    letter-spacing: 0.08em;
+    text-align: center;
+    transition: opacity 0.5s ease;
+    z-index: 40;
+  }
+  .hint b { color: rgba(226, 232, 240, 0.66); font-weight: 600; }
+
+  /* 右下角进度 */
+  .progress {
+    position: fixed;
+    right: clamp(14px, 2vw, 28px);
+    bottom: clamp(12px, 2.2vh, 26px);
+    font-size: clamp(11px, 1.2vw, 14px);
+    color: rgba(226, 232, 240, 0.42);
+    letter-spacing: 0.12em;
+    font-variant-numeric: tabular-nums;
+    z-index: 40;
+  }
+
+  @media (max-width: 720px) {
+    .grid { aspect-ratio: auto; max-height: none; }
+    .path { display: none; }
+    .chain .flow { flex-direction: column; }
+    .chain .arrow { transform: rotate(90deg); }
+  }
+</style>
+</head>
+<body>
+  <div class="stage" id="stage">
+    <div class="title" id="title">
+      <h1>AI 时代，为自己装上四只翅膀</h1>
+      <div class="sub">FOUR WINGS · 逐步点亮你的核心能力</div>
+    </div>
+
+    <div class="center">
+      <div class="grid" id="grid">
+        <div class="path h"></div>
+        <div class="path v"></div>
+
+        <div class="card" id="card-create">
+          <div class="badge">
+            <span class="num">①</span>
+            <span class="wname">创造之翼</span>
+          </div>
+          <div class="lead row">把想法变成可运行作品</div>
+          <div class="explain row">让脑中的构思第一次成为能真正跑起来的东西</div>
+          <div class="do row">说清想法 · 做最小版本 · 分步完成 · 运行验证</div>
+          <div class="change row">从脑中有想法，到手中有作品</div>
+        </div>
+
+        <div class="card" id="card-ride">
+          <div class="badge">
+            <span class="num">②</span>
+            <span class="wname">驾驭之翼</span>
+          </div>
+          <div class="lead row">把想法变成 AI 团队一起做出来的事</div>
+          <div class="explain row">用知识库、Skill 与 Agent 让多个智能体分工协作</div>
+          <div class="do row">知识库 · Skill · Agent · 多智能体协作</div>
+          <div class="change row">从一个人硬做，到带领 AI 团队做事</div>
+        </div>
+
+        <div class="card" id="card-grow">
+          <div class="badge">
+            <span class="num">③</span>
+            <span class="wname">成长之翼</span>
+          </div>
+          <div class="lead row">把想法变成遇到问题也能继续推进的成果</div>
+          <div class="explain row">学会验收、说清错误、保存回退，卡住也能自救</div>
+          <div class="do row">说清错误 · 修改重测 · 保存回退 · 自救续接</div>
+          <div class="change row">从遇事就停下，到自己解决、继续向前</div>
+        </div>
+
+        <div class="card" id="card-spread">
+          <div class="badge">
+            <span class="num">④</span>
+            <span class="wname">传播之翼</span>
+          </div>
+          <div class="lead row">把想法变成真正有人用的作品</div>
+          <div class="explain row">把应用一键发布到平台，邀请体验、收集反馈</div>
+          <div class="do row">发布作品 · 邀请体验 · 收集反馈 · 持续传播</div>
+          <div class="change row">从做给自己看，到真正有人使用</div>
+        </div>
+      </div>
+
+      <!-- 收尾暗罩：模糊并压暗四张方框，标题保持清晰 -->
+      <div class="veil" id="veil"></div>
+
+      <!-- 成长链（step 5 出现）：只显示 创造 → 驾驭 → 成长 → 传播 -->
+      <div class="chain" id="chain">
+        <div class="label">四翼，连成一条成长链</div>
+        <div class="flow">
+          <span class="node n1">创造</span>
+          <span class="arrow">→</span>
+          <span class="node n2">驾驭</span>
+          <span class="arrow">→</span>
+          <span class="node n3">成长</span>
+          <span class="arrow">→</span>
+          <span class="node n4">传播</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="hint" id="hint">
+    <b>点击 / 空格</b> 前进 · <b>←</b> 回退 · <b>1–4</b> 直达 · <b>R</b> 重置 · <b>F</b> 全屏
+  </div>
+  <div class="progress" id="progress">0 / 5</div>
+
+<script>
+  (function () {
+    var stages = ["开场", "点亮 ①创造", "点亮 ②驾驭", "点亮 ③成长", "点亮 ④传播", "成长链"];
+    var cards = [
+      document.getElementById("card-create"),
+      document.getElementById("card-ride"),
+      document.getElementById("card-grow"),
+      document.getElementById("card-spread")
+    ];
+    var stage = document.getElementById("stage");
+    var progressEl = document.getElementById("progress");
+    var hintEl = document.getElementById("hint");
+
+    var step = 0;          // 0 开场, 1..4 点亮各翼, 5 收尾
+    var MAX = 5;
+    var lastTrigger = 0;
+    var THROTTLE = 320;    // 防连点
+
+    function render() {
+      cards.forEach(function (c, i) {
+        c.classList.toggle("on", i < step);
+      });
+      stage.classList.toggle("is-path", step >= 2);
+      stage.classList.toggle("is-final", step === MAX);
+
+      progressEl.textContent = step + " / " + MAX;
+
+      if (step === 0) hintEl.innerHTML = "<b>点击 / 空格</b> 前进 · <b>←</b> 回退 · <b>1–4</b> 直达 · <b>R</b> 重置 · <b>F</b> 全屏";
+      else if (step === MAX) hintEl.innerHTML = "四翼已连成链 · <b>←</b> 回退重讲 · <b>R</b> 重置 · <b>F</b> 全屏";
+      else hintEl.innerHTML = "正在" + stages[step] + " · <b>点击 / 空格</b> 下一步 · <b>←</b> 回退";
+    }
+
+    function go() { if (step < MAX) { step++; render(); } }
+    function back() { if (step > 0) { step--; render(); } }
+    function reset() { step = 0; render(); }
+    function jump(n) { if (n >= 1 && n <= 4) { step = n; render(); } }
+
+    function throttle(fn) {
+      var now = Date.now();
+      if (now - lastTrigger < THROTTLE) return;
+      lastTrigger = now;
+      fn();
+    }
+
+    document.addEventListener("click", function (e) {
+      if (e.button !== 0) return;
+      throttle(go);
+    });
+
+    document.addEventListener("keydown", function (e) {
+      var k = e.key;
+      if (k === " " || k === "ArrowRight" || k === "ArrowDown") {
+        e.preventDefault(); throttle(go);
+      } else if (k === "ArrowLeft" || k === "ArrowUp") {
+        e.preventDefault(); throttle(back);
+      } else if (k === "r" || k === "R") {
+        reset();
+      } else if (k === "f" || k === "F") {
+        toggleFullscreen();
+      } else if (k >= "1" && k <= "4") {
+        jump(parseInt(k, 10));
+      }
+    });
+
+    function toggleFullscreen() {
+      if (!document.fullscreenElement) {
+        if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen();
+      } else {
+        if (document.exitFullscreen) document.exitFullscreen();
+      }
+    }
+
+    // 教师端远程控制入口：收到 postMessage { type:'fourwings', step:n } 就跳到对应步骤
+    window.addEventListener("message", function (e) {
+      var d = e.data;
+      if (d && d.type === "fourwings" && typeof d.step === "number") {
+        var n = Math.max(0, Math.min(MAX, Math.floor(d.step)));
+        step = n;
+        render();
+      }
+    });
+
+    render();
+  })();
+</script>
+</body>
+</html>

@@ -566,13 +566,13 @@ export default function StudentPage() {
     );
   }
 
-  if (current?.type === 'wrap_up') {
+  if (current?.type === 'wrap_up' || current?.type === 'closing') {
     return (
       <div className="container" style={{ maxWidth: 480, textAlign: 'center', paddingTop: '24vh' }}>
         <div style={{ fontSize: 56, marginBottom: 18 }}>👀</div>
         <h2 style={{ fontSize: 28, marginBottom: 10 }}>请看大屏</h2>
         <p style={{ color: 'var(--muted)', fontSize: 16, lineHeight: 1.7 }}>
-          老师正在做一期收尾讲解。<br />
+          老师正在做收官讲解。<br />
           听完之后，等下一期开始。
         </p>
         <div style={{ marginTop: 24, display: 'inline-flex', alignItems: 'center', gap: 10, padding: '10px 20px', borderRadius: 999, background: 'rgba(56,189,248,.1)', border: '1px solid rgba(56,189,248,.3)', color: 'var(--blue)', fontSize: 14 }}>

@@ -36,7 +36,8 @@ export type ModuleType =
   | 'avatar_flow' // A1 数字分身：六步连续对话（梦想→路径→分身→任务→方案→迭代）
   | 'site_entry' // P2 快速入门网站：六步连续对话（领域→入场→骨架→判断→设计→迭代）
   | 'grow_game' // P3 养成游戏：六步连续对话（设想→成长→规则→事件→结局→迭代）
-  | 'world'; // A3 我的世界：学生创造生命 → 进入公共世界 → 观察 → 修改 → 比较
+  | 'world' // A3 我的世界：学生创造生命 → 进入公共世界 → 观察 → 修改 → 比较
+  | 'closing'; // 收官：四翼展示（wings:0..5 逐步点亮）+ 后续卖课内容页
 
 export interface ChoiceOption {
   id: string;

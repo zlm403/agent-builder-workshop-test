@@ -2,7 +2,7 @@ import { prisma } from './db';
 import type { CourseTemplateData, ModuleConfig } from './types';
 
 // 课程模板版本。每次大幅调整模块结构时递增，便于追溯。
-export const COURSE_VERSION = 'A-v7';
+export const COURSE_VERSION = 'A-v8';
 
 // ---------------------------------------------------------------------------
 // 第二关核心数据：8 份资料（结构化元数据 + 模型可读正文）
@@ -442,6 +442,26 @@ const TEMPLATE: CourseTemplateData = {
       },
       studentTask: {},
       screenContent: { phase: 'world' },
+    },
+
+    // ===================== 收官：四翼展示（第一屏）+ 后续卖课内容页（待填） =====================
+    {
+      id: 'CLOSING',
+      type: 'closing',
+      title: '收官 · 四翼成长链',
+      durationSeconds: 1800,
+      teacherContent: {
+        headline: 'CLOSING · 把今天的体验收拢成一条成长链',
+        subline: '第一屏：四翼展示（创造→驾驭→成长→传播 逐步点亮 + 成长链收口）；后面接痛点/课程/定价/系统介绍',
+        bullets: [
+          '教师端按钮逐步点亮四翼，大屏动画随之推进',
+          'wings:0 开场 → 1 创造 → 2 驾驭 → 3 成长 → 4 传播 → 5 成长链',
+          '后续页面（痛点/课程/价值定价/系统介绍）待填',
+        ],
+        revealOrder: ['wings:0', 'wings:1', 'wings:2', 'wings:3', 'wings:4', 'wings:5'],
+      },
+      studentTask: {},
+      screenContent: { phase: 'closing' },
     },
 
     {

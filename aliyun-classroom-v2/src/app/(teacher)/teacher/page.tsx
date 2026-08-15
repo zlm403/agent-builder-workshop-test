@@ -744,7 +744,7 @@ export default function TeacherPage() {
   }
 
   const isA0 = currentModuleId === 'A0_SCREENING';
-  const isA0New = currentModuleId === 'A0N_QUESTIONS' || currentModuleId === 'A0N_VOTE' || currentModuleId === 'A0N_REVEAL' || currentModuleId === 'A1_AVATAR' || currentModuleId === 'A2_SITE' || currentModuleId === 'A3_WORLD';
+  const isA0New = currentModuleId === 'A0N_QUESTIONS' || currentModuleId === 'A0N_VOTE' || currentModuleId === 'A0N_REVEAL' || currentModuleId === 'A1_AVATAR' || currentModuleId === 'A2_SITE' || currentModuleId === 'A3_WORLD' || currentModuleId === 'CLOSING';
 
   function buildA0Dirs(s: ScreeningData | null): { kind: 'more' | 'less' | 'watch' | 'good'; text: string }[] {
     const out: { kind: 'more' | 'less' | 'watch' | 'good'; text: string }[] = [];
@@ -1014,6 +1014,13 @@ export default function TeacherPage() {
                   />
                   {currentModuleId === 'A3_WORLD' && (
                     <WorldVisualBar />
+                  )}
+                  {currentModuleId === 'CLOSING' && (
+                    <FourWingsTeacherBar
+                      subState={summary?.moduleSubState ?? null}
+                      busy={busy}
+                      control={control}
+                    />
                   )}
                   <button className="secondary" style={{ alignSelf: 'flex-start' }} disabled={busy || status === 'closed'} onClick={() => control('lock', { locked: !moduleLocked })}>
                     {moduleLocked ? '解锁学员输入' : '锁定学员输入'}
@@ -1387,6 +1394,48 @@ function WorldVisualBar() {
         <span style={{ fontSize: 11, color: 'var(--muted)', width: 34, flexShrink: 0 }}>亮度</span>
         <input type="range" min={0.3} max={3} step={0.1} value={brightness} onChange={(e) => apply(speed, Number(e.target.value))} style={{ flex: 1 }} />
         <span style={{ fontSize: 11, width: 36, textAlign: 'right' }}>{brightness.toFixed(1)}×</span>
+      </div>
+    </div>
+  );
+}
+
+// 收官 · 四翼展示控制条：教师端逐步点亮四翼（wings:0 开场 → 1 创造 → 2 驾驭 → 3 成长 → 4 传播 → 5 成长链）
+function FourWingsTeacherBar({
+  subState,
+  busy,
+  control,
+}: {
+  subState: string | null;
+  busy: boolean;
+  control: (action: string, payload?: any) => void;
+}) {
+  const cur = (() => {
+    const m = String(subState ?? '').match(/^wings:(\d+)$/);
+    return m ? Math.max(0, Math.min(5, parseInt(m[1], 10))) : 0;
+  })();
+  const WINGS = [
+    { n: 0, label: '开场' },
+    { n: 1, label: '① 创造' },
+    { n: 2, label: '② 驾驭' },
+    { n: 3, label: '③ 成长' },
+    { n: 4, label: '④ 传播' },
+    { n: 5, label: '成长链' },
+  ];
+  return (
+    <div style={{ border: '1px solid rgba(63,208,201,0.4)', borderRadius: 10, padding: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <span style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 700 }}>四翼展示 · 逐步点亮（大屏动画随按钮推进）</span>
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+        {WINGS.map((w) => (
+          <button
+            key={w.n}
+            className={cur === w.n ? 'primary' : 'secondary'}
+            style={{ fontSize: 11, padding: '4px 10px' }}
+            disabled={busy}
+            onClick={() => control('setSubState', { subState: `wings:${w.n}` })}
+          >
+            {w.label}
+          </button>
+        ))}
       </div>
     </div>
   );
