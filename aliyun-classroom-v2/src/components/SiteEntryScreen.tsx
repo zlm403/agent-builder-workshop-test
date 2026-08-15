@@ -94,6 +94,13 @@ export default function SiteEntryScreen({
             </div>
           );
         }
+        if (st.media === 'embed' && st.mediaUrl) {
+          return (
+            <div style={{ flex: 1, minHeight: 'calc(100vh - 80px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <iframe src={st.mediaUrl} title={st.name} style={{ width: 'min(1700px, 100%)', height: '100%', border: 'none', background: '#070b16' }} />
+            </div>
+          );
+        }
         return (
           <div style={{ flex: 1, minHeight: 'calc(100vh - 80px)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 18, textAlign: 'center' }}>
             {tStageTitle !== null && <div style={{ fontSize: 'clamp(26px,3.4vw,46px)', fontWeight: 900, maxWidth: 1100, lineHeight: 1.5, whiteSpace: 'pre-line', background: 'linear-gradient(180deg,#f8fafc,#38bdf8)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent' }}>

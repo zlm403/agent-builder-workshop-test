@@ -14,8 +14,8 @@ export interface A2Stage {
   action: string; // 学生端主要动作
   output: string; // 本阶段产出
   teacherHint: string; // 教师端提示
-  media?: 'image' | 'video'; // 图/视频屏：只显示图/视频，无文字
-  mediaUrl?: string; // image 地址
+  media?: 'image' | 'video' | 'embed'; // 图/视频/网页屏：只显示对应内容，无文字
+  mediaUrl?: string; // image 地址 / embed 网页地址
 }
 
 // A2 环节（用户大表 12 屏；屏 5+6 合并为开会自动执行，屏 9+10 合并为梦想互动）
@@ -92,9 +92,9 @@ export const A2_STAGES: A2Stage[] = [
     studentTask: '看大屏，暂时停止操作',
     action: '看大屏',
     output: '完成认知思考',
-    teacherHint: '放认知总结图。',
-    media: 'image',
-    mediaUrl: '',
+    teacherHint: '认知的三次重写：三件事（做事/学习/创造）对 AI 的认知转变。',
+    media: 'embed',
+    mediaUrl: '/ai-cognition-shift.html',
   },
   {
     key: 's8',
