@@ -1016,6 +1016,9 @@ export default function TeacherPage() {
                     <WorldVisualBar />
                   )}
                   {currentModuleId === 'A3_WORLD' && (
+                    <WorldPresetBar />
+                  )}
+                  {currentModuleId === 'A3_WORLD' && (
                     <WorldTipsBar />
                   )}
                   {currentModuleId === 'CLOSING' && (
@@ -1411,6 +1414,44 @@ function WorldVisualBar() {
         <span style={{ fontSize: 11, color: 'var(--muted)', width: 34, flexShrink: 0 }}>亮度</span>
         <input type="range" min={0.3} max={3} step={0.1} value={brightness} onChange={(e) => apply(speed, Number(e.target.value))} style={{ flex: 1 }} />
         <span style={{ fontSize: 11, width: 36, textAlign: 'right' }}>{brightness.toFixed(1)}×</span>
+      </div>
+    </div>
+  );
+}
+
+// 《我的世界》预置生命：教师端一键添加演示生命进世界
+function WorldPresetBar() {
+  const [busy, setBusy] = useState(false);
+  const [added, setAdded] = useState<string[]>([]);
+
+  async function addPreset() {
+    if (busy) return;
+    setBusy(true);
+    try {
+      const res = await fetch('/api/world/preset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ presetId: 'preset-zhang' }),
+      });
+      const d = await res.json();
+      if (res.ok && d.life) {
+        setAdded((a) => [...a, d.life.name]);
+      } else {
+        alert('添加失败：' + (d.error?.message || res.statusText));
+      }
+    } finally {
+      setTimeout(() => setBusy(false), 300);
+    }
+  }
+
+  return (
+    <div style={{ border: '1px solid rgba(124,58,237,0.4)', borderRadius: 10, padding: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+        <span style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 700 }}>预置生命</span>
+        <button className="secondary" style={{ fontSize: 11, padding: '4px 10px', color: 'var(--green)' }} disabled={busy} onClick={addPreset}>
+          {busy ? '添加中…' : '➕ 添加「小觉」（鱼缸例子）'}
+        </button>
+        {added.length > 0 && <span className="pill green" style={{ fontSize: 10 }}>已添加 {added.length} 个</span>}
       </div>
     </div>
   );

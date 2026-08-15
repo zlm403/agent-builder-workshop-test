@@ -83,7 +83,7 @@ export default function WorldScreen({ sessionId }: { sessionId: string }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   // 渲染层状态（ref，不进 React 重渲染）
   const dataRef = useRef<WorldData | null>(null);
-  const posRef = useRef<Record<string, { x: number; y: number }>>({});
+  const posRef = useRef<Record<string, { x: number; y: number; hit: number }>>({});
   const fxRef = useRef<FxLight[]>([]);
   const seenRef = useRef<Set<string>>(new Set());
   // 环境光斑整体速度/亮度系数（教师调节，渲染循环读 ref）
@@ -309,11 +309,27 @@ export default function WorldScreen({ sessionId }: { sessionId: string }) {
           if (!targets[id]) delete posRef.current[id];
         }
         for (const l of d.lives) {
-          const cur = posRef.current[l.id] ?? { x: l.x, y: l.y };
+          const cur = posRef.current[l.id] ?? { x: l.x, y: l.y, hit: 0 };
           const k = dt / 300; // 平滑系数
           cur.x = lerp(cur.x, l.x, k);
           cur.y = lerp(cur.y, l.y, k);
+          cur.hit = Math.max(0, (cur.hit || 0) - dt / 400); // 受击闪光随时间衰减
           posRef.current[l.id] = cur;
+        }
+
+        // 碰撞检测：环境光点撞到生命 → 触发受击闪光
+        for (const a of ambRef.current) {
+          for (const l of d.lives) {
+            const p = posRef.current[l.id];
+            if (!p) continue;
+            const dx = a.x - p.x;
+            const dy = a.y - p.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            const hitRadius = (a.size * 2.2 + sizeOf(l.id)) / Math.max(W, H) * Math.max(W, H) / 1000 * 0.6 + 0.06;
+            if (dist < hitRadius) {
+              p.hit = Math.min(1, (p.hit || 0) + 0.35);
+            }
+          }
         }
 
         // 关系连线（高关系）
@@ -359,17 +375,21 @@ export default function WorldScreen({ sessionId }: { sessionId: string }) {
           const y = p.y * H;
           const size = sizeOf(l.id);
           const sleeping = l.state === 'sleeping';
-          const dim = sleeping ? 0.3 : Math.max(0.45, Math.min(1, l.energy / 80));
+          // 受击闪光：hit>0 时放大 + 变亮（碰撞反应）
+          const hit = p.hit || 0;
+          const hitScale = 1 + hit * 0.35;
+          const dim = (sleeping ? 0.3 : Math.max(0.45, Math.min(1, l.energy / 80))) * (1 + hit * 0.6);
+          const sEff = size * hitScale;
 
           ctx!.globalCompositeOperation = 'lighter';
           // 光晕（更大更亮）
-          const glow = ctx!.createRadialGradient(x, y, 0, x, y, size * 3);
+          const glow = ctx!.createRadialGradient(x, y, 0, x, y, sEff * 3);
           glow.addColorStop(0, `${l.color}${Math.round(dim * 200).toString(16).padStart(2, '0')}`);
           glow.addColorStop(0.5, `${l.color}${Math.round(dim * 90).toString(16).padStart(2, '0')}`);
           glow.addColorStop(1, 'transparent');
           ctx!.fillStyle = glow;
           ctx!.beginPath();
-          ctx!.arc(x, y, size * 3, 0, Math.PI * 2);
+          ctx!.arc(x, y, sEff * 3, 0, Math.PI * 2);
           ctx!.fill();
           ctx!.globalCompositeOperation = 'source-over';
 
@@ -377,7 +397,7 @@ export default function WorldScreen({ sessionId }: { sessionId: string }) {
           ctx!.globalAlpha = dim;
           ctx!.fillStyle = l.color;
           ctx!.beginPath();
-          ctx!.arc(x, y, size * 0.62, 0, Math.PI * 2);
+          ctx!.arc(x, y, sEff * 0.62, 0, Math.PI * 2);
           ctx!.fill();
           ctx!.globalAlpha = 1;
 
@@ -391,7 +411,7 @@ export default function WorldScreen({ sessionId }: { sessionId: string }) {
               svgImgRef.current.set(l.id, img);
             }
             if (img && img.complete && img.naturalWidth > 0) {
-              const s = size * 1.7;
+              const s = sEff * 1.7;
               ctx!.globalAlpha = dim;
               ctx!.drawImage(img, x - s / 2, y - s / 2, s, s);
               ctx!.globalAlpha = 1;
@@ -402,7 +422,7 @@ export default function WorldScreen({ sessionId }: { sessionId: string }) {
           ctx!.fillStyle = sleeping ? '#64748b' : '#e2f4ff';
           ctx!.font = 'bold 14px sans-serif';
           ctx!.textAlign = 'center';
-          ctx!.fillText(l.name, x, y - size - 8);
+          ctx!.fillText(l.name, x, y - sEff - 8);
 
           if (sleeping) {
             ctx!.fillText('💤', x, y + 4);
