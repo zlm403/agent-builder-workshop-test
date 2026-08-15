@@ -16,8 +16,7 @@
     --text-dim: rgba(226, 232, 240, 0.32);
 
     --c-ai:    #60a5fa;   /* AI / 蓝 */
-    --c-gold:  #fbbf24;   /* 价值 / 金 */
-    --c-deal:  #4ade80;   /* 最终价 / 翠绿（超值到手） */
+    --c-gold:  #fbbf24;   /* 价值 / 金（CTA 按钮/进度圆点） */
     --c-old:   #f87171;   /* 锚点高价 / 淡红（划掉） */
 
     /* —— 价格与文案配置 —— */
@@ -164,8 +163,8 @@
     margin-top: clamp(6px, 1.2vh, 14px);
     font-size: clamp(80px, 18vw, 260px);
     line-height: 1;
-    color: var(--c-deal);
-    text-shadow: 0 0 50px rgba(74, 222, 128, 0.45);
+    color: #ffffff;
+    text-shadow: 0 0 50px rgba(255, 255, 255, 0.35), 0 0 90px rgba(120, 180, 255, 0.18);
     opacity: 0;
     transform: scale(0.6);
   }
@@ -177,7 +176,7 @@
     opacity: 0;
     transform: translateY(10px);
   }
-  .final-sub b { color: var(--c-deal); }
+  .final-sub b { color: #ffffff; }
 
   /* 进入 reveal 步骤时，按顺序触发动画 */
   .step.reveal.active .old-price {
@@ -205,7 +204,7 @@
     transform: translateY(10px);
   }
   .compare-line .was { color: var(--text-dim); text-decoration: line-through; text-decoration-color: var(--c-old); margin-right: 0.4em; }
-  .compare-line .now { color: var(--c-deal); font-weight: 800; }
+  .compare-line .now { color: #ffffff; font-weight: 800; }
   .save-tag {
     margin-top: 14px;
     display: inline-block;
@@ -224,18 +223,18 @@
     gap: 10px;
     font-size: clamp(18px, 2.4vw, 30px);
     font-weight: 700;
-    color: #06210f;
-    background: linear-gradient(90deg, #4ade80, #34d399);
+    color: #1c1400;
+    background: linear-gradient(90deg, #fbbf24, #f59e0b);
     border: none;
     border-radius: 999px;
     padding: clamp(14px, 2vh, 22px) clamp(34px, 5vw, 60px);
     cursor: pointer;
-    box-shadow: 0 0 40px -6px rgba(74, 222, 128, 0.6);
+    box-shadow: 0 0 40px -6px rgba(251, 191, 36, 0.6);
     opacity: 0;
     transform: translateY(14px) scale(0.96);
     transition: transform 0.2s ease, box-shadow 0.3s ease;
   }
-  .cta:hover { transform: translateY(-2px) scale(1.02); box-shadow: 0 0 56px -4px rgba(74, 222, 128, 0.8); }
+  .cta:hover { transform: translateY(-2px) scale(1.02); box-shadow: 0 0 56px -4px rgba(251, 191, 36, 0.8); }
   .early-bird {
     margin-top: 14px;
     font-size: clamp(12px, 1.5vw, 17px);
@@ -262,17 +261,12 @@
   .v-item {
     font-size: clamp(15px, 2vw, 24px);
     line-height: 1.5;
-    color: var(--text-soft);
+    color: var(--text-strong);
     letter-spacing: 0.03em;
   }
   .v-item b {
-    display: inline-block;
-    margin-right: 10px;
-    padding: 2px 12px;
-    border-radius: 999px;
-    font-size: 0.8em;
-    color: #06210f;
-    background: linear-gradient(90deg, #4ade80, #34d399);
+    font-weight: 800;
+    color: var(--text-strong);
   }
 
   /* 底部进度与提示 */
@@ -289,7 +283,7 @@
     background: rgba(226, 232, 240, 0.22);
     transition: background 0.4s ease, transform 0.4s ease;
   }
-  .progress .dot.on { background: var(--c-deal); transform: scale(1.35); }
+  .progress .dot.on { background: var(--c-gold); transform: scale(1.35); }
 
   .hint {
     position: absolute;
@@ -327,7 +321,7 @@
   <section class="step" data-step="2">
     <div class="anchor-num price"><span class="cur">¥</span><span id="campNum">3,300–9,800</span></div>
     <div class="sub">同类训练营、线下实战班</div>
-    <div class="note">好是好，但要抽几天、也不便宜</div>
+    <div class="note">多针对行业痛点，不适合小白</div>
   </section>
 
   <!-- step 4：转折 -->
@@ -354,9 +348,9 @@
     <div class="compare-line price"><span class="was">¥3,300–9,800</span><span class="now">¥299</span></div>
     <div class="save-tag">一天实战 + 之后长期陪跑</div>
     <div class="values">
-      <div class="v-item"><b>今天</b>手把手做出你的第一个 AI 应用</div>
-      <div class="v-item"><b>之后</b>专属群 · 真人答疑陪跑</div>
-      <div class="v-item"><b>更远</b>做得好，帮你推广 · 一人公司全链条扶持</div>
+      <div class="v-item">手把手做出你的第一个 AI 应用</div>
+      <div class="v-item">专属群 · 真人答疑陪跑</div>
+      <div class="v-item">做得好，帮你推广 · 一人公司全链条扶持</div>
     </div>
     <div>
       <button class="cta" id="ctaBtn">立即报名 · <span id="ctaProduct">一天 AI Agent 实战课</span></button>
