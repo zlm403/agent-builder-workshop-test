@@ -75,11 +75,23 @@ export default function ScreenPage() {
   useEffect(() => {
     const onErr = (e: ErrorEvent) => setJsError(e.message || String(e.error));
     const onRej = (e: PromiseRejectionEvent) => setJsError(String(e.reason));
+    // 捕获所有失败的 fetch/请求，显示具体 URL 和状态
+    const origFetch = window.fetch;
+    window.fetch = function (...args: Parameters<typeof fetch>) {
+      const url = typeof args[0] === 'string' ? args[0] : (args[0] as URL)?.href || String(args[0]);
+      return origFetch.apply(this, args as never).then((res) => {
+        if (res.status >= 400) {
+          setJsError((prev) => `请求失败 ${res.status}: ${url}` + (prev ? `\n${prev}` : ''));
+        }
+        return res;
+      });
+    };
     window.addEventListener('error', onErr);
     window.addEventListener('unhandledrejection', onRej);
     return () => {
       window.removeEventListener('error', onErr);
       window.removeEventListener('unhandledrejection', onRej);
+      window.fetch = origFetch;
     };
   }, []);
 
