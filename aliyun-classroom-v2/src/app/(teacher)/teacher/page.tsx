@@ -1012,6 +1012,9 @@ export default function TeacherPage() {
                     onEditContent={(pageId) => setEditingPageId(pageId)}
                     onEditText={(page) => setEditingBuiltin({ id: page.id, kind: page.kind, refKey: page.refKey, overrides: page.overrides })}
                   />
+                  {currentModuleId === 'A3_WORLD' && (
+                    <WorldVisualBar />
+                  )}
                   <button className="secondary" style={{ alignSelf: 'flex-start' }} disabled={busy || status === 'closed'} onClick={() => control('lock', { locked: !moduleLocked })}>
                     {moduleLocked ? '解锁学员输入' : '锁定学员输入'}
                   </button>
@@ -1339,5 +1342,52 @@ export default function TeacherPage() {
   );
 }
 
-// 《我的世界》不需要教师控制世界状态（进入 A3 世界自动运行）
+// 《我的世界》大屏环境光斑整体速度/亮度调节（教师调整体，不是单个）
+function WorldVisualBar() {
+  const [speed, setSpeed] = useState(1);
+  const [brightness, setBrightness] = useState(1);
+  const [busy, setBusy] = useState(false);
 
+  async function load() {
+    try {
+      const r = await fetch('/api/world/visual', { cache: 'no-store' });
+      const d = await r.json();
+      setSpeed(Number(d.speed) || 1);
+      setBrightness(Number(d.brightness) || 1);
+    } catch { /* noop */ }
+  }
+
+  useEffect(() => { load(); }, []);
+
+  async function apply(s: number, b: number) {
+    setSpeed(s);
+    setBrightness(b);
+    if (busy) return;
+    setBusy(true);
+    try {
+      await fetch('/api/world/visual', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ speed: s, brightness: b }),
+      });
+    } finally {
+      setTimeout(() => setBusy(false), 300);
+    }
+  }
+
+  return (
+    <div style={{ border: '1px solid rgba(56,189,248,0.4)', borderRadius: 10, padding: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <span style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 700 }}>环境光斑（整体）</span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <span style={{ fontSize: 11, color: 'var(--muted)', width: 34, flexShrink: 0 }}>速度</span>
+        <input type="range" min={0.3} max={3} step={0.1} value={speed} onChange={(e) => apply(Number(e.target.value), brightness)} style={{ flex: 1 }} />
+        <span style={{ fontSize: 11, width: 36, textAlign: 'right' }}>{speed.toFixed(1)}×</span>
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <span style={{ fontSize: 11, color: 'var(--muted)', width: 34, flexShrink: 0 }}>亮度</span>
+        <input type="range" min={0.3} max={3} step={0.1} value={brightness} onChange={(e) => apply(speed, Number(e.target.value))} style={{ flex: 1 }} />
+        <span style={{ fontSize: 11, width: 36, textAlign: 'right' }}>{brightness.toFixed(1)}×</span>
+      </div>
+    </div>
+  );
+}

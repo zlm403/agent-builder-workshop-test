@@ -84,6 +84,8 @@ export default function WorldScreen({ sessionId }: { sessionId: string }) {
   const posRef = useRef<Record<string, { x: number; y: number }>>({});
   const fxRef = useRef<FxLight[]>([]);
   const seenRef = useRef<Set<string>>(new Set());
+  // 环境光斑整体速度/亮度系数（教师调节，渲染循环读 ref）
+  const visualRef = useRef<{ speed: number; brightness: number }>({ speed: 1, brightness: 1 });
   // 环境光点（鱼缸 Light 风格：慢、亮、大、带拖尾与标签，纯视觉）
   const ambRef = useRef<{
     x: number; y: number; dirx: number; diry: number;
@@ -119,6 +121,21 @@ export default function WorldScreen({ sessionId }: { sessionId: string }) {
     }
     loadPopup();
     const t = setInterval(loadPopup, 2000);
+    return () => { closed = true; clearInterval(t); };
+  }, []);
+
+  // 轮询环境光斑速度/亮度
+  useEffect(() => {
+    let closed = false;
+    async function loadVisual() {
+      try {
+        const r = await fetch('/api/world/visual', { cache: 'no-store' });
+        const d = await r.json();
+        if (!closed) visualRef.current = { speed: Number(d.speed) || 1, brightness: Number(d.brightness) || 1 };
+      } catch { /* noop */ }
+    }
+    loadVisual();
+    const t = setInterval(loadVisual, 2000);
     return () => { closed = true; clearInterval(t); };
   }, []);
 
@@ -212,9 +229,10 @@ export default function WorldScreen({ sessionId }: { sessionId: string }) {
       ctx!.fillRect(0, 0, W, H);
 
       // 环境光点（鱼缸 Light 风格：慢速起伏、拖尾光晕、带 2 字标签）
+      const vis = visualRef.current;
       for (const a of ambRef.current) {
         a.t++;
-        const speed = a.baseSpeed * (1 + 0.5 * Math.sin(a.t * a.oscFreq));
+        const speed = a.baseSpeed * (1 + 0.5 * Math.sin(a.t * a.oscFreq)) * vis.speed;
         a.x += a.dirx * speed * dt;
         a.y += a.diry * speed * dt;
         if (a.x < 0) { a.x = 0; a.dirx *= -1; }
@@ -233,16 +251,16 @@ export default function WorldScreen({ sessionId }: { sessionId: string }) {
         // 拖尾
         for (let i = 0; i < a.trail.length; i++) {
           const t = a.trail[i];
-          const trailAlpha = (i / a.trail.length) * 0.28 * al;
-          ctx!.fillStyle = `hsla(${a.hue},90%,80%,${trailAlpha})`;
+          const trailAlpha = (i / a.trail.length) * 0.28 * al * vis.brightness;
+          ctx!.fillStyle = `hsla(${a.hue},90%,80%,${Math.min(1, trailAlpha)})`;
           ctx!.beginPath();
           ctx!.arc(t.x * W, t.y * H, a.size * (i / a.trail.length) * 0.6, 0, Math.PI * 2);
           ctx!.fill();
         }
         // 光晕
         const g = ctx!.createRadialGradient(gx, gy, 0, gx, gy, a.size * 2.2);
-        g.addColorStop(0, `hsla(${a.hue},100%,92%,${0.9 * al})`);
-        g.addColorStop(0.4, `hsla(${a.hue},95%,70%,${0.5 * al})`);
+        g.addColorStop(0, `hsla(${a.hue},100%,92%,${Math.min(1, 0.9 * al * vis.brightness)})`);
+        g.addColorStop(0.4, `hsla(${a.hue},95%,70%,${Math.min(1, 0.5 * al * vis.brightness)})`);
         g.addColorStop(1, 'transparent');
         ctx!.fillStyle = g;
         ctx!.beginPath();
@@ -250,7 +268,7 @@ export default function WorldScreen({ sessionId }: { sessionId: string }) {
         ctx!.fill();
         // 标签（2 字，画在光点上方）
         ctx!.globalCompositeOperation = 'source-over';
-        ctx!.fillStyle = `hsla(${a.hue},90%,78%,${0.9 * al})`;
+        ctx!.fillStyle = `hsla(${a.hue},90%,78%,${Math.min(1, 0.9 * al * vis.brightness)})`;
         ctx!.font = '14px sans-serif';
         ctx!.textAlign = 'center';
         ctx!.textBaseline = 'middle';

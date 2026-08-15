@@ -12,6 +12,7 @@ const CONTROL_FILE = path.join(DATA_DIR, 'world-control.json');
 const LIVES_FILE = path.join(DATA_DIR, 'world-lives.json');
 const STATE_FILE = path.join(DATA_DIR, 'world-state.json');
 const POPUP_FILE = path.join(DATA_DIR, 'world-popup.json');
+const VISUAL_FILE = path.join(DATA_DIR, 'world-visual.json');
 
 function ensureDir(): void {
   fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -156,6 +157,37 @@ export function setPopup(content: 'usage' | 'method' | null, show: boolean): Wor
   const next = { show, content, updatedAt: Date.now() };
   writePopup(next);
   return next;
+}
+
+// ---------- visual（大屏环境光斑整体速度/亮度，教师调节） ----------
+
+export interface WorldVisual {
+  speed: number; // 速度系数 0.3..3，默认 1
+  brightness: number; // 亮度系数 0.3..3，默认 1
+  updatedAt: number;
+}
+
+export function defaultVisual(): WorldVisual {
+  return { speed: 1, brightness: 1, updatedAt: Date.now() };
+}
+
+export function readVisual(): WorldVisual {
+  return readJson<WorldVisual>(VISUAL_FILE, defaultVisual());
+}
+
+export function setVisual(speed: number, brightness: number): WorldVisual {
+  const next: WorldVisual = {
+    speed: clampRange(speed, 0.3, 3),
+    brightness: clampRange(brightness, 0.3, 3),
+    updatedAt: Date.now(),
+  };
+  writeJsonAtomic(VISUAL_FILE, next);
+  return next;
+}
+
+function clampRange(v: number, lo: number, hi: number): number {
+  if (Number.isNaN(v)) return 1;
+  return Math.min(hi, Math.max(lo, v));
 }
 
 // ---------- state ----------
