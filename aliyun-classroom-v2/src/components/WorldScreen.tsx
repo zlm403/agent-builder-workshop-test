@@ -80,6 +80,8 @@ function sizeOf(id: string): number {
 export default function WorldScreen({ sessionId }: { sessionId: string }) {
   const [data, setData] = useState<WorldData | null>(null);
   const [popup, setPopup] = useState<{ show: boolean; content: string | null }>({ show: false, content: null });
+  const [renderErr, setRenderErr] = useState<string | null>(null); // draw 异常（显示排查用）
+  const [canvasSize, setCanvasSize] = useState<string>(''); // canvas 尺寸（显示排查用）
   const canvasRef = useRef<HTMLCanvasElement>(null);
   // 渲染层状态（ref，不进 React 重渲染）
   const dataRef = useRef<WorldData | null>(null);
@@ -198,6 +200,7 @@ export default function WorldScreen({ sessionId }: { sessionId: string }) {
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
       canvas!.width = w * dpr;
       canvas!.height = h * dpr;
+      try { setCanvasSize(`${Math.round(w)}×${Math.round(h)}`); } catch {}
     }
     // 延迟到下一帧再量尺寸（组件刚挂载时 canvas 可能还没布局）
     requestAnimationFrame(() => requestAnimationFrame(resize));
@@ -487,7 +490,8 @@ export default function WorldScreen({ sessionId }: { sessionId: string }) {
       }
 
       } catch (e) {
-        // 任何一帧绘制异常都不中断动画循环（否则画面会"停下来"）
+        // 任何一帧绘制异常都不中断动画循环；显示错误便于排查
+        try { setRenderErr(String((e as Error)?.message || e)); } catch {}
       } finally {
         raf = requestAnimationFrame(draw);
       }
@@ -533,6 +537,11 @@ export default function WorldScreen({ sessionId }: { sessionId: string }) {
         <Stat label="休眠" value={`${sleeping}`} />
         <Stat label="平均能量" value={`${avgEnergy}`} />
         <Stat label="阶段" value={labelOf(data.status)} />
+        <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid rgba(120,200,230,0.15)', fontSize: 11, color: '#5d7a8c', whiteSpace: 'pre-wrap' }}>
+          <div>canvas: {canvasSize || '未就绪'}</div>
+          <div>光点: {ambRef.current.length}</div>
+          {renderErr && <div style={{ color: '#f87171' }}>渲染异常: {renderErr}</div>}
+        </div>
       </div>
 
       {/* 中：Canvas 世界 */}
