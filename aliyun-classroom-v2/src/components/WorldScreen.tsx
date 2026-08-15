@@ -82,6 +82,8 @@ export default function WorldScreen({ sessionId }: { sessionId: string }) {
   const [popup, setPopup] = useState<{ show: boolean; content: string | null }>({ show: false, content: null });
   const [renderErr, setRenderErr] = useState<string | null>(null); // draw 异常（显示排查用）
   const [canvasSize, setCanvasSize] = useState<string>(''); // canvas 尺寸（显示排查用）
+  const [drawCount, setDrawCount] = useState(0); // draw 帧计数（确认渲染循环是否在跑）
+  const drawCountRef = useRef(0);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   // 渲染层状态（ref，不进 React 重渲染）
   const dataRef = useRef<WorldData | null>(null);
@@ -216,6 +218,10 @@ export default function WorldScreen({ sessionId }: { sessionId: string }) {
       try {
       const dt = Math.min(100, now - last);
       last = now;
+      drawCountRef.current++;
+      if (drawCountRef.current % 30 === 0) {
+        try { setDrawCount(drawCountRef.current); } catch {}
+      }
       const rect = canvas!.getBoundingClientRect();
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
       let W = rect.width;
@@ -540,6 +546,7 @@ export default function WorldScreen({ sessionId }: { sessionId: string }) {
         <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid rgba(120,200,230,0.15)', fontSize: 11, color: '#5d7a8c', whiteSpace: 'pre-wrap' }}>
           <div>canvas: {canvasSize || '未就绪'}</div>
           <div>光点: {ambRef.current.length}</div>
+          <div>draw帧: {drawCount || '未启动'}</div>
           {renderErr && <div style={{ color: '#f87171' }}>渲染异常: {renderErr}</div>}
         </div>
       </div>
