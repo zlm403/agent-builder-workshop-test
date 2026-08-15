@@ -502,6 +502,9 @@ export default function WorldScreen({ sessionId }: { sessionId: string }) {
         raf = requestAnimationFrame(draw);
       }
     }
+    // 启动渲染循环（57e9b35 修"动画停下来"时误删了首次启动调用，
+    // 只留下 draw 内部自我续命，导致 draw 从未执行、画布全空）
+    raf = requestAnimationFrame(draw);
     return () => {
       cancelAnimationFrame(raf);
       window.removeEventListener('resize', resize);

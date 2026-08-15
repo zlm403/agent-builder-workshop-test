@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { STYLE_PROFILES, STYLE_ORDER } from '@/lib/styleProfiles';
+import { LIFE_PRESETS } from '@/lib/world/presets';
 import AvatarTeacher from '@/components/AvatarTeacher';
 import MediaManager from '@/components/MediaManager';
 import ContentPageEditor from '@/components/ContentPageEditor';
@@ -1419,39 +1420,53 @@ function WorldVisualBar() {
   );
 }
 
-// 《我的世界》预置生命：教师端一键添加演示生命进世界
+// 《我的世界》预置生命：教师端一键添加演示生命进世界（多卡片，点哪个注入哪个）
 function WorldPresetBar() {
-  const [busy, setBusy] = useState(false);
-  const [added, setAdded] = useState<string[]>([]);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [added, setAdded] = useState<Record<string, number>>({});
 
-  async function addPreset() {
+  async function addPreset(id: string) {
     if (busy) return;
-    setBusy(true);
+    setBusy(id);
     try {
       const res = await fetch('/api/world/preset', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ presetId: 'preset-zhang' }),
+        body: JSON.stringify({ presetId: id }),
       });
       const d = await res.json();
       if (res.ok && d.life) {
-        setAdded((a) => [...a, d.life.name]);
+        setAdded((a) => ({ ...a, [id]: (a[id] || 0) + 1 }));
       } else {
         alert('添加失败：' + (d.error?.message || res.statusText));
       }
     } finally {
-      setTimeout(() => setBusy(false), 300);
+      setTimeout(() => setBusy(null), 300);
     }
   }
 
   return (
     <div style={{ border: '1px solid rgba(124,58,237,0.4)', borderRadius: 10, padding: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-        <span style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 700 }}>预置生命</span>
-        <button className="secondary" style={{ fontSize: 11, padding: '4px 10px', color: 'var(--green)' }} disabled={busy} onClick={addPreset}>
-          {busy ? '添加中…' : '➕ 添加「小觉」（鱼缸例子）'}
-        </button>
-        {added.length > 0 && <span className="pill green" style={{ fontSize: 10 }}>已添加 {added.length} 个</span>}
+      <div style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 700 }}>预置生命（点一下注入世界做例子）</div>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        {LIFE_PRESETS.map((p) => (
+          <div
+            key={p.id}
+            style={{ border: '1px solid rgba(255,255,255,0.12)', borderRadius: 10, padding: 8, width: 150, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}
+          >
+            {p.shape ? (
+              <img src={`data:image/svg+xml;charset=utf-8,${encodeURIComponent(p.shape)}`} width={56} height={56} alt={p.name} />
+            ) : (
+              <div style={{ width: 56, height: 56, borderRadius: '50%', background: p.color, opacity: 0.6 }} />
+            )}
+            <div style={{ fontSize: 13, fontWeight: 700 }}>{p.name}</div>
+            {p.desc ? <div style={{ fontSize: 10, color: 'var(--muted)', textAlign: 'center', lineHeight: 1.3 }}>{p.desc}</div> : null}
+            <button className="secondary" style={{ fontSize: 11, padding: '4px 10px', color: 'var(--green)' }} disabled={busy === p.id} onClick={() => addPreset(p.id)}>
+              {busy === p.id ? '注入中…' : '➕ 注入'}
+            </button>
+            {added[p.id] ? <span className="pill green" style={{ fontSize: 10 }}>已注入 {added[p.id]} 个</span> : null}
+          </div>
+        ))}
       </div>
     </div>
   );

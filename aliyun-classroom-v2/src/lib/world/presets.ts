@@ -12,6 +12,7 @@ export interface LifePreset {
   color: string;
   text: string; // 生命定义
   shape: string; // SVG
+  desc?: string; // 卡片简介（仅展示用，不参与世界模拟）
 }
 
 function particleSvg(color: string, glowColor: string): string {
@@ -41,5 +42,16 @@ export const LIFE_PRESETS: LifePreset[] = [
     text:
       '它平时挺冷静的，喜欢读书思考。朋友说它有亲和力，但容易焦虑。它在意形象，也爱折腾，偶尔讲冷笑话。',
     shape: particleSvg('#39d6ff', '#7dd3fc'),
+    desc: '粒子生命·冷静爱思考，亲和力高，偶尔讲冷笑话（鱼缸例子）',
+  },
+  {
+    id: 'preset-helper',
+    sid: 'preset_helper',
+    name: '小助',
+    color: '#7CFFB2',
+    text:
+      '它特别热心，看到别人需要就主动帮忙，喜欢守着资源照顾大家，朋友说它像个小太阳。它有点一根筋，偶尔帮过头反而添乱，但从不计较好坏。',
+    shape: particleSvg('#7CFFB2', '#bbf7d0'),
+    desc: '粒子生命·热心助人，爱守着资源照顾大家，主动靠近其他生命',
   },
 ];
