@@ -70,6 +70,18 @@ export default function ScreenPage() {
   const [thoughts, setThoughts] = useState<{ id: string; text: string; anonymousId: string; createdAt: string }[]>([]);
   // 刷新时不闪过 A00Screen 开场页，先显示"加载中"等首次 load 返回
   const [loading, setLoading] = useState(true);
+  // 运行时 JS 错误捕获（方便排查"看不到"问题）
+  const [jsError, setJsError] = useState<string | null>(null);
+  useEffect(() => {
+    const onErr = (e: ErrorEvent) => setJsError(e.message || String(e.error));
+    const onRej = (e: PromiseRejectionEvent) => setJsError(String(e.reason));
+    window.addEventListener('error', onErr);
+    window.addEventListener('unhandledrejection', onRej);
+    return () => {
+      window.removeEventListener('error', onErr);
+      window.removeEventListener('unhandledrejection', onRej);
+    };
+  }, []);
 
   useEffect(() => {
     setHostname(window.location.hostname);
@@ -211,6 +223,11 @@ export default function ScreenPage() {
 
   return (
     <div style={{ background: 'var(--dark)', color: '#e2e8f0', minHeight: '100vh', padding: 40 }}>
+      {jsError && (
+        <div style={{ background: '#7f1d1d', color: '#fecaca', padding: '14px 20px', borderRadius: 8, marginBottom: 20, fontSize: 14, whiteSpace: 'pre-wrap' }}>
+          <b>JS 错误：</b>{jsError}
+        </div>
+      )}
       {effectiveHost === 'localhost' && (
         <div style={{ background: 'var(--red)', color: '#fff', padding: '14px 20px', borderRadius: 8, marginBottom: 20, textAlign: 'center', fontSize: 16 }}>
           当前使用 localhost 打开大屏，学生手机扫码后无法访问。
