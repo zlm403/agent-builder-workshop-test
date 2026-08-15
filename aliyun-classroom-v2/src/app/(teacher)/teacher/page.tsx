@@ -1025,6 +1025,12 @@ export default function TeacherPage() {
                         busy={busy}
                         control={control}
                       />
+                    ) : (String(summary?.moduleSubState ?? '').startsWith('closing:price')) ? (
+                      <PriceRevealTeacherBar
+                        subState={summary?.moduleSubState ?? null}
+                        busy={busy}
+                        control={control}
+                      />
                     ) : (
                       <PainWallTeacherBar
                         subState={summary?.moduleSubState ?? null}
@@ -1551,6 +1557,53 @@ function PainWallTeacherBar({
         <button className="secondary" style={{ fontSize: 11, padding: '4px 10px' }} disabled={busy || cur >= 8} onClick={() => go(Math.min(8, cur + 1))}>下一张 ▶</button>
         <span style={{ fontSize: 11, color: 'var(--muted)', minWidth: 64, textAlign: 'center' }}>{cur} / 8</span>
         <button className={cur === 8 ? 'primary' : 'secondary'} style={{ fontSize: 11, padding: '4px 10px' }} disabled={busy} onClick={() => go(8)}>全部点亮</button>
+      </div>
+    </div>
+  );
+}
+
+// 收官 · 价格颁布控制条：教师端逐步推进（closing:price:0..6）
+function PriceRevealTeacherBar({
+  subState,
+  busy,
+  control,
+}: {
+  subState: string | null;
+  busy: boolean;
+  control: (action: string, payload?: any) => void;
+}) {
+  const cur = (() => {
+    const m = String(subState ?? '').match(/(?:^|:)price:(\d+)$/);
+    return m ? Math.max(0, Math.min(6, parseInt(m[1], 10))) : 0;
+  })();
+  const STEPS = [
+    { n: 0, label: '值多少' },
+    { n: 1, label: '¥39 小课' },
+    { n: 2, label: '¥3,300-9,800' },
+    { n: 3, label: '转折' },
+    { n: 4, label: '悬念 ???' },
+    { n: 5, label: '¥299 揭晓' },
+    { n: 6, label: '价值+报名' },
+  ];
+  const go = (n: number) => control('setSubState', { subState: `closing:price:${n}` });
+  return (
+    <div style={{ border: '1px solid rgba(251,191,36,0.4)', borderRadius: 10, padding: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <span style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 700 }}>价格颁布 · 逐步推进（锚点 → 悬念 → ¥299 → 价值+报名）</span>
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+        <button className="secondary" style={{ fontSize: 11, padding: '4px 10px' }} disabled={busy || cur <= 0} onClick={() => go(Math.max(0, cur - 1))}>◀ 上一步</button>
+        <button className="secondary" style={{ fontSize: 11, padding: '4px 10px' }} disabled={busy || cur >= 6} onClick={() => go(Math.min(6, cur + 1))}>下一步 ▶</button>
+        <span style={{ fontSize: 11, color: 'var(--muted)', minWidth: 56, textAlign: 'center' }}>{cur} / 6</span>
+        {STEPS.map((s) => (
+          <button
+            key={s.n}
+            className={cur === s.n ? 'primary' : 'secondary'}
+            style={{ fontSize: 11, padding: '4px 8px' }}
+            disabled={busy}
+            onClick={() => go(s.n)}
+          >
+            {s.label}
+          </button>
+        ))}
       </div>
     </div>
   );

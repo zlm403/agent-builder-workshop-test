@@ -11,6 +11,7 @@ import SiteEntryScreen from '@/components/SiteEntryScreen';
 import WorldScreen from '@/components/WorldScreen';
 import FourWingsScreen from '@/components/FourWingsScreen';
 import PainWallScreen from '@/components/PainWallScreen';
+import PriceRevealScreen from '@/components/PriceRevealScreen';
 import ContentPage from '@/components/ContentPage';
 
 interface Summary {
@@ -256,6 +257,7 @@ export default function ScreenPage() {
           // 收官模块：按当前环节 subState 渲染对应屏
           const st = String(summary?.moduleSubState ?? '');
           if (st.startsWith('closing:wings')) return <FourWingsScreen subState={st} />;
+          if (st.startsWith('closing:price')) return <PriceRevealScreen subState={st} />;
           return <PainWallScreen subState={st} />;
         })()
       ) : module.type === 'grow_game' ? (

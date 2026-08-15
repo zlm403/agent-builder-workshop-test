@@ -2,7 +2,7 @@ import { prisma } from './db';
 import type { CourseTemplateData, ModuleConfig } from './types';
 
 // 课程模板版本。每次大幅调整模块结构时递增，便于追溯。
-export const COURSE_VERSION = 'A-v10';
+export const COURSE_VERSION = 'A-v11';
 
 // ---------------------------------------------------------------------------
 // 第二关核心数据：8 份资料（结构化元数据 + 模型可读正文）
@@ -444,22 +444,23 @@ const TEMPLATE: CourseTemplateData = {
       screenContent: { phase: 'world' },
     },
 
-    // ===================== 收官：环节序列（痛点墙 → 四翼成长链 → 后续卖课内容页待填） =====================
+    // ===================== 收官：环节序列（痛点墙 → 四翼成长链 → 价格颁布 → 后续待填） =====================
     {
       id: 'CLOSING',
       type: 'closing',
-      title: '收官 · 痛点墙 → 四翼成长链',
+      title: '收官 · 痛点墙 → 四翼 → 价格颁布',
       durationSeconds: 1800,
       teacherContent: {
         headline: 'CLOSING · 从痛点切入，收拢成一条成长链',
-        subline: '环节一：痛点墙（AI 自己的坑 ↔ 我们自己的坑 逐张点亮）；环节二：四翼展示（创造→驾驭→成长→传播 + 成长链）',
+        subline: '环节一：痛点墙（AI 自己的坑 ↔ 我们自己的坑 逐张点亮）；环节二：四翼展示（创造→驾驭→成长→传播 + 成长链）；环节三：价格颁布（¥39 → ¥3,300-9,800 → 悬念 → ¥299 → 三组价值+报名）',
         bullets: [
-          '教师端"页面序列"点环节页投屏：痛点墙 → 四翼展示',
+          '教师端"页面序列"点环节页投屏：痛点墙 → 四翼展示 → 价格颁布',
           '痛点墙环节：closing:pain:0 全灭 → 1..8 逐张点亮（控制条上一张/下一张）',
           '四翼环节：closing:wings:0 开场 → 1 创造 → 2 驾驭 → 3 成长 → 4 传播 → 5 成长链',
-          '后续环节（课程/价值定价/系统介绍）待填',
+          '价格环节：closing:price:0..6（值多少→¥39→¥3,300-9,800→转折→悬念→¥299→价值+报名）',
+          '后续环节（课程/系统介绍）待填',
         ],
-        revealOrder: ['closing:pain', 'closing:wings'],
+        revealOrder: ['closing:pain', 'closing:wings', 'closing:price'],
       },
       studentTask: {},
       screenContent: { phase: 'closing' },

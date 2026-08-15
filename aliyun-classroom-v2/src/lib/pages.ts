@@ -74,6 +74,7 @@ const BUILTIN_SEEDS: BuiltinSeed[] = [
   // ---- 收官（每屏一个环节，教师端点环节页投屏；子控制条跟随当前环节显示在教师端）----
   { group: 'CLOSING', moduleId: 'CLOSING', refKey: 'closing:pain', label: '痛点墙' },
   { group: 'CLOSING', moduleId: 'CLOSING', refKey: 'closing:wings', label: '四翼展示' },
+  { group: 'CLOSING', moduleId: 'CLOSING', refKey: 'closing:price', label: '价格颁布' },
 ];
 
 // =========================================================

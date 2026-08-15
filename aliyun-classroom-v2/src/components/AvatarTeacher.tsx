@@ -60,6 +60,7 @@ const BUILTIN_LABEL: Record<string, string> = {
   // CLOSING 收官
   'closing:pain': '痛点墙',
   'closing:wings': '四翼展示',
+  'closing:price': '价格颁布',
 };
 
 // A1 环节名（c1..c11）

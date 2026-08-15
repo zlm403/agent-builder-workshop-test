@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>价格颁布 · ¥299</title>
+<style>
+  /* ============================================================
+     可改的配置（改这里就行，不用动下面的结构）
+     ============================================================ */
+  :root {
+    --bg-0: #070b16;
+    --bg-1: #0d1424;
+    --text-strong: #e8edf6;
+    --text-soft: rgba(226, 232, 240, 0.62);
+    --text-dim: rgba(226, 232, 240, 0.32);
+
+    --c-ai:    #60a5fa;   /* AI / 蓝 */
+    --c-gold:  #fbbf24;   /* 价值 / 金 */
+    --c-deal:  #4ade80;   /* 最终价 / 翠绿（超值到手） */
+    --c-old:   #f87171;   /* 锚点高价 / 淡红（划掉） */
+
+    /* —— 价格与文案配置 —— */
+    --price-final: 299;       /* 最终价 */
+    --price-cheap: 39;        /* 锚点①：线上录播小课 */
+    --price-camp: "3,300–9,800"; /* 锚点②：同类训练营/线下班 */
+    --product: "一天 AI Agent 实战课"; /* 产品名 */
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    height: 100%;
+    background: radial-gradient(120% 120% at 50% 20%, var(--bg-1) 0%, var(--bg-0) 72%);
+    color: var(--text-strong);
+    font-family: "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB", system-ui, -apple-system, sans-serif;
+    overflow: hidden;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(38% 32% at 50% 30%, rgba(74, 222, 128, 0.05), transparent 70%),
+      radial-gradient(40% 34% at 50% 80%, rgba(96, 165, 250, 0.05), transparent 70%);
+    pointer-events: none;
+  }
+
+  .stage {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: clamp(20px, 4vh, 48px) clamp(24px, 5vw, 80px);
+  }
+
+  /* 顶部小标签 */
+  .kicker {
+    position: absolute;
+    top: clamp(20px, 4vh, 44px);
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: clamp(12px, 1.4vw, 17px);
+    letter-spacing: 0.4em;
+    color: var(--text-soft);
+    opacity: 0;
+    transition: opacity 0.6s ease;
+  }
+  .stage.lit .kicker { opacity: 1; }
+
+  /* 每个步骤 */
+  .step {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: clamp(20px, 4vh, 48px);
+    opacity: 0;
+    transform: translateY(20px) scale(0.99);
+    pointer-events: none;
+    transition: opacity 0.55s ease, transform 0.55s ease;
+  }
+  .step.active {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    pointer-events: auto;
+  }
+
+  .big {
+    font-size: clamp(34px, 7vw, 92px);
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: 0.02em;
+  }
+  .sub {
+    margin-top: clamp(14px, 2.4vh, 26px);
+    font-size: clamp(15px, 2vw, 26px);
+    color: var(--text-soft);
+    letter-spacing: 0.06em;
+  }
+  .note {
+    margin-top: 10px;
+    font-size: clamp(12px, 1.4vw, 17px);
+    color: var(--text-dim);
+    letter-spacing: 0.1em;
+  }
+
+  /* 价格数字通用 */
+  .price {
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.01em;
+  }
+
+  /* step2 / step3：锚点高价 */
+  .anchor-num {
+    font-size: clamp(56px, 12vw, 160px);
+    color: var(--c-old);
+    text-shadow: 0 0 30px rgba(248, 113, 113, 0.30);
+  }
+  .anchor-num .cur { font-size: 0.5em; vertical-align: 0.18em; margin-right: 0.06em; opacity: 0.85; }
+
+  /* step4：转折句 */
+  .turn-big {
+    background: linear-gradient(90deg, #cfe9ff, #ffffff 55%, #fff4d7);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  /* step5：悬念 */
+  .suspense-num {
+    font-size: clamp(70px, 16vw, 220px);
+    color: var(--text-dim);
+    letter-spacing: 0.08em;
+    animation: breathe 2.6s ease-in-out infinite;
+  }
+  @keyframes breathe {
+    0%, 100% { opacity: 0.45; }
+    50% { opacity: 0.85; }
+  }
+
+  /* step6 / step7：揭晓最终价 */
+  .reveal-wrap { position: relative; }
+
+  .old-price {
+    font-size: clamp(22px, 3vw, 40px);
+    color: var(--text-dim);
+    text-decoration: line-through;
+    text-decoration-color: var(--c-old);
+    text-decoration-thickness: 3px;
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  .final-price {
+    margin-top: clamp(6px, 1.2vh, 14px);
+    font-size: clamp(80px, 18vw, 260px);
+    line-height: 1;
+    color: var(--c-deal);
+    text-shadow: 0 0 50px rgba(74, 222, 128, 0.45);
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  .final-price .cur { font-size: 0.42em; vertical-align: 0.22em; margin-right: 0.05em; }
+  .final-sub {
+    margin-top: clamp(10px, 2vh, 22px);
+    font-size: clamp(16px, 2.4vw, 32px);
+    color: var(--text-strong);
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  .final-sub b { color: var(--c-deal); }
+
+  /* 进入 reveal 步骤时，按顺序触发动画 */
+  .step.reveal.active .old-price {
+    animation: rise 0.6s ease forwards;
+  }
+  .step.reveal.active .final-price {
+    animation: slam 0.9s cubic-bezier(.18,.9,.25,1.4) 0.5s forwards;
+  }
+  .step.reveal.active .final-sub {
+    animation: rise 0.6s ease 1.35s forwards;
+  }
+  @keyframes rise {
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes slam {
+    0%   { opacity: 0; transform: scale(0.6); }
+    60%  { opacity: 1; transform: scale(1.08); }
+    100% { opacity: 1; transform: scale(1); }
+  }
+
+  /* step7：对比 + CTA */
+  .compare-line {
+    font-size: clamp(20px, 2.8vw, 38px);
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  .compare-line .was { color: var(--text-dim); text-decoration: line-through; text-decoration-color: var(--c-old); margin-right: 0.4em; }
+  .compare-line .now { color: var(--c-deal); font-weight: 800; }
+  .save-tag {
+    margin-top: 14px;
+    display: inline-block;
+    font-size: clamp(14px, 1.8vw, 22px);
+    color: var(--c-gold);
+    border: 1px solid rgba(251, 191, 36, 0.5);
+    border-radius: 999px;
+    padding: 6px 18px;
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  .cta {
+    margin-top: clamp(22px, 3.6vh, 40px);
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-size: clamp(18px, 2.4vw, 30px);
+    font-weight: 700;
+    color: #06210f;
+    background: linear-gradient(90deg, #4ade80, #34d399);
+    border: none;
+    border-radius: 999px;
+    padding: clamp(14px, 2vh, 22px) clamp(34px, 5vw, 60px);
+    cursor: pointer;
+    box-shadow: 0 0 40px -6px rgba(74, 222, 128, 0.6);
+    opacity: 0;
+    transform: translateY(14px) scale(0.96);
+    transition: transform 0.2s ease, box-shadow 0.3s ease;
+  }
+  .cta:hover { transform: translateY(-2px) scale(1.02); box-shadow: 0 0 56px -4px rgba(74, 222, 128, 0.8); }
+  .early-bird {
+    margin-top: 14px;
+    font-size: clamp(12px, 1.5vw, 17px);
+    color: var(--c-gold);
+    letter-spacing: 0.08em;
+    opacity: 0;
+  }
+
+  .step.cta-step.active .compare-line { animation: rise 0.6s ease 0.1s forwards; }
+  .step.cta-step.active .save-tag { animation: rise 0.6s ease 0.5s forwards; }
+  .step.cta-step.active .cta { animation: rise 0.6s ease 0.9s forwards; }
+  .step.cta-step.active .early-bird { animation: rise 0.6s ease 1.3s forwards; }
+
+  /* step7：三组价值 */
+  .values {
+    margin-top: clamp(18px, 3vh, 32px);
+    display: flex;
+    flex-direction: column;
+    gap: clamp(10px, 1.6vh, 18px);
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  .step.cta-step.active .values { animation: rise 0.6s ease 0.7s forwards; }
+  .v-item {
+    font-size: clamp(15px, 2vw, 24px);
+    line-height: 1.5;
+    color: var(--text-soft);
+    letter-spacing: 0.03em;
+  }
+  .v-item b {
+    display: inline-block;
+    margin-right: 10px;
+    padding: 2px 12px;
+    border-radius: 999px;
+    font-size: 0.8em;
+    color: #06210f;
+    background: linear-gradient(90deg, #4ade80, #34d399);
+  }
+
+  /* 底部进度与提示 */
+  .progress {
+    position: absolute;
+    bottom: clamp(20px, 3.4vh, 40px);
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 10px;
+  }
+  .progress .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: rgba(226, 232, 240, 0.22);
+    transition: background 0.4s ease, transform 0.4s ease;
+  }
+  .progress .dot.on { background: var(--c-deal); transform: scale(1.35); }
+
+  .hint {
+    position: absolute;
+    bottom: clamp(20px, 3.4vh, 40px);
+    right: clamp(20px, 3vw, 48px);
+    font-size: clamp(11px, 1.2vw, 14px);
+    color: var(--text-dim);
+    letter-spacing: 0.06em;
+  }
+
+  @media (max-width: 720px) {
+    .hint { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="stage" id="stage">
+  <div class="kicker">价 格 颁 布</div>
+
+  <!-- step 1 -->
+  <section class="step" data-step="0">
+    <div class="big">这东西，<br>到底值多少钱？</div>
+    <div class="sub">先别急 —— 我们算笔账</div>
+  </section>
+
+  <!-- step 2：线上小课 ¥39 -->
+  <section class="step" data-step="1">
+    <div class="anchor-num price"><span class="cur">¥</span><span id="cheapNum">39</span></div>
+    <div class="sub">网上那些 AI 小课，录播看一遍</div>
+    <div class="note">看完就忘，没人管</div>
+  </section>
+
+  <!-- step 3：同类训练营 / 线下班 -->
+  <section class="step" data-step="2">
+    <div class="anchor-num price"><span class="cur">¥</span><span id="campNum">3,300–9,800</span></div>
+    <div class="sub">同类训练营、线下实战班</div>
+    <div class="note">好是好，但要抽几天、也不便宜</div>
+  </section>
+
+  <!-- step 4：转折 -->
+  <section class="step" data-step="3">
+    <div class="big turn-big">但你缺的<br>不是"再多一门课"</div>
+    <div class="sub">是「一天踢开大门 + 之后有人陪你做完」</div>
+  </section>
+
+  <!-- step 5：悬念 -->
+  <section class="step" data-step="4">
+    <div class="suspense-num price">¥&nbsp;???</div>
+    <div class="sub" style="color:var(--text-dim)">深呼吸……</div>
+  </section>
+
+  <!-- step 6：揭晓最终价 -->
+  <section class="step reveal" data-step="5">
+    <div class="old-price price"><span class="cur">¥</span><span id="revealOld">9,800</span></div>
+    <div class="final-price price"><span class="cur">¥</span><span id="finalNum">299</span></div>
+    <div class="final-sub">就 <b>一天</b>，帮你把第一个 AI 应用做出来</div>
+  </section>
+
+  <!-- step 7：三组价值 + CTA -->
+  <section class="step cta-step" data-step="6">
+    <div class="compare-line price"><span class="was">¥3,300–9,800</span><span class="now">¥299</span></div>
+    <div class="save-tag">一天实战 + 之后长期陪跑</div>
+    <div class="values">
+      <div class="v-item"><b>今天</b>手把手做出你的第一个 AI 应用</div>
+      <div class="v-item"><b>之后</b>专属群 · 真人答疑陪跑</div>
+      <div class="v-item"><b>更远</b>做得好，帮你推广 · 一人公司全链条扶持</div>
+    </div>
+    <div>
+      <button class="cta" id="ctaBtn">立即报名 · <span id="ctaProduct">一天 AI Agent 实战课</span></button>
+    </div>
+    <div class="early-bird">仅限现场报名 · 以报名页规则为准</div>
+  </section>
+
+  <div class="progress" id="progress"></div>
+  <div class="hint">由教师端逐屏推进</div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    // —— 同步配置到页面 ——
+    const cfg = {
+      final: 299,
+      cheap: 39,
+      camp: '3,300–9,800',
+      product: '一天 AI Agent 实战课'
+    };
+    const fmt = (n) => n.toLocaleString('en-US');
+    document.getElementById('cheapNum').textContent = fmt(cfg.cheap);
+    document.getElementById('campNum').textContent = cfg.camp;
+    document.getElementById('revealOld').textContent = cfg.camp;
+    document.getElementById('finalNum').textContent = fmt(cfg.final);
+    document.getElementById('ctaProduct').textContent = cfg.product;
+
+    const steps = Array.from(document.querySelectorAll('.step'));
+    const dots = document.getElementById('progress');
+    steps.forEach(() => {
+      const d = document.createElement('span');
+      d.className = 'dot';
+      dots.appendChild(d);
+    });
+    const dotEls = Array.from(dots.children);
+
+    let idx = -1;
+    const stage = document.getElementById('stage');
+
+    function go(n) {
+      n = Math.max(0, Math.min(steps.length - 1, n));
+      steps.forEach((s, i) => s.classList.toggle('active', i === n));
+      dotEls.forEach((d, i) => d.classList.toggle('on', i <= n));
+      idx = n;
+      if (n >= 0) stage.classList.add('lit');
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.code === 'Space' || e.code === 'ArrowRight') { e.preventDefault(); go(idx + 1); }
+      else if (e.code === 'Backspace' || e.code === 'ArrowLeft') { e.preventDefault(); go(idx - 1); }
+    });
+    stage.addEventListener('click', (e) => {
+      if (e.target.closest('.cta')) return; // 按钮单独处理
+      go(idx + 1);
+    });
+
+    document.getElementById('ctaBtn').addEventListener('click', () => {
+      // 占位：真实下单/领取链接在这里接
+      console.log('CTA clicked — 在此接入你的下单/领取链接');
+    });
+
+    // 教师端远程控制入口：收到 postMessage { type:'pricereveal', step:n } 就跳到对应步骤
+    window.addEventListener('message', (e) => {
+      const d = e.data;
+      if (d && d.type === 'pricereveal' && typeof d.step === 'number') {
+        go(Math.max(0, Math.min(steps.length - 1, Math.floor(d.step))));
+      }
+    });
+  });
+</script>
+
+</body>
+</html>
