@@ -68,16 +68,8 @@ const BUILTIN_SEEDS: BuiltinSeed[] = [
   { group: 'A2', moduleId: 'A2_SITE', refKey: 'a2:wall', label: '作品墙' },
   { group: 'A2', moduleId: 'A2_SITE', refKey: 'a2:s8', label: '梦想互动/梦想墙' },
 
-  // ---- A3 我的世界 ----
+  // ---- A3 我的世界（只留第一页"世界预告"加载大屏；课堂玩法全部走"发布 Tips"弹窗，无需页面序列） ----
   { group: 'A3', moduleId: 'A3_WORLD', refKey: 'world:hook', label: '世界预告' },
-  { group: 'A3', moduleId: 'A3_WORLD', refKey: 'world:create', label: '创建生命' },
-  { group: 'A3', moduleId: 'A3_WORLD', refKey: 'world:submit', label: '提交截止' },
-  { group: 'A3', moduleId: 'A3_WORLD', refKey: 'world:publish', label: '发布生命' },
-  { group: 'A3', moduleId: 'A3_WORLD', refKey: 'world:run', label: '世界运行' },
-  { group: 'A3', moduleId: 'A3_WORLD', refKey: 'world:observe', label: '观察讨论' },
-  { group: 'A3', moduleId: 'A3_WORLD', refKey: 'world:revise', label: '修改新版本' },
-  { group: 'A3', moduleId: 'A3_WORLD', refKey: 'world:apply', label: '应用新版本' },
-  { group: 'A3', moduleId: 'A3_WORLD', refKey: 'world:compare', label: '前后比较' },
 ];
 
 // =========================================================
