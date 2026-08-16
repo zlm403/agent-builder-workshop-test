@@ -39,6 +39,7 @@ const BUILTIN_LABEL: Record<string, string> = {
   'reveal:3': '工具/伙伴两图',
   'a0:mirror': '我们在哪儿',
   'a0:closing': '收束·已经来了',
+  'a0:questions': '三问',
   // A1
   'avatar:hook': '钩子开场',
   'avatar:wall': '作品墙',
@@ -145,11 +146,13 @@ export default function AvatarTeacher({
     if (busy || busyLocal) return;
     // 隐藏页不允许投大屏（防止"点了隐藏页大屏却显示"）
     if (page.hidden) return;
+    // 内置页 refKey 为空（如 A0 三问 = 模块默认态）：用空字符串，避免传 null 触发服务端 400
+    const subState = page.kind === 'content' ? `page:${page.id}` : (page.refKey ?? '');
     if (page.moduleId !== moduleId) {
       // 跨模块（A0 三个模块之间）：jump 并落到指定 subState
-      control('jump', { targetModuleId: page.moduleId, subState: page.kind === 'content' ? `page:${page.id}` : page.refKey ?? null });
+      control('jump', { targetModuleId: page.moduleId, subState });
     } else {
-      control('setSubState', { subState: page.kind === 'content' ? `page:${page.id}` : page.refKey ?? null });
+      control('setSubState', { subState });
     }
   }
 
