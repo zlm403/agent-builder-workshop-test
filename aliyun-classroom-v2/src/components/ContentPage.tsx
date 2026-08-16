@@ -3,7 +3,7 @@
 // 内容页 · 大屏组件（页面序列框架里的"内容页"）
 // 一个独立整页：顶部大标题 + 一串内容块（文字/图片/视频/链接/网页）
 // 内容块存 MediaItem(slot=page:{pageId})，教师端在媒体库编辑，无需改代码。
-// embed 块：iframe 外层深色 + 加载完成后再显示（opacity 0→1），避免白闪。
+// embed 块：外层容器 + iframe 均用深色背景，防止加载瞬间白闪。
 // =========================================================
 import { useEffect, useState } from 'react';
 
@@ -17,12 +17,8 @@ interface MediaItem {
   sort: number;
 }
 
-// embed 页是否已加载完成（防止 iframe 加载瞬间白闪）
-const loadedSet = new Set<string>();
-
 export default function ContentPage({ pageId, title }: { pageId: string; title: string | null }) {
   const [items, setItems] = useState<MediaItem[]>([]);
-  const [loaded, setLoaded] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     let closed = false;
@@ -30,26 +26,13 @@ export default function ContentPage({ pageId, title }: { pageId: string; title: 
       try {
         const r = await fetch(`/api/media?slot=${encodeURIComponent(`page:${pageId}`)}`);
         const d = await r.json();
-        if (!closed && d.items) {
-          setItems(d.items);
-          // 已加载过的 iframe（本会话内切回来）直接显示，不再白闪
-          const map: Record<string, boolean> = {};
-          for (const it of d.items) {
-            if (it.kind === 'embed') map[it.id] = loadedSet.has(it.id);
-          }
-          setLoaded(map);
-        }
+        if (!closed && d.items) setItems(d.items);
       } catch { /* noop */ }
     }
     fetchIt();
     const iv = setInterval(fetchIt, 5000);
     return () => { closed = true; clearInterval(iv); };
   }, [pageId]);
-
-  const markLoaded = (id: string) => {
-    loadedSet.add(id);
-    setLoaded((m) => ({ ...m, [id]: true }));
-  };
 
   return (
     <div style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 22, padding: '0 4vw', overflowY: 'auto', background: '#0b1220' }}>
@@ -81,19 +64,12 @@ export default function ContentPage({ pageId, title }: { pageId: string; title: 
           return <video key={it.id} src={it.url || ''} controls autoPlay playsInline style={{ width: 'min(1100px, 90vw)', maxHeight: '60vh', borderRadius: 16, background: '#000' }} />;
         }
         if (it.kind === 'embed') {
-          const show = loaded[it.id];
           return (
-            <div key={it.id} style={{ width: '100%', flex: 1, minHeight: '60vh', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0b1220' }}>
-              {!show && <div style={{ position: 'absolute', inset: 0, zIndex: 1, background: '#0b1220' }} />}
+            <div key={it.id} style={{ width: '100%', flex: 1, minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0b1220' }}>
               <iframe
                 src={it.url || ''}
                 title={it.title}
-                onLoad={() => markLoaded(it.id)}
-                style={{
-                  position: 'relative', zIndex: 2, width: '100%', height: '100%', border: 'none', background: '#0b1322',
-                  opacity: show ? 1 : 0,
-                  transition: 'opacity 120ms ease',
-                }}
+                style={{ width: '100%', height: '100%', border: 'none', background: '#0b1322', display: 'block' }}
               />
             </div>
           );
