@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>今日任务</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#0b1322;color:#f5f3ff;font-family:"PingFang SC","Microsoft YaHei",sans-serif;overflow:hidden}
+.page{height:100vh;min-height:560px;padding:5.5vh 6vw;display:flex;flex-direction:column;position:relative}
+.tag{color:#66e3b4;font-size:clamp(14px,1.3vw,22px);font-weight:700;letter-spacing:.16em}
+.main{flex:1;display:grid;grid-template-columns:1.08fr .92fr;align-items:center;gap:7vw}
+.eyebrow{color:#8ca4cf;font-size:clamp(18px,1.7vw,28px);margin-bottom:2vh}
+.title{font-size:clamp(48px,5.8vw,100px);line-height:1.08;letter-spacing:-.04em;margin:0;font-weight:900}
+.title em{color:#d9caff;font-style:normal}
+.desc{font-size:clamp(18px,1.7vw,30px);line-height:1.7;color:#aebbd3;margin:3vh 0 0}
+.phone{width:min(34vw,510px);background:#111d31;border:1px solid #2d4263;border-radius:30px;padding:34px;box-shadow:0 26px 80px #0006;transform:rotate(2deg)}
+.head{display:flex;align-items:center;gap:16px}
+.avatar{width:58px;height:58px;border-radius:50%;display:grid;place-items:center;background:#765cff;font-size:24px;font-weight:900}
+.name{font-size:21px;font-weight:800}
+.time{color:#7185a7;margin-top:4px}
+.post{font-size:clamp(18px,1.55vw,27px);line-height:1.7;margin:26px 0}
+.photo{height:120px;border-radius:18px;background:#192941;display:grid;place-items:center;color:#7790b7;font-weight:700}
+.note{position:absolute;right:4vw;bottom:4vh;color:#667a9d;font-size:14px}
+.line{width:78px;height:4px;background:#66e3b4;border-radius:5px;margin-top:3vh}
+</style>
+</head>
+<body>
+<main class="page">
+  <div class="tag">TODAY'S MISSION · 今日任务</div>
+
+  <section class="main">
+    <div>
+      <div class="eyebrow">让AI先认识你，再替你表达</div>
+
+      <h1 class="title">
+        让“数字的你”<br>
+        写一条<em>朋友圈</em>
+      </h1>
+
+      <div class="line"></div>
+
+      <p class="desc">
+        不是让AI随便写一段话，<br>
+        而是让它写得——真的有点像你。
+      </p>
+    </div>
+
+    <div class="phone">
+      <div class="head">
+        <div class="avatar">我</div>
+        <div>
+          <div class="name">数字的我</div>
+          <div class="time">刚刚</div>
+        </div>
+      </div>
+
+      <div class="post">
+        今天，我和一个刚认识我的AI聊了聊。它写下的这句话，居然真的很像我会说的。
+      </div>
+
+      <div class="photo">AI × 我的表达</div>
+    </div>
+  </section>
+
+  <div class="note">任务已经出现，但先别急着做</div>
+</main>
+</body>
+</html>

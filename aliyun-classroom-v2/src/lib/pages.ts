@@ -35,7 +35,7 @@ const BUILTIN_SEEDS: BuiltinSeed[] = [
   // ---- A0 开场（跨 A0N_QUESTIONS / A0N_VOTE / A0N_REVEAL 三个模块）----
   { group: 'A0', moduleId: 'A0N_QUESTIONS', refKey: 'a0:intro1', label: '开场·手指图' },
   { group: 'A0', moduleId: 'A0N_QUESTIONS', refKey: 'a0:intro2', label: '开场·发展图' },
-  { group: 'A0', moduleId: 'A0N_QUESTIONS', refKey: null, label: '三问' },
+  { group: 'A0', moduleId: 'A0N_QUESTIONS', refKey: 'a0:questions', label: '三问' },
   // 系统判定页已与揭晓结果页合并（2026-08-14），不再作为独立页
   { group: 'A0', moduleId: 'A0N_REVEAL', refKey: 'reveal:1', label: '揭晓结果' },
   { group: 'A0', moduleId: 'A0N_REVEAL', refKey: 'reveal:2', label: '三种形态' },
@@ -44,20 +44,15 @@ const BUILTIN_SEEDS: BuiltinSeed[] = [
   { group: 'A0', moduleId: 'A0N_REVEAL', refKey: 'a0:mirror', label: '我们在哪儿' },
   { group: 'A0', moduleId: 'A0N_REVEAL', refKey: 'a0:closing', label: '收束·已经来了' },
 
-  // ---- A1 数字分身（2026-08-14 重构：13 屏新结构）----
+  // ---- A1 数字分身（14 页新结构：钩子 + 8 个 HTML 内容页 + 作品墙 + 4 个保留内置页）
+  //      保留内置页：hook(开场)/wall(作品墙)/c7梦想①/c8梦想②/c9现实一人公司/c10现实信号
+  //      c1-c6/c11 由 CONTENT_SEEDS 替换为 content 页（embed HTML），见下方 CONTENT_SEEDS
   { group: 'A1', moduleId: 'A1_AVATAR', refKey: 'avatar:hook', label: '钩子开场' },
-  { group: 'A1', moduleId: 'A1_AVATAR', refKey: 'avatar:c1', label: '发布任务' },
-  { group: 'A1', moduleId: 'A1_AVATAR', refKey: 'avatar:c2', label: 'AI沟通准则①' },
-  { group: 'A1', moduleId: 'A1_AVATAR', refKey: 'avatar:c3', label: '目标辨析' },
-  { group: 'A1', moduleId: 'A1_AVATAR', refKey: 'avatar:c4', label: 'AI沟通准则②' },
-  { group: 'A1', moduleId: 'A1_AVATAR', refKey: 'avatar:c5', label: 'AI采访我' },
-  { group: 'A1', moduleId: 'A1_AVATAR', refKey: 'avatar:c6', label: '让分身开始工作' },
   { group: 'A1', moduleId: 'A1_AVATAR', refKey: 'avatar:wall', label: '作品墙' },
   { group: 'A1', moduleId: 'A1_AVATAR', refKey: 'avatar:c7', label: '梦想①打开世界' },
   { group: 'A1', moduleId: 'A1_AVATAR', refKey: 'avatar:c8', label: '梦想②一个人与一支队伍' },
   { group: 'A1', moduleId: 'A1_AVATAR', refKey: 'avatar:c9', label: '现实：一人公司' },
   { group: 'A1', moduleId: 'A1_AVATAR', refKey: 'avatar:c10', label: '现实信号' },
-  { group: 'A1', moduleId: 'A1_AVATAR', refKey: 'avatar:c11', label: 'A1收束 → A2问题' },
 
   // ---- A2 快速入门网站（仅"交互功能页"：会前准备/AI团队开会/检验提交/梦想墙 + 钩子/作品墙）
   //      纯展示环节（发布任务/产生疑问/找到方法/认知思考/未来展开/最后升华）见 CONTENT_SEEDS，做成内容页（铁律）
@@ -112,6 +107,32 @@ export const CONTENT_SEEDS: ContentSeedDef[] = [
   ]},
   { group: 'A2', moduleId: 'A2_SITE', refKey: 'a2:s10', title: '最后升华', blocks: [
     { kind: 'text', title: '升华', content: '最重要的是什么？' },
+  ]},
+
+  // ---- A1 数字分身 14 页新结构：c1-c6/c11 替换为 HTML 内容页 + 新增 html07 ----
+  { group: 'A1', moduleId: 'A1_AVATAR', refKey: 'avatar:c1', title: '今日任务', blocks: [
+    { kind: 'embed', title: '今日任务', url: '/media/avatar/01-task.html' },
+  ]},
+  { group: 'A1', moduleId: 'A1_AVATAR', refKey: 'avatar:c2', title: '共同确定目标', blocks: [
+    { kind: 'embed', title: '共同确定目标', url: '/media/avatar/02-align-goal.html' },
+  ]},
+  { group: 'A1', moduleId: 'A1_AVATAR', refKey: 'avatar:c3', title: '明确任务', blocks: [
+    { kind: 'embed', title: '明确任务', url: '/media/avatar/03-lock-task.html' },
+  ]},
+  { group: 'A1', moduleId: 'A1_AVATAR', refKey: 'avatar:c4', title: '共同确定方法', blocks: [
+    { kind: 'embed', title: '共同确定方法', url: '/media/avatar/04-make-plan.html' },
+  ]},
+  { group: 'A1', moduleId: 'A1_AVATAR', refKey: 'avatar:c5', title: '管理AI的提问', blocks: [
+    { kind: 'embed', title: '管理AI的提问', url: '/media/avatar/05-manage-questions.html' },
+  ]},
+  { group: 'A1', moduleId: 'A1_AVATAR', refKey: 'avatar:c6', title: '形成并使用Skill', blocks: [
+    { kind: 'embed', title: '形成并使用Skill', url: '/media/avatar/06-build-skill.html' },
+  ]},
+  { group: 'A1', moduleId: 'A1_AVATAR', refKey: 'avatar:html07', title: 'AI时代的沟通方式', blocks: [
+    { kind: 'embed', title: 'AI时代的沟通方式', url: '/media/avatar/07-ending.html' },
+  ]},
+  { group: 'A1', moduleId: 'A1_AVATAR', refKey: 'avatar:c11', title: '最后一个问题', blocks: [
+    { kind: 'embed', title: '最后一个问题', url: '/media/avatar/08-final-hook.html' },
   ]},
 ];
 
@@ -208,6 +229,22 @@ function fullOrder(group: PageGroup): { refKey: string | null; kind: 'builtin' |
     // A2 全序：钩子 → 发布任务 → 产生疑问 → 找到方法 → 会前准备 → AI团队开会 → 检验提交
     //           → 作品墙 → 认知思考 → 梦想墙 → 未来展开 → 最后升华
     const keys = ['a2:hook', 'a2:s1', 'a2:s2', 'a2:s3', 'a2:s4', 'a2:s5', 'a2:s6', 'a2:wall', 'a2:s7', 'a2:s8', 'a2:s9', 'a2:s10'];
+    return keys
+      .map((k) => {
+        const b = builtins.find((x) => x.refKey === k);
+        if (b) return { refKey: b.refKey, kind: 'builtin' as const };
+        const c = contents.find((x) => x.refKey === k);
+        if (c) return { refKey: c.refKey, kind: 'content' as const };
+        return null;
+      })
+      .filter(Boolean) as { refKey: string | null; kind: 'builtin' | 'content' }[];
+  }
+  if (group === 'A1') {
+    // A1 全序（14 页，2026-08-17 定稿）：
+    // 钩子 → 今日任务 → 共同确定目标 → 明确任务 → 共同确定方法 → 管理AI的提问 → 形成并使用Skill
+    //   → AI时代的沟通方式(新增) → 作品墙 → 梦想① → 梦想② → 现实一人公司 → 现实信号 → 最后一个问题
+    const keys = ['avatar:hook', 'avatar:c1', 'avatar:c2', 'avatar:c3', 'avatar:c4', 'avatar:c5', 'avatar:c6',
+      'avatar:html07', 'avatar:wall', 'avatar:c7', 'avatar:c8', 'avatar:c9', 'avatar:c10', 'avatar:c11'];
     return keys
       .map((k) => {
         const b = builtins.find((x) => x.refKey === k);

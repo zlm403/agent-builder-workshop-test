@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>形成并使用Skill</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#0b1322;color:#f6f3ff;font-family:"PingFang SC","Microsoft YaHei",sans-serif;overflow:hidden}
+.page{height:100vh;padding:5.5vh 6vw;display:flex;flex-direction:column}
+.top{display:flex;justify-content:space-between;align-items:flex-end}
+.tag{color:#66e3b4;font-weight:800;letter-spacing:.14em;font-size:clamp(14px,1.2vw,21px)}
+h1{font-size:clamp(42px,4.7vw,82px);margin:1.5vh 0 0}
+.tip{color:#8396b4;font-size:clamp(14px,1.2vw,20px)}
+.body{flex:1;display:grid;grid-template-columns:.72fr 1.28fr;gap:6vw;align-items:center}
+.skill{border:1px solid #705cdf;background:#151f38;border-radius:30px;padding:3vw;box-shadow:0 28px 80px #0005}
+.skill small{color:#aa9bf1;font-weight:900;letter-spacing:.14em}
+.skill h2{font-size:clamp(28px,2.8vw,49px);margin:18px 0}
+.skill p{color:#aab7cc;font-size:clamp(16px,1.3vw,22px);line-height:1.7;margin:0}
+.steps{display:flex;flex-direction:column;gap:13px}
+.step{display:grid;grid-template-columns:52px 1fr;align-items:center;gap:18px;border:1px solid #2a3b57;background:#101b2e;border-radius:19px;padding:16px 20px}
+.num{width:47px;height:47px;border-radius:14px;background:#192b48;display:grid;place-items:center;color:#8db7ed;font-weight:900}
+.step h2{font-size:clamp(19px,1.65vw,28px);margin:0 0 4px}
+.step p{color:#8fa1bd;margin:0;font-size:clamp(14px,1.05vw,18px)}
+.step.back{border-color:#52487e}
+.step.back .num{background:#392f72;color:#d4c9ff}
+.foot{text-align:center;color:#a99dd0;font-size:clamp(16px,1.35vw,23px)}
+.foot b{color:#66e3b4}
+</style>
+</head>
+<body>
+<main class="page">
+  <header class="top">
+    <div>
+      <div class="tag">BUILD YOUR SKILL · 现在开始</div>
+      <h1>做出你的第一个 Skill</h1>
+    </div>
+
+    <div class="tip">
+      把刚才商量好的内容，变成一套可以反复使用的方法
+    </div>
+  </header>
+
+  <section class="body">
+    <div class="skill">
+      <small>MY SKILL</small>
+      <h2>朋友圈数字分身</h2>
+      <p>
+        知道目标是什么<br>
+        知道应该怎样提问<br>
+        知道怎样理解我<br>
+        知道怎样帮我表达
+      </p>
+    </div>
+
+    <div class="steps">
+      <article class="step">
+        <div class="num">1</div>
+        <div>
+          <h2>形成 Skill</h2>
+          <p>让AI整理刚才共同确定的目标和方法。</p>
+        </div>
+      </article>
+
+      <article class="step">
+        <div class="num">2</div>
+        <div>
+          <h2>使用 Skill</h2>
+          <p>让它采访你，并写出一条朋友圈。</p>
+        </div>
+      </article>
+
+      <article class="step">
+        <div class="num">3</div>
+        <div>
+          <h2>看看像不像你</h2>
+          <p>找出不自然、不真实或不像你的地方。</p>
+        </div>
+      </article>
+
+      <article class="step back">
+        <div class="num">↩</div>
+        <div>
+          <h2>不像，就返回去再来</h2>
+          <p>修改 Skill，再重新使用一次。</p>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <div class="foot">
+    形成 Skill → 使用 Skill → 检查结果 → <b>返回修改</b>
+  </div>
+</main>
+</body>
+</html>

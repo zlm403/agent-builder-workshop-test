@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>共同确定目标</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#0b1322;color:#f6f3ff;font-family:"PingFang SC","Microsoft YaHei",sans-serif;overflow:hidden}
+.page{height:100vh;padding:6vh 6vw;display:flex;flex-direction:column}
+.tag{color:#66e3b4;font-weight:800;letter-spacing:.14em;font-size:clamp(14px,1.2vw,21px)}
+h1{font-size:clamp(40px,4.6vw,80px);margin:2vh 0 1vh;line-height:1.12}
+.sub{color:#8fa2c2;font-size:clamp(17px,1.55vw,27px)}
+.flow{flex:1;display:grid;grid-template-columns:repeat(3,1fr);gap:2vw;align-items:center}
+.card{height:min(38vh,350px);border:1px solid #2b3d5b;background:#101c2f;border-radius:27px;padding:2.5vw 2.2vw;display:flex;flex-direction:column;position:relative}
+.card:not(:last-child):after{content:"→";position:absolute;right:-1.55vw;top:43%;z-index:2;color:#526787;font-size:31px}
+.num{color:#7891b8;font-size:17px;font-weight:900;letter-spacing:.12em}
+.who{font-size:clamp(24px,2.25vw,39px);font-weight:900;margin:3vh 0 1.5vh}
+.say{color:#aab7cc;font-size:clamp(16px,1.35vw,23px);line-height:1.65}
+.card:nth-child(2){border-color:#725de8;transform:translateY(-2vh)}
+.card:nth-child(2) .who{color:#d8ccff}
+.foot{text-align:center;font-size:clamp(17px,1.45vw,25px);color:#9dacbf}
+.foot b{color:#66e3b4}
+</style>
+</head>
+<body>
+<main class="page">
+  <div class="tag">ALIGN FIRST · 先对齐</div>
+
+  <h1>先不要做，先确定目标</h1>
+  <div class="sub">你说了，不等于AI真的听懂了。</div>
+
+  <section class="flow">
+    <article class="card">
+      <div class="num">01 · 我来说</div>
+      <div class="who">说出我的想法</div>
+      <div class="say">“我想做这样一件事……”</div>
+    </article>
+
+    <article class="card">
+      <div class="num">02 · AI复述</div>
+      <div class="who">说出它的理解</div>
+      <div class="say">“请先不要执行，说说你认为我要做什么。”</div>
+    </article>
+
+    <article class="card">
+      <div class="num">03 · 我确认</div>
+      <div class="who">确认，或者纠偏</div>
+      <div class="say">
+        “对，就是这个意思。”<br>
+        “不对，我们重新对齐。”
+      </div>
+    </article>
+  </section>
+
+  <div class="foot">
+    不要假装已经懂了，要通过复述，<b>共同创建目标</b>。
+  </div>
+</main>
+</body>
+</html>

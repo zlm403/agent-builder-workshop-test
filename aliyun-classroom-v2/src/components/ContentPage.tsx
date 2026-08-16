@@ -63,7 +63,11 @@ export default function ContentPage({ pageId, title }: { pageId: string; title: 
           return <video key={it.id} src={it.url || ''} controls autoPlay playsInline style={{ width: 'min(1100px, 90vw)', maxHeight: '60vh', borderRadius: 16, background: '#000' }} />;
         }
         if (it.kind === 'embed') {
-          return <iframe key={it.id} src={it.url || ''} title={it.title} style={{ width: 'min(1200px, 94vw)', height: '66vh', border: '1px solid rgba(251,146,60,.3)', borderRadius: 16, background: '#fff' }} />;
+          return (
+            <div key={it.id} style={{ width: '100%', flex: 1, minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <iframe src={it.url || ''} title={it.title} style={{ width: '100%', height: '100%', border: 'none', background: '#0b1322' }} />
+            </div>
+          );
         }
         return (
           <a key={it.id} href={it.url || ''} target="_blank" rel="noreferrer" style={{ fontSize: 'clamp(20px,2.4vw,32px)', color: '#93c5fd', fontWeight: 700 }}>

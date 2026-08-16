@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>明确任务</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#0b1322;color:#f5f2ff;font-family:"PingFang SC","Microsoft YaHei",sans-serif;overflow:hidden}
+.page{height:100vh;padding:6vh 6vw;display:grid;grid-template-rows:auto 1fr auto}
+.tag{color:#66e3b4;font-weight:800;letter-spacing:.14em;font-size:clamp(14px,1.2vw,21px)}
+.body{display:grid;grid-template-columns:.78fr 1.22fr;gap:7vw;align-items:center}
+h1{font-size:clamp(45px,5vw,88px);line-height:1.12;margin:2vh 0}
+.muted{color:#8092b0;font-size:clamp(18px,1.5vw,26px);line-height:1.7}
+.path{display:flex;flex-direction:column;gap:17px}
+.box{border:1px solid #2c3d59;background:#101b2e;border-radius:22px;padding:23px 28px}
+.box small{color:#7386a5;font-size:14px;font-weight:800;letter-spacing:.1em}
+.box div{font-size:clamp(22px,2vw,35px);font-weight:900;margin-top:8px}
+.arrow{text-align:center;color:#596e90;font-size:28px;line-height:1}
+.answer{border-color:#7862e8;background:#171f39;box-shadow:inset 5px 0 #8068ff}
+.answer small{color:#aa9bf1}
+.answer div{color:#eee9ff}
+.foot{border-top:1px solid #24344d;padding-top:2.3vh;font-size:clamp(17px,1.45vw,25px);color:#aebbd0}
+.foot b{color:#66e3b4}
+</style>
+</head>
+<body>
+<main class="page">
+  <div class="tag">LOCK THE TASK · 锁定任务</div>
+
+  <section class="body">
+    <div>
+      <div class="muted">方向太大，聊天就容易跑偏。</div>
+      <h1>
+        我们到底<br>
+        要做什么？
+      </h1>
+    </div>
+
+    <div class="path">
+      <div class="box">
+        <small>大的方向</small>
+        <div>做一个数字分身</div>
+      </div>
+
+      <div class="arrow">↓</div>
+
+      <div class="box answer">
+        <small>这一次的明确任务</small>
+        <div>做一个帮我写朋友圈文案的数字分身</div>
+      </div>
+    </div>
+  </section>
+
+  <div class="foot">
+    目标一旦确定，后面的对话就<b>不要再跑偏</b>。
+  </div>
+</main>
+</body>
+</html>
