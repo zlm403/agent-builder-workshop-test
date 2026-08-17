@@ -7,6 +7,7 @@ import AvatarTeacher from '@/components/AvatarTeacher';
 import MediaManager from '@/components/MediaManager';
 import ContentPageEditor from '@/components/ContentPageEditor';
 import BuiltinTextEditor from '@/components/BuiltinTextEditor';
+import PreviewIframe from '@/components/PreviewIframe';
 
 const pctOf = (n: number, base: number) => (base > 0 ? Math.round((n / base) * 100) : 0);
 
@@ -1242,20 +1243,12 @@ export default function TeacherPage() {
           {/* 大屏预览 */}
           <div>
             <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 6 }}>大屏（投屏显示）</div>
-            <iframe
-              src={`/screen?sessionId=${sessionId || ''}`}
-              title="大屏预览"
-              style={{ width: '100%', height: 420, border: '1px solid var(--border)', borderRadius: 10, background: '#070b16' }}
-            />
+            <PreviewIframe src={`/screen?sessionId=${sessionId || ''}`} height={200} title="大屏预览" />
           </div>
           {/* 学生端预览 */}
           <div>
             <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 6 }}>学生端（手机工作台）</div>
-            <iframe
-              src={`/student?code=${inviteCode || ''}`}
-              title="学生端预览"
-              style={{ width: '100%', height: 320, border: '1px solid var(--border)', borderRadius: 10, background: '#fff' }}
-            />
+            <PreviewIframe src={`/student?code=${inviteCode || ''}`} height={160} title="学生端预览" />
           </div>
         </div>
       </div>
