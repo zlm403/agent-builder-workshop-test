@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
-import { startClassroom, advanceClassroom, jumpClassroom, setLock, resetClassroom, endClassroom, setModuleSubState, resetModuleProgress, invalidateSessionCache } from '@/lib/classroom';
+import { startClassroom, advanceClassroom, jumpClassroom, setLock, resetClassroom, endClassroom, setModuleSubState, resetModuleProgress, invalidateSessionCache, broadcastPlayVideo } from '@/lib/classroom';
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   try {
@@ -32,6 +32,12 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
           return NextResponse.json({ error: { code: 'BAD_REQUEST', message: 'subState required' } }, { status: 400 });
         }
         result = await setModuleSubState(params.id, body.subState);
+        break;
+      case 'playVideo':
+        if (typeof body.url !== 'string' || !body.url) {
+          return NextResponse.json({ error: { code: 'BAD_REQUEST', message: 'url required' } }, { status: 400 });
+        }
+        result = await broadcastPlayVideo(params.id, body.url);
         break;
       case 'resetModule':
         if (typeof body.moduleId !== 'string') {

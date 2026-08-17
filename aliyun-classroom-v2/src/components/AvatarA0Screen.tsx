@@ -22,11 +22,15 @@ export default function AvatarA0Screen({
   sessionId,
   subState,
   total,
+  playVideoUrl = null,
+  onVideoEnded,
 }: {
   type: string; // A0N_QUESTIONS | A0N_VOTE | A0N_REVEAL
   sessionId: string;
   subState: string | null;
   total: number;
+  playVideoUrl?: string | null; // 教师端触发播放的视频 URL（瞬态）
+  onVideoEnded?: () => void; // 视频放完，通知大屏收起
 }) {
   const [data, setData] = useState<A0Data | null>(null);
   const [playingVideo, setPlayingVideo] = useState<string | null>(null);
@@ -44,6 +48,11 @@ export default function AvatarA0Screen({
     const iv = setInterval(fetchIt, 4000);
     return () => { closed = true; clearInterval(iv); };
   }, [sessionId]);
+
+  // 教师端触发播放（module:playvideo）：收到就立即播放，放完自动收起
+  useEffect(() => {
+    if (playVideoUrl) setPlayingVideo(playVideoUrl);
+  }, [playVideoUrl]);
 
   // 三问进行中（含开场页：P1 手指图 → P2 二维发展图 → 三问）
   if (type === 'A0N_QUESTIONS') {
@@ -140,33 +149,37 @@ export default function AvatarA0Screen({
     );
   }
 
-  // P8 收束 · "这个东西已经来了"（电子海啸图 + 三个视频）
+  // P8 收束 · "这个东西已经来了"（电子海啸图 + 视频，视频由教师端触发播放）
   if (rs === 'a0:closing') {
     const tEyebrow = pageText(ov, 'eyebrow', A0_INTRO.closing.eyebrow);
     const tTitle = pageText(ov, 'title', A0_INTRO.closing.title);
     const tBody1 = pageText(ov, 'body1', A0_INTRO.closing.body1);
     const tBody2 = pageText(ov, 'body2', A0_INTRO.closing.body2);
+    const videoUrl = '/api/media/file/1786677398421-7ncl82.mp4';
     return (
-      <div style={{ minHeight: 'calc(100vh - 80px)', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 18, textAlign: 'center', padding: '0 4vw', overflowY: 'auto' }}>
+      <div style={{ minHeight: 'calc(100vh - 80px)', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 18, textAlign: 'center', padding: '0 2vw', overflowY: 'auto' }}>
         {tEyebrow !== null && <div style={{ fontSize: 14, fontWeight: 700, color: '#fbbf24', letterSpacing: '0.12em' }}>{tEyebrow}</div>}
         {tTitle !== null && <div style={{ fontSize: 'clamp(30px,4vw,52px)', fontWeight: 900, lineHeight: 1.3, background: 'linear-gradient(180deg,#f8fafc,#fb923c)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent', maxWidth: 1000 }}>
           {tTitle}
         </div>}
         {tBody1 !== null && <div style={{ fontSize: 'clamp(17px,2.1vw,28px)', color: '#e2e8f0', lineHeight: 1.7, maxWidth: 900 }}>{tBody1}</div>}
         {tBody2 !== null && <div style={{ fontSize: 'clamp(17px,2.1vw,28px)', color: '#fde047', fontWeight: 700, lineHeight: 1.7, maxWidth: 900 }}>{tBody2}</div>}
+        {/* 电子海啸图 · 尽量大、接近满屏 */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={A0_INTRO.closing.image} alt="AI 就在我们身边" style={{ maxWidth: 'min(900px, 80vw)', maxHeight: '34vh', objectFit: 'contain', borderRadius: 16 }} />
-        <button
-          onClick={() => setPlayingVideo('/api/media/file/1786677398421-7ncl82.mp4')}
-          style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 'clamp(20px,2.4vw,32px)', color: '#93c5fd', fontWeight: 700, textDecoration: 'underline' }}
-        >
-          ▶ a0-1
-        </button>
+        <img src={A0_INTRO.closing.image} alt="AI 就在我们身边" style={{ maxWidth: 'min(1600px, 96vw)', maxHeight: '82vh', objectFit: 'contain', borderRadius: 16 }} />
+        {/* 预加载视频：进入本页就开始缓冲，教师端触发播放时秒开、不黑屏 */}
+        <video src={videoUrl} preload="auto" style={{ display: 'none' }} aria-hidden />
         <ContentSlot slot="a0_reveal_after" />
 
         {playingVideo && (
-          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000 }} onClick={() => setPlayingVideo(null)}>
-            <video src={playingVideo} controls autoPlay playsInline style={{ width: 'min(1200px, 94vw)', maxHeight: '88vh', borderRadius: 12 }} />
+          <div style={{ position: 'fixed', inset: 0, background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000 }} onClick={() => setPlayingVideo(null)}>
+            <video
+              src={playingVideo}
+              autoPlay
+              playsInline
+              onEnded={() => { setPlayingVideo(null); onVideoEnded?.(); }}
+              style={{ width: '100vw', height: '100vh', objectFit: 'contain', background: '#000' }}
+            />
           </div>
         )}
       </div>

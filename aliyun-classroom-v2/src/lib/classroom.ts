@@ -212,6 +212,15 @@ export async function setModuleSubState(sessionId: string, subState: string | nu
   return session;
 }
 
+/** 教师端触发大屏播放视频（瞬态广播：不写数据库、不改 subState，只推送给大屏立即播放） */
+export async function broadcastPlayVideo(sessionId: string, url: string) {
+  const session = await prisma.classSession.findUnique({ where: { id: sessionId } });
+  if (!session) throw new Error('SESSION_NOT_FOUND');
+  await audit(sessionId, 'teacher', 'module:playvideo', undefined, { url });
+  publish(sessionId, { type: 'module:playvideo', payload: { url } });
+  return session;
+}
+
 /** 重置指定模块的全班进度（清业务表 + 该模块 moduleProgress + subState 回到第一步），用于重新开始本环节。 */
 export async function resetModuleProgress(sessionId: string, moduleId: string) {
   const session = await prisma.classSession.findUnique({ where: { id: sessionId } });

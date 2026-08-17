@@ -70,6 +70,8 @@ export default function ScreenPage() {
   const [thoughts, setThoughts] = useState<{ id: string; text: string; anonymousId: string; createdAt: string }[]>([]);
   // 刷新时不闪过 A00Screen 开场页，先显示"加载中"等首次 load 返回
   const [loading, setLoading] = useState(true);
+  // 教师端触发的视频播放指令（module:playvideo）——大屏全屏播放，放完自动退出
+  const [playVideoUrl, setPlayVideoUrl] = useState<string | null>(null);
   // 运行时 JS 错误捕获（方便排查"看不到"问题）
   const [jsError, setJsError] = useState<string | null>(null);
   useEffect(() => {
@@ -144,6 +146,10 @@ export default function ScreenPage() {
             if (evt.type === 'thought:new') {
               const t = evt.payload as { id: string; text: string; anonymousId: string; createdAt: string };
               if (t?.text) setThoughts((prev) => [t, ...prev].slice(0, 80));
+            }
+            if (evt.type === 'module:playvideo') {
+              const url = (evt.payload as { url?: string })?.url;
+              if (url) setPlayVideoUrl(url);
             }
           } catch {
             /* noop */
@@ -274,7 +280,7 @@ export default function ScreenPage() {
       ) : (summary?.moduleSubState ?? '').startsWith('page:') ? (
         <ContentPageHost subState={summary?.moduleSubState ?? ''} />
       ) : module.type === 'a0_new' ? (
-        <AvatarA0Screen type={module.id} sessionId={sessionId} subState={summary?.moduleSubState ?? null} total={summary?.totalStudents ?? 1} />
+        <AvatarA0Screen type={module.id} sessionId={sessionId} subState={summary?.moduleSubState ?? null} total={summary?.totalStudents ?? 1} playVideoUrl={playVideoUrl} onVideoEnded={() => setPlayVideoUrl(null)} />
       ) : module.type === 'avatar_flow' ? (
         <AvatarA1Screen sessionId={sessionId} subState={summary?.moduleSubState ?? null} />
       ) : module.type === 'site_entry' ? (
