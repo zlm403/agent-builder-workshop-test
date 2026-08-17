@@ -170,7 +170,9 @@ python server.py 8099        （或 powershell -ExecutionPolicy Bypass -File sta
    - 本会话已进行很多轮（大致 >15 轮用户消息）或已发生过一次自动压缩 → 回复开头带一行：`⚠️ 上下文偏长，建议完成当前小步后做交接、开新会话（省 token）`
    - 用户粘了大段内容 / 读了大文件 / 跨小时连续干活 → 适时提醒，不啰嗦、不打断
    - 预警本身要轻：**一句话提醒即可，不展开解释、不额外长篇**（预警成本必须远小于重发上下文成本）
+   - **预警用红色标注**：回复开头那行预警必须以红色文字呈现（Markdown 里用 `<span style="color:red">…</span>` 或 `\`\`\`ansi`/加粗加红等终端可渲染的方式），一眼可辨、不与其他内容混淆
    - 用户可随时说 `check-context.py`（根目录脚本）看精确 token 用量再决定
+   - **累计 1000 万 token 档位由脚本横幅提示**（`check-context.py` 本地打印，跨档触发一次、不经过 AI、不耗 token；标记文件 `~/.local/share/opencode/context-milestone.txt`），AI 无需每轮自算累计量
 
 ---
 

@@ -11,9 +11,25 @@ check-context.py — opencode 会话 token 用量监控（轻量，偶尔跑一�
   python check-context.py --active   # 只看今天活跃的会话
 
 提示:
-  - 本脚本只读数据库，不修改任何东西。
+  - 本脚本只读数据库，不修改任何东西（唯一的写入是标记文件，记录已报过的累计档位）。
   - 想要 AI 主动预警，规则在 AGENTS.md 开发守则第 9 条（上下文健康预警）。
+  - 跨累计 1000 万 token 档位时，脚本会打印一条彩色横幅（本地位标记，不经过 AI、不耗 token）。
 """
+
+import sqlite3
+import os
+import sys
+import datetime
+
+# 累计 token 里程碑档位（跨会话 input+cache_read 合计），每跨一档打印彩色横幅
+MILESTONE = 10_000_000
+# 标记文件：记录上次已报过的档位数，与数据库同目录，避免污染工作区
+MARKER_NAME = 'context-milestone.txt'
+
+# ANSI 颜色（Windows Terminal / 现代终端可直接渲染）
+MAGENTA = '\x1b[35m'
+BOLD = '\x1b[1m'
+RESET = '\x1b[0m'
 
 import sqlite3
 import os
@@ -38,6 +54,47 @@ def fmt(n):
     if n >= 1e4:
         return '%.1f万' % (n / 1e4)
     return str(n)
+
+
+def milestone_banner(total):
+    """跨累计 MILESTONE 整数档位时打印彩色横幅，并更新标记文件。返回是否触发。"""
+    marker = os.path.join(os.path.dirname(DB_PATH), MARKER_NAME)
+    level = int(total // MILESTONE)
+
+    last = 0
+    first_run = True
+    if os.path.exists(marker):
+        first_run = False
+        try:
+            with open(marker, encoding='utf-8') as f:
+                last = int(f.read().strip() or 0)
+        except (ValueError, OSError):
+            last = 0
+
+    if level <= last:
+        return False
+
+    try:
+        with open(marker, 'w', encoding='utf-8') as f:
+            f.write(str(level))
+    except OSError:
+        pass
+
+    # 首次运行：只落标记，不刷屏（避免一次报几百档）
+    if first_run:
+        return False
+
+    n = level * MILESTONE
+    print()
+    print('%s%s==============================================%s' % (MAGENTA, BOLD, RESET))
+    print('%s%s  [里程碑] 累计已消耗 %s token（input+cache_read）！%s' % (
+        MAGENTA, BOLD, fmt(n), RESET))
+    print('%s%s  %s 是第 %d 个千万档，进度记录已更新。%s' % (
+        MAGENTA, BOLD, fmt(n), level, RESET))
+    print('%s%s  上下文健康判断仍看 AGENTS.md 第 9 条。%s' % (MAGENTA, BOLD, RESET))
+    print('%s%s==============================================%s' % (MAGENTA, BOLD, RESET))
+    print()
+    return True
 
 
 def main():
@@ -99,9 +156,14 @@ def main():
     print('-' * 100)
     print('会话数=%d  input合计=%s  cache_read合计=%s  花费合计=$%.2f' % (
         active_count, fmt(total_in), fmt(total_cache), total_cost))
+
+    milestone_banner(total_in + total_cache)
+
     print()
     print('提示：cache_read 是"每次调用重发历史"的部分，越大说明上下文越臃肿，')
     print('该会话越该收尾交接、换新会话。判断标准见 AGENTS.md 开发守则第 9 条。')
+    print('提示：累计跨 1000 万档的彩色横幅由脚本本地打印，不经过 AI、不耗 token；')
+    print('      标记文件记录在 %s 同目录下（context-milestone.txt）。' % DB_PATH)
 
 
 if __name__ == '__main__':
