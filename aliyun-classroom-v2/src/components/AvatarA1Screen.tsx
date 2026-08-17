@@ -43,8 +43,8 @@ export default function AvatarA1Screen({
     return () => { closed = true; clearInterval(iv); };
   }, [sessionId]);
 
-  // 钩子开场（只显示一张孙悟空分身图，无文字）
-  if (String(subState ?? '') === 'avatar:hook') {
+  // 钩子开场（只显示一张孙悟空分身图，无文字）；subState 为空时也显示钩子（A1 默认第一屏）
+  if (String(subState ?? '') === 'avatar:hook' || !String(subState ?? '')) {
     return (
       <div style={{ height: '100%', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 2vw' }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -63,10 +63,15 @@ export default function AvatarA1Screen({
     return <MediaPlayer slot="a1_video_after" title="普通人的例子" />;
   }
 
-  // 当前环节（avatar:cN），未设置则默认 c1
+  // 当前环节（avatar:cN）：仅处理仍为内置页的 c7-c10；
+  // c1-c6/c11 已改为内容页（合法 subState 是 page:{id}），若出现旧值 avatar:cN 则返回 -1 不渲染旧文案
   const stageIdx = (() => {
     const m = String(subState ?? '').match(/^avatar:(c\d+)$/);
-    return m ? A1_STAGES.findIndex((s) => s.key === m[1]) : 0;
+    if (!m) return -1;
+    const key = m[1];
+    // 内容页（c1-c6/c11）不应走内置渲染
+    if (/^c([1-6]|11)$/.test(key)) return -1;
+    return A1_STAGES.findIndex((s) => s.key === key);
   })();
 
   const launched = String(subState ?? '') === 'avatar:wall';

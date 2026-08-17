@@ -101,7 +101,7 @@ export const A0_VOTE_OPTIONS: A0VoteOption[] = [
 ];
 
 // ---- A0-3 揭晓 + 讲解 ----
-// ---- A0-3 学生滑杆（reveal:4，教师推送后学生手机上操作）----
+// ---- A0-3 学生滑杆（reveal:2，教师推送后学生手机上操作）----
 export interface A0SliderStep {
   key: string;
   label: string; // 滑块上写的步骤名
@@ -161,7 +161,7 @@ export interface A1Step {
 
 // A1 钩子开场（屏1 · 只显示一张孙悟空分身图，无文字）
 export const A1_HOOK = {
-  image: '/api/media/file/1786706693302-hi3j9o.png',
+  image: '/api/media/file/1786706693302-hi3j9o.webp',
   alt: '孙悟空抱着手微笑，身后无数分身正在替他做事',
 };
 
@@ -262,7 +262,7 @@ export const A1_STAGES: A1Stage[] = [
     output: '万物皆可蒸馏的感受',
     teacherHint: '从"蒸馏自己"突然把梦想扩大到"万物"。',
     media: 'image',
-    mediaUrl: '/api/media/file/1786707334547-chfj9g.png',
+    mediaUrl: '/api/media/file/1786707334547-chfj9g.webp',
   },
   // 屏12 · 梦想②一个人与一支队伍
   {
@@ -275,7 +275,7 @@ export const A1_STAGES: A1Stage[] = [
     output: '强烈对比的感受',
     teacherHint: '把宏大的梦想落回"我自己"：一个人 vs 一支队伍。',
     media: 'image',
-    mediaUrl: '/api/media/file/1786707336155-pi69mb.png',
+    mediaUrl: '/api/media/file/1786707336155-pi69mb.webp',
   },
   // 屏13 · 现实：一人公司
   {
