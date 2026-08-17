@@ -149,7 +149,11 @@ export default function ScreenPage() {
             }
             if (evt.type === 'module:playvideo') {
               const url = (evt.payload as { url?: string })?.url;
-              if (url) setPlayVideoUrl(url);
+              if (url) {
+                // 先清空再设置，保证每次收到指令都触发一次 null -> url 的状态变化（哪怕上次没正常清空）
+                setPlayVideoUrl(null);
+                setTimeout(() => setPlayVideoUrl(url), 0);
+              }
             }
           } catch {
             /* noop */

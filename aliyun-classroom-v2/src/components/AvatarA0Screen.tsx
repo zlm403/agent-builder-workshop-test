@@ -3,7 +3,7 @@
 // A0 新版 · 大屏组件（三问进行中 / 关系题投票 / 揭晓+讲解）
 // 数据自取（内部轮询），与页面解耦。
 // =========================================================
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { A0_INTRO, A0_VOTE_OPTIONS, A0_REVEAL } from '@/features/avatarLesson/config';
 import ContentSlot from './ContentSlot';
 import VideoSource from './VideoSource';
@@ -35,6 +35,8 @@ export default function AvatarA0Screen({
 }) {
   const [data, setData] = useState<A0Data | null>(null);
   const [playingVideo, setPlayingVideo] = useState<string | null>(null);
+  // 播放序号：每次收到播放指令 +1，作为 <video> 的 key 强制全新挂载，保证同视频第二次也能重播
+  const playSeq = useRef(0);
   const ov = usePageOverrides(subState);
 
   useEffect(() => {
@@ -52,7 +54,10 @@ export default function AvatarA0Screen({
 
   // 教师端触发播放（module:playvideo）：收到就立即播放，放完自动收起
   useEffect(() => {
-    if (playVideoUrl) setPlayingVideo(playVideoUrl);
+    if (playVideoUrl) {
+      playSeq.current += 1;
+      setPlayingVideo(playVideoUrl);
+    }
   }, [playVideoUrl]);
 
   // 三问进行中（含开场页：P1 手指图 → P2 二维发展图 → 三问）
@@ -175,7 +180,11 @@ export default function AvatarA0Screen({
         <ContentSlot slot="a0_reveal_after" />
 
         {playingVideo && (
-          <div style={{ position: 'fixed', inset: 0, background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000 }} onClick={() => setPlayingVideo(null)}>
+          <div
+            key={playSeq.current}
+            style={{ position: 'fixed', inset: 0, background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000 }}
+            onClick={() => { setPlayingVideo(null); onVideoEnded?.(); }}
+          >
             <VideoSource
               fileName={String(playingVideo).split('/').pop() || videoFile}
               autoPlay
