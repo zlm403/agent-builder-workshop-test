@@ -143,7 +143,7 @@ export const A0_REVEAL = {
     },
   },
   // 工具 vs 伙伴 两张对比图（张老师画）：左=工具·单打独斗，右=伙伴·军团
-  artImages: ['/story/A0-tool.png', '/story/A0-partner.png'],
+  artImages: ['/story/A0-tool.webp', '/story/A0-partner.webp'],
 };
 
 // =========================================================
