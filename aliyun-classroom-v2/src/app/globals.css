@@ -722,7 +722,7 @@ select {
 .a0-forms-punchline .a0-forms-dim { background: rgba(124,58,237,0.22); border-color: rgba(167,139,250,0.6); color: #c4b5fd; }
 .a0-forms-punchline .a0-forms-cell { font-weight: 800; }
 
-/* A0-3 学生滑杆（reveal:4） */
+/* A0-3 学生滑杆（reveal:2） */
 .a0-slider-wrap { display: flex; flex-direction: column; gap: 14px; }
 .a0-slider-title { font-size: 20px; font-weight: 800; text-align: center; color: #f8fafc; }
 .a0-slider-sub { font-size: 13px; color: var(--muted); text-align: center; line-height: 1.6; }

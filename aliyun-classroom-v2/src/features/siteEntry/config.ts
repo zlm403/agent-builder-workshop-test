@@ -72,7 +72,7 @@ export const A2_STAGES: A2Stage[] = [
     output: '从团队决议 → 自动执行 → 做出第一版手机网站',
     teacherHint: '放图：年轻项目负责人喝咖啡，一群数字 AI 员工开会研究设计建站测试，任务不断流动。谁发言谁的卡片高亮；决议后团队自动执行。',
     media: 'image',
-    mediaUrl: '',
+    mediaUrl: '/api/media/file/1786796383987-i6t3uh.png',
   },
   {
     key: 's6',

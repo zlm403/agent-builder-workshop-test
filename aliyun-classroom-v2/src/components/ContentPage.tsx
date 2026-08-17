@@ -65,11 +65,11 @@ export default function ContentPage({ pageId, title }: { pageId: string; title: 
         }
         if (it.kind === 'embed') {
           return (
-            <div key={it.id} style={{ width: '100%', flex: 1, minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0b1220' }}>
+            <div key={it.id} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0b1220' }}>
               <iframe
                 src={it.url || ''}
                 title={it.title}
-                style={{ width: '100%', height: '100%', border: 'none', background: '#0b1322', display: 'block' }}
+                style={{ width: '100%', height: 'calc(100vh - 160px)', minHeight: '60vh', border: 'none', background: '#0b1322', display: 'block' }}
               />
             </div>
           );

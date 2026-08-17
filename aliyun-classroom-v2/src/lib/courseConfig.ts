@@ -375,7 +375,7 @@ const TEMPLATE: CourseTemplateData = {
           '屏5：镜子——"我们在哪儿？"心理停顿',
           '屏6：收束——电子海啸图 + 三个视频（罗振宇/腾讯/央视）→ A1 过渡',
         ],
-        revealOrder: ['reveal:1', 'reveal:2', 'reveal:4', 'reveal:3:1', 'reveal:3:2', 'a0:mirror', 'a0:closing'],
+        revealOrder: ['reveal:1', 'reveal:2', 'reveal:3', 'a0:mirror', 'a0:closing'],
       },
       studentTask: {},
       screenContent: { phase: 'a0n_reveal' },
