@@ -104,6 +104,8 @@ export default function TeacherPage() {
   const [showThoughts, setShowThoughts] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [showMedia, setShowMedia] = useState(false);
+  const [ctrlOpen, setCtrlOpen] = useState(true); // 左列控制区（入场信息/环节操作）折叠
+  const [diagOpen, setDiagOpen] = useState(false); // 课堂诊断折叠
   const [editingPageId, setEditingPageId] = useState<string | null>(null);
   const [editingBuiltin, setEditingBuiltin] = useState<{ id: string; kind: string; refKey: string | null; overrides?: Record<string, string> | null } | null>(null);
   const [llmKey, setLlmKey] = useState('');
@@ -878,9 +880,62 @@ export default function TeacherPage() {
         </div>
       )}
 
-      <div className="container" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+      {/* ===== 章节导航（两排按钮，大框） ===== */}
+      <div className="container">
+        <div className="card" style={{ padding: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 13, color: 'var(--muted)', fontWeight: 700, letterSpacing: '0.06em' }}>章节</span>
+            {(() => {
+              const a0Ids = ['A0N_QUESTIONS', 'A0N_VOTE', 'A0N_REVEAL'];
+              const groups: { id: string; title: string; sub: string[] }[] = [];
+              const seenA0 = { done: false };
+              for (const mm of modules) {
+                if (a0Ids.includes(mm.id)) {
+                  if (!seenA0.done) { groups.push({ id: mm.id, title: '你A0', sub: a0Ids }); seenA0.done = true; }
+                } else {
+                  const short = (mm.title || mm.id).slice(0, 6);
+                  groups.push({ id: mm.id, title: short, sub: [mm.id] });
+                }
+              }
+              return groups.map((g) => {
+                const isActive = g.sub.includes(String(currentModuleId));
+                const activeIndex = currentModuleId ? modules.findIndex((m) => m.id === currentModuleId) : -1;
+                const isDone = activeIndex !== -1 && modules.findIndex((m) => m.id === g.id) < activeIndex;
+                return (
+                  <button
+                    key={g.id}
+                    className={`secondary`}
+                    onClick={() => control('jump', { targetModuleId: g.sub[0] })}
+                    style={{
+                      fontSize: 13, padding: '6px 14px', borderRadius: 999,
+                      border: isActive ? '2px solid var(--blue)' : '1px solid var(--border)',
+                      background: isActive ? 'rgba(56,189,248,0.18)' : isDone ? 'rgba(34,197,94,0.12)' : 'var(--card)',
+                      color: isActive ? 'var(--blue)' : isDone ? 'var(--green)' : 'var(--muted)',
+                      fontWeight: isActive ? 800 : 500,
+                    }}
+                  >
+                    {isDone ? '✓ ' : ''}{g.title}
+                  </button>
+                );
+              });
+            })()}
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', borderTop: '1px solid var(--border)', paddingTop: 10 }}>
+            <span style={{ fontSize: 13, color: 'var(--muted)', fontWeight: 700, letterSpacing: '0.06em' }}>当前环节</span>
+            <span className="pill blue" style={{ fontSize: 12 }}>{currentModTitle}</span>
+            <span style={{ fontSize: 12, color: 'var(--muted)' }}>{tc?.subline || ''}</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="container" style={{ display: 'grid', gridTemplateColumns: 'minmax(380px, 430px) 1fr', gap: 16, alignItems: 'start' }}>
         <div className="card">
-          <h3>入场信息</h3>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }} onClick={() => setCtrlOpen(!ctrlOpen)}>
+            <h3 style={{ margin: 0 }}>控制区 {ctrlOpen ? '▾' : '▸'}</h3>
+            <span style={{ fontSize: 11, color: 'var(--muted)' }}>{ctrlOpen ? '点击收起' : '点击展开'}</span>
+          </div>
+          {ctrlOpen && (
+          <>
           <p>课堂码：<b style={{ fontSize: 20, letterSpacing: 2 }}>{inviteCode}</b>（学生扫码进入，屏幕大屏常驻二维码）</p>
           <div className="row" style={{ alignItems: 'center', marginTop: 10 }}>
             <span style={{ color: 'var(--muted)', fontSize: 14 }}>应到人数</span>
@@ -1150,58 +1205,49 @@ export default function TeacherPage() {
               学生第二轮提交差不多时，先点「暂停 / 锁定提交」收齐，再点「揭晓前后变化」，大屏将显示第一轮基线 → 第二轮 在“对象 / 任务 / 过程 / 检验”上的前后变化与路径迁移。
             </p>
           ) : null}
+          </>
+          )}
         </div>
 
-        <div className="card">
-          <h3>模块目录</h3>
-          <ul className="module-list">
-            {(() => {
-              // 章节分组：A0（含 三问/判定/揭晓 三个子模块）合并为一个大章节
-              const a0Ids = ['A0N_QUESTIONS', 'A0N_VOTE', 'A0N_REVEAL'];
-              const groups: { id: string; title: string; sub: string[] }[] = [];
-              const seenA0 = { done: false };
-              for (const mm of modules) {
-                if (a0Ids.includes(mm.id)) {
-                  if (!seenA0.done) {
-                    groups.push({ id: mm.id, title: '你和 AI', sub: a0Ids });
-                    seenA0.done = true;
-                  }
-                } else {
-                  groups.push({ id: mm.id, title: mm.title, sub: [mm.id] });
-                }
-              }
-              const activeIndex = currentModuleId ? modules.findIndex((m) => m.id === currentModuleId) : -1;
-              return groups.map((g, idx) => {
-                const isActive = g.sub.includes(String(currentModuleId));
-                const isDone = activeIndex !== -1 && modules.findIndex((m) => m.id === g.id) < activeIndex;
-                const isPending = !currentModuleId && idx === 0;
-                return (
-                  <li
-                    key={g.id}
-                    className={`${isActive ? 'active' : ''} ${isDone ? 'done' : ''} ${isPending ? 'pending' : ''}`}
-                    onClick={() => control('jump', { targetModuleId: g.sub[0] })}
-                    style={{ cursor: 'pointer' }}
-                  >
-                    <span className="title">{g.title}</span>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      {g.sub.length > 1 ? <span className="pill blue">{g.sub.length} 步</span> : null}
-                      {isActive && <span className="current-tag">当前</span>}
-                      {isPending && <span className="current-tag" style={{ background: 'var(--yellow)', color: '#0f172a' }}>待开始</span>}
-                    </div>
-                  </li>
-                );
-              });
-            })()}
-          </ul>
+        <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <h3 style={{ margin: 0 }}>双屏预览</h3>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <a href={`/student?code=${inviteCode || ''}`} target="_blank" rel="noreferrer">
+                <button className="secondary" style={{ fontSize: 11, padding: '4px 10px' }}>学生端 ↗</button>
+              </a>
+              <a href={`/screen?sessionId=${sessionId || ''}`} target="_blank" rel="noreferrer">
+                <button className="secondary" style={{ fontSize: 11, padding: '4px 10px' }}>大屏 ↗</button>
+              </a>
+            </div>
+          </div>
+          {/* 大屏预览 */}
+          <div>
+            <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 6 }}>大屏（投屏显示）</div>
+            <iframe
+              src={`/screen?sessionId=${sessionId || ''}`}
+              title="大屏预览"
+              style={{ width: '100%', height: 420, border: '1px solid var(--border)', borderRadius: 10, background: '#070b16' }}
+            />
+          </div>
+          {/* 学生端预览 */}
+          <div>
+            <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 6 }}>学生端（手机工作台）</div>
+            <iframe
+              src={`/student?code=${inviteCode || ''}`}
+              title="学生端预览"
+              style={{ width: '100%', height: 320, border: '1px solid var(--border)', borderRadius: 10, background: '#fff' }}
+            />
+          </div>
         </div>
       </div>
 
       {/* ===== 课堂诊断（所有模块垂直堆叠，新模块在上） ===== */}
       <div className="container">
         <div className="card cockpit">
-          <div className="cockpit-head">
-            <h3 style={{ margin: 0 }}>课堂诊断 · 全部环节</h3>
-            <span className="pill blue">实时堆叠 · 往下翻看历史</span>
+          <div className="cockpit-head" style={{ cursor: 'pointer' }} onClick={() => setDiagOpen(!diagOpen)}>
+            <h3 style={{ margin: 0 }}>课堂诊断 · 全部环节 {diagOpen ? '▾' : '▸'}</h3>
+            <span className="pill blue">{diagOpen ? '点击收起历史' : '点击展开历史'}</span>
           </div>
 
           {/* 全局概览：始终可见 */}
@@ -1215,6 +1261,7 @@ export default function TeacherPage() {
           </div>
 
           {/* 每个模块一张卡片：当前环节在最顶，已完成按顺序往下排，未开始的环节不显示 */}
+          {diagOpen && (
           <div className="module-stack">
             {modules
               .filter((mm) => {
@@ -1251,6 +1298,7 @@ export default function TeacherPage() {
                 );
               })}
           </div>
+          )}
         </div>
       </div>
 
