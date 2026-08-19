@@ -212,12 +212,14 @@ export async function setModuleSubState(sessionId: string, subState: string | nu
   return session;
 }
 
-/** 教师端触发大屏播放视频（瞬态广播：不写数据库、不改 subState，只推送给大屏立即播放） */
-export async function broadcastPlayVideo(sessionId: string, url: string) {
+/** 教师端触发大屏视频控制（瞬态广播：不写数据库、不改 subState，只推送给大屏立即执行）
+ *  action: 'play' 播放（需 url） | 'pause' 暂停 | 'stop' 停止 */
+export interface VideoCommand { action: 'play' | 'pause' | 'stop'; url?: string }
+export async function broadcastPlayVideo(sessionId: string, cmd: VideoCommand) {
   const session = await prisma.classSession.findUnique({ where: { id: sessionId } });
   if (!session) throw new Error('SESSION_NOT_FOUND');
-  await audit(sessionId, 'teacher', 'module:playvideo', undefined, { url });
-  publish(sessionId, { type: 'module:playvideo', payload: { url } });
+  await audit(sessionId, 'teacher', 'module:playvideo', undefined, cmd);
+  publish(sessionId, { type: 'module:playvideo', payload: cmd });
   return session;
 }
 

@@ -1077,15 +1077,20 @@ export default function TeacherPage() {
                     onEditContent={(pageId) => setEditingPageId(pageId)}
                     onEditText={(page) => setEditingBuiltin({ id: page.id, kind: page.kind, refKey: page.refKey, overrides: page.overrides })}
                   />
-                  {currentModuleId === 'A0N_REVEAL' && summary?.moduleSubState === 'a0:closing' && (
-                    <button
-                      className="primary"
-                      style={{ alignSelf: 'flex-start', fontSize: 12, padding: '4px 12px' }}
-                      disabled={busy}
-                      onClick={() => control('playVideo', { url: '/api/media/file/1786677398421-7ncl82.mp4' })}
-                    >
-                      ▶ 播放收束视频
-                    </button>
+                  {(currentModuleId === 'A0N_REVEAL' && summary?.moduleSubState === 'a0:closing') && (
+                    <VideoControlBar
+                      control={control}
+                      busy={busy}
+                      title="收束视频"
+                      url="/api/media/file/1786677398421-7ncl82.mp4"
+                    />
+                  )}
+                  {(currentModuleId === 'A1_AVATAR' && summary?.moduleSubState === 'avatar:c9') && (
+                    <VideoControlBar
+                      control={control}
+                      busy={busy}
+                      title="现实视频"
+                    />
                   )}
                   {currentModuleId === 'A3_WORLD' && (
                     <WorldVisualBar />
@@ -1243,7 +1248,7 @@ export default function TeacherPage() {
           {/* 大屏预览 */}
           <div>
             <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 6 }}>大屏（投屏显示）</div>
-            <PreviewIframe src={`/screen?sessionId=${sessionId || ''}`} title="大屏预览" maxWidth={600} />
+            <PreviewIframe src={`/screen?sessionId=${sessionId || ''}&preview=1`} title="大屏预览" maxWidth={600} />
           </div>
           {/* 学生端预览 */}
           <div>
@@ -1430,6 +1435,38 @@ export default function TeacherPage() {
 }
 
 // 《我的世界》大屏环境光斑整体速度/亮度调节（教师调整体，不是单个）
+// 环节视频控制条：教师端环节页下的播放/暂停/停止（广播到真正大屏；预览与大屏不冲突）
+function VideoControlBar({
+  title,
+  url,
+  control,
+  busy,
+}: {
+  title: string;
+  url?: string;
+  control: (action: string, payload?: Record<string, unknown>) => void;
+  busy: boolean;
+}) {
+  const btn: React.CSSProperties = {
+    fontSize: 12, padding: '5px 14px', borderRadius: 999, border: '1px solid #334155',
+    background: 'var(--card)', color: 'var(--fg)', cursor: busy ? 'default' : 'pointer', opacity: busy ? 0.6 : 1,
+  };
+  return (
+    <div style={{ border: '1px solid rgba(251,146,60,0.45)', borderRadius: 10, padding: 10, display: 'flex', alignItems: 'center', gap: 10, alignSelf: 'flex-start', flexWrap: 'wrap' }}>
+      <span style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 700 }}>🎬 {title}</span>
+      <button style={{ ...btn, background: 'rgba(34,197,94,0.15)', borderColor: 'rgba(34,197,94,0.5)', color: '#86efac' }} disabled={busy} onClick={() => control('playVideo', { action: 'play', url })}>
+        ▶ 播放
+      </button>
+      <button style={{ ...btn, background: 'rgba(251,191,36,0.12)', borderColor: 'rgba(251,191,36,0.45)', color: '#fde68a' }} disabled={busy} onClick={() => control('playVideo', { action: 'pause', url })}>
+        ⏸ 暂停
+      </button>
+      <button style={{ ...btn, background: 'rgba(239,68,68,0.12)', borderColor: 'rgba(239,68,68,0.4)', color: '#fca5a5' }} disabled={busy} onClick={() => control('playVideo', { action: 'stop', url })}>
+        ⏹ 停止
+      </button>
+    </div>
+  );
+}
+
 function WorldVisualBar() {
   const [speed, setSpeed] = useState(1);
   const [brightness, setBrightness] = useState(1);

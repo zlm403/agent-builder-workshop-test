@@ -1,17 +1,31 @@
 'use client';
 // =========================================================
 // A1 现实：一人公司 · 内置视频页
-// 进页自动播放（手动 play() 替代 autoPlay 属性），页面内直接显示视频，
-// 下方控制条：播放 / 暂停 / 停止。本地优先，云端兜底。
+// 视频仅真正大屏播放（预览模式 preview=1 不播，只显示标题占位）。
+// 进页自动播放；教师端环节页下的控制条通过 module:playvideo 广播
+// play / pause / stop 控制本视频。大屏上不放任何控制按钮。
 // =========================================================
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 
-export default function A1RealityVideo({ fileName }: { fileName: string }) {
+export default function A1RealityVideo({
+  fileName,
+  title,
+  videoCmd = null,
+  isPreview = false,
+  onEnded,
+}: {
+  fileName: string;
+  title: string;
+  videoCmd?: { action: 'play' | 'pause' | 'stop'; url?: string } | null;
+  isPreview?: boolean;
+  onEnded?: () => void;
+}) {
   const ref = useRef<HTMLVideoElement | null>(null);
-  const [playing, setPlaying] = useState(false);
+  const endedRef = useRef(false);
 
-  // 进页自动播放：等元数据就绪后手动 play()（自动播放策略只拦属性、不拦 play()）
+  // 进页自动播放（仅真大屏）：手动 play() 替代 autoPlay 属性
   useEffect(() => {
+    if (isPreview) return;
     const v = ref.current;
     if (!v) return;
     let cancelled = false;
@@ -19,8 +33,9 @@ export default function A1RealityVideo({ fileName }: { fileName: string }) {
       if (cancelled) return;
       try {
         v.currentTime = 0;
+        endedRef.current = false;
         const p = v.play();
-        if (p && typeof p.catch === 'function') p.catch(() => { /* 被拦时等控制条手动播 */ });
+        if (p && typeof p.catch === 'function') p.catch(() => { /* 被拦时由教师端控制条触发 */ });
       } catch { /* noop */ }
     };
     if (v.readyState >= 1) start();
@@ -31,35 +46,54 @@ export default function A1RealityVideo({ fileName }: { fileName: string }) {
       clearTimeout(t);
       v.removeEventListener('loadedmetadata', start);
     };
-  }, []);
+  }, [isPreview]);
 
-  const play = () => { ref.current?.play().catch(() => { /* noop */ }); };
-  const pause = () => ref.current?.pause();
-  const stop = () => { const v = ref.current; if (v) { v.pause(); v.currentTime = 0; } };
+  // 教师端视频控制指令（module:playvideo）
+  useEffect(() => {
+    if (isPreview) return;
+    const v = ref.current;
+    if (!v) return;
+    const action = videoCmd?.action;
+    if (action === 'play') {
+      if (videoCmd?.url && String(videoCmd.url).split('/').pop() !== fileName) return; // 不是本视频，忽略
+      try {
+        if (endedRef.current) { v.currentTime = 0; endedRef.current = false; }
+        const p = v.play();
+        if (p && typeof p.catch === 'function') p.catch(() => { /* noop */ });
+      } catch { /* noop */ }
+    } else if (action === 'pause') {
+      v.pause();
+    } else if (action === 'stop') {
+      v.pause();
+      v.currentTime = 0;
+      endedRef.current = false;
+    }
+  }, [videoCmd, isPreview, fileName]);
 
-  const btn: React.CSSProperties = {
-    padding: '10px 22px', borderRadius: 999, fontSize: 15, fontWeight: 700,
-    border: '1px solid #334155', background: '#1e293b', color: '#e2e8f0', cursor: 'pointer',
-  };
+  // 预览模式（教师端）：只显示标题占位，不渲染视频
+  if (isPreview) {
+    return (
+      <div style={{ flex: 1, minHeight: 'calc(100vh - 140px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ textAlign: 'center', color: 'var(--muted)', fontSize: 22, fontWeight: 700 }}>
+          {title}
+          <div style={{ fontSize: 14, fontWeight: 400, marginTop: 8 }}>视频仅在真正大屏播放（教师端预览不播）</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div style={{ flex: 1, minHeight: 'calc(100vh - 140px)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 18 }}>
+    <div style={{ flex: 1, minHeight: 'calc(100vh - 140px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <video
         ref={ref}
         preload="auto"
         playsInline
-        onPlay={() => setPlaying(true)}
-        onPause={() => setPlaying(false)}
-        style={{ width: 'min(1200px, 92vw)', maxHeight: '74vh', borderRadius: 16, background: '#000' }}
+        onEnded={() => { endedRef.current = true; onEnded?.(); }}
+        style={{ width: 'min(1200px, 92vw)', maxHeight: '88vh', borderRadius: 16, background: '#000' }}
       >
         <source src={`/videos/${fileName}`} />
         <source src={`/api/media/file/${fileName}`} />
       </video>
-      <div style={{ display: 'flex', gap: 12 }}>
-        <button style={{ ...btn, ...(playing ? { opacity: 0.5, cursor: 'default' } : { background: 'rgba(34,197,94,0.15)', borderColor: 'rgba(34,197,94,0.5)', color: '#86efac' }) }} onClick={play} disabled={playing}>▶ 播放</button>
-        <button style={{ ...btn, ...(playing ? { background: 'rgba(251,191,36,0.15)', borderColor: 'rgba(251,191,36,0.5)', color: '#fde68a' } : { opacity: 0.5, cursor: 'default' }) }} onClick={pause} disabled={!playing}>⏸ 暂停</button>
-        <button style={{ ...btn, ...{ background: 'rgba(239,68,68,0.12)', borderColor: 'rgba(239,68,68,0.4)', color: '#fca5a5' } }} onClick={stop}>⏹ 停止</button>
-      </div>
     </div>
   );
 }

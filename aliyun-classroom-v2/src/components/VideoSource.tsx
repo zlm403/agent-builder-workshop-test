@@ -22,6 +22,7 @@ export default function VideoSource({
   onEnded,
   onClick,
   style,
+  videoRef,
 }: {
   fileName: string;
   preload?: 'auto' | 'metadata' | 'none';
@@ -32,14 +33,17 @@ export default function VideoSource({
   onEnded?: () => void;
   onClick?: () => void;
   style?: React.CSSProperties;
+  videoRef?: React.MutableRefObject<HTMLVideoElement | null>;
 }) {
-  const ref = useRef<HTMLVideoElement | null>(null);
+  const innerRef = useRef<HTMLVideoElement | null>(null);
 
   // 本地优先，云端兜底；浏览器按 <source> 顺序自动回退
   const sources = [`/videos/${fileName}`, `/api/media/file/${fileName}`];
 
+  const refToUse = videoRef ?? innerRef;
+
   useEffect(() => {
-    const v = ref.current;
+    const v = refToUse.current;
     if (!v) return;
     let cancelled = false;
     if (autoPlay) {
@@ -68,7 +72,7 @@ export default function VideoSource({
 
   return (
     <video
-      ref={ref}
+      ref={refToUse}
       preload={preload}
       muted={muted}
       playsInline={playsInline}

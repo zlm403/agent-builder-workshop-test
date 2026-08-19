@@ -33,12 +33,14 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         }
         result = await setModuleSubState(params.id, body.subState);
         break;
-      case 'playVideo':
-        if (typeof body.url !== 'string' || !body.url) {
-          return NextResponse.json({ error: { code: 'BAD_REQUEST', message: 'url required' } }, { status: 400 });
+      case 'playVideo': {
+        const action = body.action as string || 'play';
+        if (action === 'play' && (typeof body.url !== 'string' || !body.url)) {
+          return NextResponse.json({ error: { code: 'BAD_REQUEST', message: 'url required for play' } }, { status: 400 });
         }
-        result = await broadcastPlayVideo(params.id, body.url);
+        result = await broadcastPlayVideo(params.id, { action: action as 'play' | 'pause' | 'stop', url: typeof body.url === 'string' ? body.url : undefined });
         break;
+      }
       case 'resetModule':
         if (typeof body.moduleId !== 'string') {
           return NextResponse.json({ error: { code: 'BAD_REQUEST', message: 'moduleId required' } }, { status: 400 });

@@ -70,8 +70,10 @@ export default function ScreenPage() {
   const [thoughts, setThoughts] = useState<{ id: string; text: string; anonymousId: string; createdAt: string }[]>([]);
   // 刷新时不闪过 A00Screen 开场页，先显示"加载中"等首次 load 返回
   const [loading, setLoading] = useState(true);
-  // 教师端触发的视频播放指令（module:playvideo）——大屏全屏播放，放完自动退出
-  const [playVideoUrl, setPlayVideoUrl] = useState<string | null>(null);
+  // 教师端触发的视频控制指令（module:playvideo）——大屏全屏播放/暂停/停止。仅真正大屏响应（preview 预览不播）
+  const [videoCmd, setVideoCmd] = useState<{ action: 'play' | 'pause' | 'stop'; url?: string } | null>(null);
+  // 是否为教师端预览（预览 iframe 带 preview=1 → 不播视频，只显示标题占位）
+  const [isPreview, setIsPreview] = useState(false);
   // 运行时 JS 错误捕获（方便排查"看不到"问题）
   const [jsError, setJsError] = useState<string | null>(null);
   useEffect(() => {
@@ -104,6 +106,7 @@ export default function ScreenPage() {
     const eb = pub && !new URL(pub).hostname.includes('localhost') ? pub : window.location.origin;
     setEffectiveHost(new URL(eb).hostname);
     const params = new URLSearchParams(window.location.search);
+    setIsPreview(params.get('preview') === '1');
     const idParam = params.get('sessionId');
     if (!idParam) return;
 
@@ -148,12 +151,10 @@ export default function ScreenPage() {
               if (t?.text) setThoughts((prev) => [t, ...prev].slice(0, 80));
             }
             if (evt.type === 'module:playvideo') {
-              const url = (evt.payload as { url?: string })?.url;
-              if (url) {
-                // 先清空再设置，保证每次收到指令都触发一次 null -> url 的状态变化（哪怕上次没正常清空）
-                setPlayVideoUrl(null);
-                setTimeout(() => setPlayVideoUrl(url), 0);
-              }
+              const p = (evt.payload ?? {}) as { action?: string; url?: string };
+              // 先清空再设置，保证每次收到指令都触发一次 null -> cmd 的状态变化（哪怕上次没正常清空）
+              setVideoCmd(null);
+              setTimeout(() => setVideoCmd({ action: (p.action as 'play' | 'pause' | 'stop') || 'play', url: p.url }), 0);
             }
           } catch {
             /* noop */
@@ -284,9 +285,9 @@ export default function ScreenPage() {
       ) : (summary?.moduleSubState ?? '').startsWith('page:') ? (
         <ContentPageHost subState={summary?.moduleSubState ?? ''} />
       ) : module.type === 'a0_new' ? (
-        <AvatarA0Screen type={module.id} sessionId={sessionId} subState={summary?.moduleSubState ?? null} total={summary?.totalStudents ?? 1} playVideoUrl={playVideoUrl} onVideoEnded={() => setPlayVideoUrl(null)} />
+        <AvatarA0Screen type={module.id} sessionId={sessionId} subState={summary?.moduleSubState ?? null} total={summary?.totalStudents ?? 1} videoCmd={videoCmd} isPreview={isPreview} onVideoEnded={() => setVideoCmd(null)} />
       ) : module.type === 'avatar_flow' ? (
-        <AvatarA1Screen sessionId={sessionId} subState={summary?.moduleSubState ?? null} />
+        <AvatarA1Screen sessionId={sessionId} subState={summary?.moduleSubState ?? null} videoCmd={videoCmd} isPreview={isPreview} onVideoEnded={() => setVideoCmd(null)} />
       ) : module.type === 'site_entry' ? (
         <SiteEntryScreen sessionId={sessionId} subState={summary?.moduleSubState ?? null} />
       ) : module.type === 'world' ? (
