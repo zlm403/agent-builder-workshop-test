@@ -981,7 +981,7 @@ export default function TeacherPage() {
               const seenA0 = { done: false };
               for (const mm of modules) {
                 if (a0Ids.includes(mm.id)) {
-                  if (!seenA0.done) { groups.push({ id: mm.id, title: '你A0', sub: a0Ids }); seenA0.done = true; }
+                  if (!seenA0.done) { groups.push({ id: mm.id, title: '我和AI', sub: a0Ids }); seenA0.done = true; }
                 } else {
                   const short = (mm.title || mm.id).slice(0, 6);
                   groups.push({ id: mm.id, title: short, sub: [mm.id] });

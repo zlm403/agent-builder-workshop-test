@@ -8,6 +8,7 @@ import { A1_STAGES, A1_HOOK } from '@/features/avatarLesson/config';
 import CogCompare from './CogCompare';
 import MediaPlayer from './MediaPlayer';
 import ContentSlot from './ContentSlot';
+import A1RealityVideo from './A1RealityVideo';
 import { usePageOverrides, pageText, useCurrentPageId } from '@/lib/usePageText';
 
 interface A1Data {
@@ -102,6 +103,10 @@ export default function AvatarA1Screen({
         }
         // 视频屏：只显示视频，无文字（教师自己插视频到内容块）
         if (st.media === 'video') {
+          // c9 现实：一人公司 —— 内置视频（进页自动播放 + 下方播放/暂停/停止控制条）
+          if (st.key === 'c9') {
+            return <A1RealityVideo fileName="a1-reality.mp4" />;
+          }
           return (
             <div style={{ flex: 1, minHeight: 'calc(100vh - 140px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               {pageId && <ContentSlot slot={`page:${pageId}`} />}
