@@ -1,0 +1,2 @@
+# 运行时数据（video-server 配置、world 数据等），不入库
+data/
