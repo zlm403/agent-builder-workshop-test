@@ -1455,13 +1455,13 @@ function VideoControlBar({
   return (
     <div style={{ border: '1px solid rgba(251,146,60,0.45)', borderRadius: 10, padding: 10, display: 'flex', alignItems: 'center', gap: 10, alignSelf: 'flex-start', flexWrap: 'wrap' }}>
       <span style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 700 }}>🎬 {title}</span>
-      <button style={{ ...btn, background: 'rgba(34,197,94,0.15)', borderColor: 'rgba(34,197,94,0.5)', color: '#86efac' }} disabled={busy} onClick={() => control('playVideo', { cmd: 'play', url })}>
+      <button style={{ ...btn, background: 'rgba(34,197,94,0.15)', borderColor: 'rgba(34,197,94,0.5)', color: '#86efac' }} disabled={busy} onClick={() => control('playVideo', { action: 'play', url })}>
         ▶ 播放
       </button>
-      <button style={{ ...btn, background: 'rgba(251,191,36,0.12)', borderColor: 'rgba(251,191,36,0.45)', color: '#fde68a' }} disabled={busy} onClick={() => control('playVideo', { cmd: 'pause', url })}>
+      <button style={{ ...btn, background: 'rgba(251,191,36,0.12)', borderColor: 'rgba(251,191,36,0.45)', color: '#fde68a' }} disabled={busy} onClick={() => control('playVideo', { action: 'pause', url })}>
         ⏸ 暂停
       </button>
-      <button style={{ ...btn, background: 'rgba(239,68,68,0.12)', borderColor: 'rgba(239,68,68,0.4)', color: '#fca5a5' }} disabled={busy} onClick={() => control('playVideo', { cmd: 'stop', url })}>
+      <button style={{ ...btn, background: 'rgba(239,68,68,0.12)', borderColor: 'rgba(239,68,68,0.4)', color: '#fca5a5' }} disabled={busy} onClick={() => control('playVideo', { action: 'stop', url })}>
         ⏹ 停止
       </button>
     </div>
