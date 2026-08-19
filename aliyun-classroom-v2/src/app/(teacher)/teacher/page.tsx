@@ -8,6 +8,7 @@ import MediaManager from '@/components/MediaManager';
 import ContentPageEditor from '@/components/ContentPageEditor';
 import BuiltinTextEditor from '@/components/BuiltinTextEditor';
 import PreviewIframe from '@/components/PreviewIframe';
+import VideoServerSettings from '@/components/VideoServerSettings';
 
 const pctOf = (n: number, base: number) => (base > 0 ? Math.round((n / base) * 100) : 0);
 
@@ -825,6 +826,7 @@ export default function TeacherPage() {
         <div><span className="label">当前</span>{currentModuleId ?? '未开始'}</div>
         <div><span className="label">锁定</span><span className={`pill ${moduleLocked ? 'red' : 'green'}`}>{moduleLocked ? '已锁定' : '开放'}</span></div>
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 8, alignItems: 'center' }}>
+          <VideoServerSettings />
           <button
             className="secondary"
             onClick={() => setSettingsOpen(true)}

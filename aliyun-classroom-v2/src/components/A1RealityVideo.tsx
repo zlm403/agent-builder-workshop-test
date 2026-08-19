@@ -2,13 +2,20 @@
 // =========================================================
 // A1 现实：一人公司 · 内置视频页
 // 进页自动播放（手动 play() 替代 autoPlay 属性），页面内直接显示视频，
-// 下方控制条：播放 / 暂停 / 停止。本地优先，云端兜底。
+// 下方控制条：播放 / 暂停 / 停止。笔记本源优先，云端兜底。
 // =========================================================
 import { useEffect, useRef, useState } from 'react';
+import { getVideoBase } from '@/lib/video-src';
 
 export default function A1RealityVideo({ fileName }: { fileName: string }) {
   const ref = useRef<HTMLVideoElement | null>(null);
   const [playing, setPlaying] = useState(false);
+  const [base, setBase] = useState<string | null>(null);
+
+  // 拉取教室笔记本视频服务基址（运行时配置，教师端保存后全局生效）
+  useEffect(() => {
+    getVideoBase().then(setBase).catch(() => {});
+  }, []);
 
   // 进页自动播放：等元数据就绪后手动 play()（自动播放策略只拦属性、不拦 play()）
   useEffect(() => {
@@ -52,6 +59,7 @@ export default function A1RealityVideo({ fileName }: { fileName: string }) {
         onPause={() => setPlaying(false)}
         style={{ width: 'min(1200px, 92vw)', maxHeight: '74vh', borderRadius: 16, background: '#000' }}
       >
+        {base ? <source src={`${base}/videos/${fileName}`} /> : null}
         <source src={`/videos/${fileName}`} />
         <source src={`/api/media/file/${fileName}`} />
       </video>

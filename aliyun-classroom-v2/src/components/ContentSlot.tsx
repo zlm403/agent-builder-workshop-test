@@ -5,6 +5,7 @@
 // 用于：步骤下方补充内容、钩子文案、提示语等"内容可换"的部分
 // =========================================================
 import { useEffect, useState } from 'react';
+import SmartVideo from '@/components/SmartVideo';
 
 interface MediaItem {
   id: string;
@@ -73,7 +74,7 @@ export default function ContentSlot({
         if (it.kind === 'video') {
           return (
             <div key={it.id} style={{ display: 'flex', flexDirection: 'column', ...align }}>
-              <video src={it.url || ''} controls autoPlay playsInline style={{ width: 'min(900px, 86vw)', maxHeight: '52vh', borderRadius: 14, background: '#000' }} />
+              <SmartVideo src={it.url || ''} controls autoPlay playsInline style={{ width: 'min(900px, 86vw)', maxHeight: '52vh', borderRadius: 14, background: '#000' }} />
             </div>
           );
         }

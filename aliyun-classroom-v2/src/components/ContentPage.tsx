@@ -6,6 +6,7 @@
 // embed 块：外层容器 + iframe 均用深色背景，防止加载瞬间白闪。
 // =========================================================
 import { useEffect, useState } from 'react';
+import SmartVideo from '@/components/SmartVideo';
 
 interface MediaItem {
   id: string;
@@ -61,7 +62,7 @@ export default function ContentPage({ pageId, title }: { pageId: string; title: 
           );
         }
         if (it.kind === 'video') {
-          return <video key={it.id} src={it.url || ''} controls autoPlay playsInline style={{ width: 'min(1100px, 90vw)', maxHeight: '60vh', borderRadius: 16, background: '#000' }} />;
+          return <SmartVideo key={it.id} src={it.url || ''} controls autoPlay playsInline style={{ width: 'min(1100px, 90vw)', maxHeight: '60vh', borderRadius: 16, background: '#000' }} />;
         }
         if (it.kind === 'embed') {
           return (

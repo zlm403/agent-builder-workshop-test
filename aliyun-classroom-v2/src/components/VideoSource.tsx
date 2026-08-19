@@ -1,6 +1,7 @@
 'use client';
 // =========================================================
-// 视频源组件：优先读本地 public/videos/{fileName}，本地没有/404 自动回退云端 /api/media/file/{fileName}
+// 视频源组件：优先读教室笔记本本地服务（教师端运行时配置，局域网快），
+// 笔记本不可达自动回退 /videos/{fileName} → /api/media/file/{fileName}（云端兜底）
 // 所有视频引用统一走这里，保证本地离线可用、云端备份兜底。
 //
 // 不依赖 autoPlay 属性：大屏/学生端没有用户手势，浏览器会拦截有声自动播放。
@@ -10,7 +11,8 @@
 // 用法：<VideoSource fileName="xxx.mp4" preload="auto" onEnded={...} />
 //       autoPlay 模式下建议外层用 <div key={播放次数}> 强制每次全新挂载，确保每次都能重播。
 // =========================================================
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { getVideoBase } from '@/lib/video-src';
 
 export default function VideoSource({
   fileName,
@@ -34,9 +36,19 @@ export default function VideoSource({
   style?: React.CSSProperties;
 }) {
   const ref = useRef<HTMLVideoElement | null>(null);
+  const [base, setBase] = useState<string | null>(null);
 
-  // 本地优先，云端兜底；浏览器按 <source> 顺序自动回退
-  const sources = [`/videos/${fileName}`, `/api/media/file/${fileName}`];
+  // 拉取教室笔记本视频服务基址（运行时配置，教师端保存后全局生效）
+  useEffect(() => {
+    getVideoBase().then(setBase).catch(() => {});
+  }, []);
+
+  // 笔记本优先，云端兜底；浏览器按 <source> 顺序自动回退（base 已含协议域端口，直接拼 /videos/）
+  const sources = [
+    ...(base ? [`${base}/videos/${fileName}`] : []),
+    `/videos/${fileName}`,
+    `/api/media/file/${fileName}`,
+  ];
 
   useEffect(() => {
     const v = ref.current;

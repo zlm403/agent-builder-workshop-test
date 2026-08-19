@@ -4,6 +4,7 @@
 // 按 slot 渲染该位置的所有内容块：文字/图片/视频/链接
 // =========================================================
 import { useEffect, useState } from 'react';
+import SmartVideo from '@/components/SmartVideo';
 
 interface MediaItem {
   id: string;
@@ -62,7 +63,7 @@ export default function MediaPlayer({ slot, title }: { slot: string; title: stri
         }
         if (it.kind === 'video') {
           return (
-            <video key={it.id} src={it.url || ''} controls autoPlay playsInline style={{ width: 'min(1100px, 90vw)', maxHeight: '62vh', borderRadius: 16, background: '#000' }} />
+            <SmartVideo key={it.id} src={it.url || ''} controls autoPlay playsInline style={{ width: 'min(1100px, 90vw)', maxHeight: '62vh', borderRadius: 16, background: '#000' }} />
           );
         }
         if (it.kind === 'embed') {
