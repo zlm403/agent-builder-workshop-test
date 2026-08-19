@@ -34,7 +34,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         result = await setModuleSubState(params.id, body.subState);
         break;
       case 'playVideo': {
-        const action = body.action as string || 'play';
+        const action = (body.cmd as string) || (body.action as string) || 'play';
         if (action === 'play' && (typeof body.url !== 'string' || !body.url)) {
           return NextResponse.json({ error: { code: 'BAD_REQUEST', message: 'url required for play' } }, { status: 400 });
         }
