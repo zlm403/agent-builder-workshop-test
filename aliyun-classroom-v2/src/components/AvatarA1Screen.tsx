@@ -23,15 +23,9 @@ interface A1Data {
 export default function AvatarA1Screen({
   sessionId,
   subState,
-  videoCmd = null,
-  isPreview = false,
-  onVideoEnded,
 }: {
   sessionId: string;
   subState: string | null;
-  videoCmd?: { action: 'play' | 'pause' | 'stop'; url?: string } | null;
-  isPreview?: boolean;
-  onVideoEnded?: () => void;
 }) {
   const [data, setData] = useState<A1Data | null>(null);
   const ov = usePageOverrides(subState);
@@ -109,19 +103,9 @@ export default function AvatarA1Screen({
         }
         // 视频屏：只显示视频，无文字（教师自己插视频到内容块）
         if (st.media === 'video') {
-          // c9 现实：一人公司 —— 内置视频（真大屏进页自动播放，教师端控制条控制播放/暂停/停止；预览只显示标题占位）
+          // c9 现实：一人公司 —— 内置视频（进页自动播放 + 下方播放/暂停/停止控制条）
           if (st.key === 'c9') {
-            return <A1RealityVideo fileName="a1-reality.mp4" title={st.name} videoCmd={videoCmd} isPreview={isPreview} onEnded={onVideoEnded} />;
-          }
-          if (isPreview) {
-            return (
-              <div style={{ flex: 1, minHeight: 'calc(100vh - 140px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <div style={{ textAlign: 'center', color: 'var(--muted)', fontSize: 22, fontWeight: 700 }}>
-                  {st.name}
-                  <div style={{ fontSize: 14, fontWeight: 400, marginTop: 8 }}>视频仅在真正大屏播放</div>
-                </div>
-              </div>
-            );
+            return <A1RealityVideo fileName="a1-reality.mp4" />;
           }
           return (
             <div style={{ flex: 1, minHeight: 'calc(100vh - 140px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

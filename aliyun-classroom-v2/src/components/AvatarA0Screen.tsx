@@ -23,21 +23,18 @@ export default function AvatarA0Screen({
   sessionId,
   subState,
   total,
-  videoCmd = null,
-  isPreview = false,
+  playVideoUrl = null,
   onVideoEnded,
 }: {
   type: string; // A0N_QUESTIONS | A0N_VOTE | A0N_REVEAL
   sessionId: string;
   subState: string | null;
   total: number;
-  videoCmd?: { action: 'play' | 'pause' | 'stop'; url?: string } | null; // 教师端视频控制指令（瞬态）
-  isPreview?: boolean; // 教师端预览：不播视频，只显示占位
+  playVideoUrl?: string | null; // 教师端触发播放的视频 URL（瞬态）
   onVideoEnded?: () => void; // 视频放完，通知大屏收起
 }) {
   const [data, setData] = useState<A0Data | null>(null);
   const [playingVideo, setPlayingVideo] = useState<string | null>(null);
-  const videoRef = useRef<HTMLVideoElement | null>(null);
   // 播放序号：每次收到播放指令 +1，作为 <video> 的 key 强制全新挂载，保证同视频第二次也能重播
   const playSeq = useRef(0);
   const ov = usePageOverrides(subState);
@@ -55,27 +52,13 @@ export default function AvatarA0Screen({
     return () => { closed = true; clearInterval(iv); };
   }, [sessionId]);
 
-  // 教师端视频控制（module:playvideo）：play 播放（放完自动收起）/ pause 暂停 / stop 停止归零。预览模式不响应播放
+  // 教师端触发播放（module:playvideo）：收到就立即播放，放完自动收起
   useEffect(() => {
-    if (isPreview) return;
-    if (videoCmd?.action === 'play') {
-      if (videoCmd.url) {
-        playSeq.current += 1;
-        setPlayingVideo(videoCmd.url);
-      } else {
-        // 纯 play 无 url：续播当前视频
-        videoRef.current?.play().catch(() => { /* noop */ });
-      }
-    } else if (videoCmd?.action === 'pause') {
-      setPlayingVideo((cur) => cur);
-      videoRef.current?.pause();
-    } else if (videoCmd?.action === 'stop') {
-      const v = videoRef.current;
-      if (v) { v.pause(); v.currentTime = 0; }
-      setPlayingVideo(null);
+    if (playVideoUrl) {
       playSeq.current += 1;
+      setPlayingVideo(playVideoUrl);
     }
-  }, [videoCmd]);
+  }, [playVideoUrl]);
 
   // 三问进行中（含开场页：P1 手指图 → P2 二维发展图 → 三问）
   if (type === 'A0N_QUESTIONS') {
@@ -190,15 +173,13 @@ export default function AvatarA0Screen({
         {/* 电子海啸图 · 尽量大、接近满屏 */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={A0_INTRO.closing.image} alt="AI 就在我们身边" style={{ maxWidth: 'min(1600px, 96vw)', maxHeight: '82vh', objectFit: 'contain', borderRadius: 16 }} />
-        {/* 预加载视频：进入本页就开始缓冲，教师端触发播放时秒开、不黑屏（本地优先，云端兜底）。预览模式不加载 */}
-        {!isPreview && (
-          <div style={{ display: 'none' }} aria-hidden>
-            <VideoSource fileName={videoFile} preload="auto" videoRef={videoRef} />
-          </div>
-        )}
+        {/* 预加载视频：进入本页就开始缓冲，教师端触发播放时秒开、不黑屏（本地优先，云端兜底） */}
+        <div style={{ display: 'none' }} aria-hidden>
+          <VideoSource fileName={videoFile} preload="auto" />
+        </div>
         <ContentSlot slot="a0_reveal_after" />
 
-        {playingVideo && !isPreview && (
+        {playingVideo && (
           <div
             key={playSeq.current}
             style={{ position: 'fixed', inset: 0, background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000 }}
@@ -208,7 +189,6 @@ export default function AvatarA0Screen({
               fileName={String(playingVideo).split('/').pop() || videoFile}
               autoPlay
               playsInline
-              videoRef={videoRef}
               onEnded={() => { setPlayingVideo(null); onVideoEnded?.(); }}
               style={{ width: '100vw', height: '100vh', objectFit: 'contain', background: '#000' }}
             />
