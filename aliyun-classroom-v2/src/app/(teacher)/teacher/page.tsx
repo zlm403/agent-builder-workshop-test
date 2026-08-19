@@ -1090,6 +1090,7 @@ export default function TeacherPage() {
                       control={control}
                       busy={busy}
                       title="现实视频"
+                      url="/api/media/file/a1-reality.mp4"
                     />
                   )}
                   {currentModuleId === 'A3_WORLD' && (
