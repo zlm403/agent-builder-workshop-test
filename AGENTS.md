@@ -70,7 +70,7 @@
 > 3. `ai-dreamlab` 是不该存在的废弃原型，不维护。
 > 4. 顷悟系统三端已按**三项目**改造：学生/教师/大屏 tab = 项目一(接金币游戏, course 1) / 项目二(心情电量, course 2) / 项目三(内心戏, course 4)。预备课（教"把话说清楚"）已停用为独立 tab，`warmup/` 代码与数据保留，内容作为正式课开场集中讲。
 > 5. **《我的世界》规划中（试听课 A3 环节，模块 `A3_WORLD`）**：目标系统是 `aliyun-classroom-v2`（非 ar-class-monitor-demo）；文档与引擎待落地，见 `aliyun-classroom-v2/docs/my-world/`。
-> 6. **试听课 `aliyun-classroom-v2` 模块现状（模板 A-v11）**：A0三问 → A1数字分身 → A2快速入门网站 → A3我的世界 → **CLOSING 收官**（环节机制：痛点墙 → 四翼展示 → 价格颁布，三个 HTML 大屏页存 `public/`，教师端页面序列点环节投屏，每环节有子控制条）→ A08 收尾。A1 现实页（c9）已内置视频 `public/videos/a1-reality.mp4`（进页自动播放 + 页面下方播放/暂停/停止控制条，组件 `A1RealityVideo.tsx`）。部署方式见 `项目交接-试听课.md`（打包→scp→deploy.sh）。
+> 6. **试听课 `aliyun-classroom-v2` 模块现状（模板 A-v11）**：A0三问 → A1数字分身 → A2快速入门网站 → A3我的世界 → **CLOSING 收官**（环节机制：痛点墙 → 四翼展示 → 价格颁布，三个 HTML 大屏页存 `public/`，教师端页面序列点环节投屏，每环节有子控制条）→ A08 收尾。部署方式见 `项目交接-试听课.md`（打包→scp→`bash /root/classroom-v2/update.sh`）。
 
 ---
 
@@ -181,13 +181,13 @@ python server.py 8099        （或 powershell -ExecutionPolicy Bypass -File sta
 > 背景：当晚 3 次全站 404。根因 = 容器内 `docker build` 产出的 `.next` 残缺（14M 缺 `server/app/`），`update.sh` 反复用残缺版本覆盖。触发因素 = 多个 AI 会话并发执行部署。
 > 服务器 8.130.70.114:3000 已恢复（本地完整 `.next` 覆盖）。详细交接见 `交接-部署加固任务清单-20260815.md`。
 
-1. **生产部署必须走唯一入口** `/root/classroom-v2/deploy.sh`（✅ 2026-08-19 已落地；带 flock 互斥锁 + 审计 + .next 产物校验 + 健康检查回滚）。任何会话**不得**直接执行 `docker cp / docker restart / docker rm / docker run / update.sh` 修改生产容器——否则互斥锁失效。
-2. **部署必须带身份与目的**：调用时填 `DEPLOY_OPERATOR`（会话名）+ `DEPLOY_REASON`（目的），脚本审计到 `/var/log/classroom-v2-deploy.log`。没有这两个变量部署会被拒绝（exit 64）。
+1. **生产部署必须走唯一入口** `/root/classroom-v2/deploy.sh`（带 flock 互斥锁）。任何会话**不得**直接执行 `docker cp / docker restart / docker rm / docker run / update.sh` 修改生产容器——否则互斥锁失效。
+2. **部署必须带身份与目的**：调用时填 `DEPLOY_OPERATOR`（会话名）+ `DEPLOY_REASON`（目的），脚本审计到 `/var/log/classroom-v2-deploy.log`。没有这两个变量部署会被拒绝。
 3. **同一时间只能一个会话部署**：锁从部署开始持有到健康检查结束，第二个部署自动 exit 75。多会话可同时查看日志/分析，但不能并行部署。
-4. **正式部署流程**：本地 `npm run build`（确认 .next 完整 ≥50M 含 `server/app`）→ 打包上传 `/root/classroom-v2-deploy.tar.gz` → 服务器 `DEPLOY_OPERATOR=xxx DEPLOY_REASON=xxx DEPLOY_COMMIT=<git-short> bash /root/classroom-v2/deploy.sh` → 起新容器（唯一镜像 tag=commit short）→ 健康检查（/teacher /screen /student /ai-cognition-shift.html 全 200）→ 全过才切换，失败删新留旧回滚。⚠️ **健康检查别写 `/api/health`**——代码里没有该路由（8-15 清单笔误，2026-08-19 首次部署误判回滚已修复）。
+4. **正式部署流程**：本地 `npm run build`（确认 .next 完整 ≥50M 含 `server/app`）→ 打包带唯一镜像标签（Git commit short，不用 latest）→ 起新容器 → 健康检查（/teacher /screen /student /api/health /ai-cognition-shift.html 全 200）→ 全过才切换，失败删新留旧回滚。
 5. **应急恢复**（仅紧急用，事后要记录）：本地完整 `.next` 覆盖容器 + restart 可恢复 404，但这不算正式部署，完成后必须在待办登记。
 6. **产物校验**：部署后检查 `.next/BUILD_ID`、`routes-manifest.json`、`server/app-paths-manifest.json`、`.next/server/app` 均存在，且页面 200。
-7. **容器内 build 残缺根因未查明前**，优先用"本地 build → 上传完整 .next"的方式部署。✅ 现 deploy.sh 用 `SKIP_BUILD=1`（Dockerfile 已加该参数）**直接从本地 build 好的完整 .next 打镜像，容器内不再 `npm run build`**，从机制上规避了残缺根因（根因可不查）。
+7. **容器内 build 残缺根因未查明前**，优先用"本地 build → 上传完整 .next"的方式部署，避免容器内 build 产出残缺导致全站 404。
 
 ---
 
@@ -196,4 +196,4 @@ python server.py 8099        （或 powershell -ExecutionPolicy Bypass -File sta
 - 顷悟 Agent 真实对话 → 事件流：**已通过 `lib/qw-chat-fwd.js` 注入块打通**（包装 ai.chat 自动上报 agent_dialog_req/resp，带签到上课号 sid）——方案已定：作品页引一行脚本即生效，不依赖 agent 自觉。**待真机验证**：学生作品页实际引一次、对话一轮，教师端确认归到正确学生。
 - 大屏匿名投影：本仓 `bigscreen/` 已做（P5 落地），轻物侧另有原型。
 - 三项目已按 course 1/2/4 映射落地（三端 tab + `正式课文档/上课执行方案.md`）；顷悟侧三项目应用是否就绪、学生发布链接格式待确认。
-- **《我的世界》模块（试听课 A3 环节，模块 `A3_WORLD`）**：目标系统 `aliyun-classroom-v2`（Next.js+Prisma+PostgreSQL）。文档已落地 `aliyun-classroom-v2/docs/my-world/`（01产品需求/02引擎规范/03Tips任务链与工作台/04本地调试指南 + reference/A3关系反馈B组基线），`src/lib/world/` 引擎 + `WorldScreen.tsx`/`WorldStudent.tsx` + `app/api/world/*` 已存在。下一步：核实最小闭环 → A组关系反馈 → 6次A/B实验 → 画面。详见待办清单.md。
+- **《我的世界》模块（试听课 A3 环节，模块 `A3_WORLD`）**：目标系统 `aliyun-classroom-v2`（Next.js+Prisma+PostgreSQL）。文档已对齐真实架构，待落地 `aliyun-classroom-v2/docs/my-world/` 后按架构映射→最小闭环→A组关系反馈→6次A/B实验→画面 的顺序实施。详见待办清单.md。
