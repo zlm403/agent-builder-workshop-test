@@ -8,6 +8,8 @@
 // =========================================================
 import { useEffect, useState } from 'react';
 import { getVideoBase } from '@/lib/video-src';
+import { isPreviewMode } from '@/lib/preview-mode';
+import VideoPreviewPlaceholder from '@/components/VideoPreviewPlaceholder';
 
 interface SmartVideoProps extends React.VideoHTMLAttributes<HTMLVideoElement> {
   src: string;
@@ -16,9 +18,21 @@ interface SmartVideoProps extends React.VideoHTMLAttributes<HTMLVideoElement> {
 export default function SmartVideo({ src, ...rest }: SmartVideoProps) {
   const [base, setBase] = useState<string | null>(null);
 
+  // 预览模式双阶段渲染：SSR 与首帧统一占位骨架，避免 hydration mismatch；
+  // 预览模式不创建 <video>、不预加载、不播放（autoPlay 由父传，前端带 preview=1 直接占位）。
+  const [preview] = useState(() => typeof window !== 'undefined' && isPreviewMode());
+  const [mounted, setMounted] = useState(false);
   useEffect(() => {
-    getVideoBase().then(setBase).catch(() => {});
+    setMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (preview) return; // 预览模式不拉取视频基址
+    getVideoBase().then(setBase).catch(() => {});
+  }, [preview]);
+
+  if (!mounted) return <VideoPreviewPlaceholder />; // SSR 与首帧统一占位骨架，避免 hydration mismatch
+  if (preview) return <VideoPreviewPlaceholder />;  // 预览模式：不创建 <video>
 
   // 绝对 URL 直接用 src 属性；相对路径走 <source> 列表（base 优先在前）
   if (/^https?:\/\//i.test(src)) {

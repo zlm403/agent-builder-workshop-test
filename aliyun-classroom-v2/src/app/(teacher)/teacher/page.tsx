@@ -1245,12 +1245,12 @@ export default function TeacherPage() {
           {/* 大屏预览 */}
           <div>
             <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 6 }}>大屏（投屏显示）</div>
-            <PreviewIframe src={`/screen?sessionId=${sessionId || ''}`} title="大屏预览" maxWidth={600} />
+            <PreviewIframe src={`/screen?sessionId=${sessionId || ''}&preview=1`} title="大屏预览" maxWidth={600} />
           </div>
           {/* 学生端预览 */}
           <div>
             <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 6 }}>学生端（手机工作台）</div>
-            <PreviewIframe src={`/student?code=${inviteCode || ''}`} title="学生端预览" maxWidth={380} />
+            <PreviewIframe src={`/student?code=${inviteCode || ''}&preview=1`} title="学生端预览" maxWidth={380} />
           </div>
         </div>
       </div>

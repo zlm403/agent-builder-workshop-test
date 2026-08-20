@@ -6,19 +6,31 @@
 // =========================================================
 import { useEffect, useRef, useState } from 'react';
 import { getVideoBase } from '@/lib/video-src';
+import { isPreviewMode } from '@/lib/preview-mode';
+import VideoPreviewPlaceholder from '@/components/VideoPreviewPlaceholder';
 
 export default function A1RealityVideo({ fileName }: { fileName: string }) {
   const ref = useRef<HTMLVideoElement | null>(null);
   const [playing, setPlaying] = useState(false);
   const [base, setBase] = useState<string | null>(null);
 
-  // 拉取教室笔记本视频服务基址（运行时配置，教师端保存后全局生效）
+  // 预览模式双阶段渲染：SSR 与首帧统一占位骨架，避免 hydration mismatch；
+  // 预览模式不创建 <video>、不预加载、不播放。
+  const [preview] = useState(() => typeof window !== 'undefined' && isPreviewMode());
+  const [mounted, setMounted] = useState(false);
   useEffect(() => {
-    getVideoBase().then(setBase).catch(() => {});
+    setMounted(true);
   }, []);
+
+  // 拉取教室笔记本视频服务基址（运行时配置，教师端保存后全局生效）；预览模式不拉取
+  useEffect(() => {
+    if (preview) return;
+    getVideoBase().then(setBase).catch(() => {});
+  }, [preview]);
 
   // 进页自动播放：等元数据就绪后手动 play()（自动播放策略只拦属性、不拦 play()）
   useEffect(() => {
+    if (preview) return; // 预览模式绝不触发播放
     const v = ref.current;
     if (!v) return;
     let cancelled = false;
@@ -38,7 +50,10 @@ export default function A1RealityVideo({ fileName }: { fileName: string }) {
       clearTimeout(t);
       v.removeEventListener('loadedmetadata', start);
     };
-  }, []);
+  }, [preview]);
+
+  if (!mounted) return <VideoPreviewPlaceholder />; // SSR 与首帧统一占位骨架，避免 hydration mismatch
+  if (preview) return <VideoPreviewPlaceholder />;  // 预览模式：不创建 <video>
 
   const play = () => { ref.current?.play().catch(() => { /* noop */ }); };
   const pause = () => ref.current?.pause();
