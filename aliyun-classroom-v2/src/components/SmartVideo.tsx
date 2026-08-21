@@ -17,6 +17,9 @@ interface SmartVideoProps extends React.VideoHTMLAttributes<HTMLVideoElement> {
 
 export default function SmartVideo({ src, ...rest }: SmartVideoProps) {
   const [base, setBase] = useState<string | null>(null);
+  // base 是否已解析完成（含为 null 的情况）。未完成前不渲染 <video>，
+  // 避免浏览器先看到云端 <source> 就锁定源，等本地 base 到了也不切换。
+  const [baseReady, setBaseReady] = useState(false);
 
   // 预览模式双阶段渲染：SSR 与首帧统一占位骨架，避免 hydration mismatch；
   // 预览模式不创建 <video>、不预加载、不播放（autoPlay 由父传，前端带 preview=1 直接占位）。
@@ -28,11 +31,15 @@ export default function SmartVideo({ src, ...rest }: SmartVideoProps) {
 
   useEffect(() => {
     if (preview) return; // 预览模式不拉取视频基址
-    getVideoBase().then(setBase).catch(() => {});
+    getVideoBase()
+      .then(setBase)
+      .catch(() => {})
+      .finally(() => setBaseReady(true));
   }, [preview]);
 
   if (!mounted) return <VideoPreviewPlaceholder />; // SSR 与首帧统一占位骨架，避免 hydration mismatch
   if (preview) return <VideoPreviewPlaceholder />;  // 预览模式：不创建 <video>
+  if (!baseReady) return <VideoPreviewPlaceholder />; // 等 base 解析完再渲染 <video>，保证 source 列表一次到位（本地在前）
 
   // 绝对 URL 直接用 src 属性；相对路径走 <source> 列表（base 优先在前）
   if (/^https?:\/\//i.test(src)) {
