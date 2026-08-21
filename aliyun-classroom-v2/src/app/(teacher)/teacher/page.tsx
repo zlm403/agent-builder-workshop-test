@@ -1079,16 +1079,6 @@ export default function TeacherPage() {
                     onEditContent={(pageId) => setEditingPageId(pageId)}
                     onEditText={(page) => setEditingBuiltin({ id: page.id, kind: page.kind, refKey: page.refKey, overrides: page.overrides })}
                   />
-                  {currentModuleId === 'A0N_REVEAL' && summary?.moduleSubState === 'a0:closing' && (
-                    <button
-                      className="primary"
-                      style={{ alignSelf: 'flex-start', fontSize: 12, padding: '4px 12px' }}
-                      disabled={busy}
-                      onClick={() => control('playVideo', { url: '/api/media/file/1786677398421-7ncl82.mp4' })}
-                    >
-                      ▶ 播放收束视频
-                    </button>
-                  )}
                   {currentModuleId === 'A3_WORLD' && (
                     <WorldVisualBar />
                   )}

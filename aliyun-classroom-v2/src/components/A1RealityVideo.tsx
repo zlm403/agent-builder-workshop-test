@@ -30,7 +30,7 @@ export default function A1RealityVideo({ fileName }: { fileName: string }) {
 
   // 进页自动播放：等元数据就绪后手动 play()（自动播放策略只拦属性、不拦 play()）
   useEffect(() => {
-    if (preview) return; // 预览模式绝不触发播放
+    if (!mounted || preview) return; // 未挂载或预览模式绝不触发播放
     const v = ref.current;
     if (!v) return;
     let cancelled = false;
@@ -50,7 +50,7 @@ export default function A1RealityVideo({ fileName }: { fileName: string }) {
       clearTimeout(t);
       v.removeEventListener('loadedmetadata', start);
     };
-  }, [preview]);
+  }, [preview, mounted]);
 
   if (!mounted) return <VideoPreviewPlaceholder />; // SSR 与首帧统一占位骨架，避免 hydration mismatch
   if (preview) return <VideoPreviewPlaceholder />;  // 预览模式：不创建 <video>

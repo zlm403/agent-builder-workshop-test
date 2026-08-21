@@ -24,13 +24,13 @@ interface MediaItem {
 const KIND_ICONS: Record<string, string> = { text: '📝', image: '🖼️', video: '🎬', link: '🔗' };
 const KIND_LABELS: Record<string, string> = { text: '文字', image: '图片', video: '视频', link: '链接' };
 
-// 模块 → 内容槽分组（与 slots.ts 的 group 对应）
+// 模块 → 内容槽分组（与 slots.ts 的 group 对应，命名对齐 PAGE_GROUPS）
 export const MODULE_SLOT_GROUP: Record<string, string> = {
   A0N_QUESTIONS: 'A0',
   A0N_VOTE: 'A0',
   A0N_REVEAL: 'A0',
-  A1_AVATAR: '数字分身',
-  A2_SITE: '快速入门网站',
+  A1_AVATAR: 'A1',
+  A2_SITE: 'A2',
 };
 
 export default function SlotContentManager({

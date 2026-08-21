@@ -4,7 +4,7 @@
 // 支持：添加（填内容 / 填URL / 上传文件）、AI 生成、删除、按 slot 插槽归类
 // =========================================================
 import { useCallback, useEffect, useState } from 'react';
-import { CONTENT_SLOTS, SLOT_GROUPS, slotLabel } from '@/lib/slots';
+import { slotLabel } from '@/lib/slots';
 
 interface MediaItem {
   id: string;
@@ -32,13 +32,26 @@ const KIND_ICONS: Record<string, string> = {
   link: '🔗',
 };
 
+// 动态插入位置（来自 /api/pages/slots：命名 slot + 内容页 page:{id}）
+interface SlotOption {
+  key: string;
+  label: string;
+  kind: 'named' | 'page';
+}
+interface SlotGroup {
+  group: string;
+  name: string;
+  slots: SlotOption[];
+}
+
 export default function MediaManager({ onClose, initialSlot }: { onClose: () => void; initialSlot?: string }) {
   const [items, setItems] = useState<MediaItem[]>([]);
+  const [slotGroups, setSlotGroups] = useState<SlotGroup[]>([]);
   const [title, setTitle] = useState('');
   const [kind, setKind] = useState('text');
   const [content, setContent] = useState('');
   const [url, setUrl] = useState('');
-  const [slot, setSlot] = useState(initialSlot ?? 'a1_cog_after');
+  const [slot, setSlot] = useState(initialSlot ?? '');
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState('');
   const [uploading, setUploading] = useState(false);
@@ -49,13 +62,25 @@ export default function MediaManager({ onClose, initialSlot }: { onClose: () => 
 
   const load = useCallback(async () => {
     try {
-      const r = await fetch('/api/media?includeHidden=1');
-      const d = await r.json();
+      const [mediaR, slotsR] = await Promise.all([
+        fetch('/api/media?includeHidden=1'),
+        fetch('/api/pages/slots'),
+      ]);
+      const d = await mediaR.json();
+      const sd = await slotsR.json();
       if (d.items) setItems(d.items);
+      if (sd.groups) setSlotGroups(sd.groups);
     } catch { /* noop */ }
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  // 默认选中第一个可用插入位置（未传 initialSlot 时）
+  useEffect(() => {
+    if (slot || slotGroups.length === 0) return;
+    const first = slotGroups.find((g) => g.slots.length > 0)?.slots[0];
+    if (first) setSlot(first.key);
+  }, [slot, slotGroups]);
 
   async function add() {
     if (!title.trim()) { setMsg('请填写标题'); return; }
@@ -131,6 +156,11 @@ export default function MediaManager({ onClose, initialSlot }: { onClose: () => 
   for (const it of items) (bySlot[it.slot] ??= []).push(it);
   const slotKeys = Object.keys(bySlot).sort();
 
+  // 插入位置 label 查询：优先动态 API（含内容页 page:{id}），回退 slots.ts 命名 slot
+  const slotLabelMap: Record<string, string> = {};
+  for (const g of slotGroups) for (const s of g.slots) slotLabelMap[s.key] = s.label;
+  const labelOf = (key: string) => slotLabelMap[key] ?? slotLabel(key);
+
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999 }}>
       <div style={{ background: '#0f172a', border: '1px solid #334155', borderRadius: 16, padding: 24, width: 'min(820px, 94vw)', maxHeight: '90vh', overflowY: 'auto' }}>
@@ -163,9 +193,9 @@ export default function MediaManager({ onClose, initialSlot }: { onClose: () => 
             <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
               <label style={{ fontSize: 13, color: 'var(--muted)', whiteSpace: 'nowrap' }}>插入位置：</label>
               <select value={slot} onChange={(e) => setSlot(e.target.value)} style={{ width: 'auto', flex: 1 }}>
-                {SLOT_GROUPS.map((g) => (
-                  <optgroup key={g} label={g}>
-                    {CONTENT_SLOTS.filter((s) => s.group === g).map((s) => (
+                {slotGroups.map((g) => (
+                  <optgroup key={g.group} label={g.name}>
+                    {g.slots.map((s) => (
                       <option key={s.key} value={s.key}>{s.label}</option>
                     ))}
                   </optgroup>
@@ -195,7 +225,7 @@ export default function MediaManager({ onClose, initialSlot }: { onClose: () => 
         {slotKeys.length === 0 && <p style={{ color: 'var(--muted)', fontSize: 14 }}>还没有内容块，先添加一个吧。</p>}
         {slotKeys.map((sk) => (
           <div key={sk} style={{ marginBottom: 14 }}>
-            <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 8 }}>{slotLabel(sk)}（{bySlot[sk].length}）</div>
+            <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 8 }}>{labelOf(sk)}（{bySlot[sk].length}）</div>
             {bySlot[sk].map((it) => (
               <div key={it.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', background: 'rgba(15,23,42,0.5)', border: '1px solid var(--border)', borderRadius: 8, marginBottom: 6, opacity: it.hidden ? 0.55 : 1 }}>
                 <span style={{ fontSize: 18 }}>{KIND_ICONS[it.kind] ?? '📦'}</span>

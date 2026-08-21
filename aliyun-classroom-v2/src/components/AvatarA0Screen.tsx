@@ -6,7 +6,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { A0_INTRO, A0_VOTE_OPTIONS, A0_REVEAL } from '@/features/avatarLesson/config';
 import ContentSlot from './ContentSlot';
-import VideoSource from './VideoSource';
 import { usePageOverrides, pageText } from '@/lib/usePageText';
 
 interface A0Data {
@@ -155,13 +154,12 @@ export default function AvatarA0Screen({
     );
   }
 
-  // P8 收束 · "这个东西已经来了"（电子海啸图 + 视频，视频由教师端触发播放）
+  // P8 收束 · "这个东西已经来了"（电子海啸图 + 视频由媒体库 a0_closing_video 插槽控制）
   if (rs === 'a0:closing') {
     const tEyebrow = pageText(ov, 'eyebrow', A0_INTRO.closing.eyebrow);
     const tTitle = pageText(ov, 'title', A0_INTRO.closing.title);
     const tBody1 = pageText(ov, 'body1', A0_INTRO.closing.body1);
     const tBody2 = pageText(ov, 'body2', A0_INTRO.closing.body2);
-    const videoFile = '1786677398421-7ncl82.mp4';
     return (
       <div style={{ minHeight: 'calc(100vh - 80px)', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 18, textAlign: 'center', padding: '0 2vw', overflowY: 'auto' }}>
         {tEyebrow !== null && <div style={{ fontSize: 14, fontWeight: 700, color: '#fbbf24', letterSpacing: '0.12em' }}>{tEyebrow}</div>}
@@ -173,27 +171,9 @@ export default function AvatarA0Screen({
         {/* 电子海啸图 · 尽量大、接近满屏 */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={A0_INTRO.closing.image} alt="AI 就在我们身边" style={{ maxWidth: 'min(1600px, 96vw)', maxHeight: '82vh', objectFit: 'contain', borderRadius: 16 }} />
-        {/* 预加载视频：进入本页就开始缓冲，教师端触发播放时秒开、不黑屏（本地优先，云端兜底） */}
-        <div style={{ display: 'none' }} aria-hidden>
-          <VideoSource fileName={videoFile} preload="auto" />
-        </div>
+        {/* 收束视频：由媒体库 a0_closing_video 插槽控制（优先本地读取，不上云） */}
+        <ContentSlot slot="a0_closing_video" />
         <ContentSlot slot="a0_reveal_after" />
-
-        {playingVideo && (
-          <div
-            key={playSeq.current}
-            style={{ position: 'fixed', inset: 0, background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000 }}
-            onClick={() => { setPlayingVideo(null); onVideoEnded?.(); }}
-          >
-            <VideoSource
-              fileName={String(playingVideo).split('/').pop() || videoFile}
-              autoPlay
-              playsInline
-              onEnded={() => { setPlayingVideo(null); onVideoEnded?.(); }}
-              style={{ width: '100vw', height: '100vh', objectFit: 'contain', background: '#000' }}
-            />
-          </div>
-        )}
       </div>
     );
   }

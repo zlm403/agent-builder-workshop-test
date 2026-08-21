@@ -25,6 +25,7 @@ export default function VideoSource({
   loop = false,
   onEnded,
   onClick,
+  onError,
   style,
 }: {
   fileName: string;
@@ -35,6 +36,7 @@ export default function VideoSource({
   loop?: boolean;
   onEnded?: () => void;
   onClick?: () => void;
+  onError?: () => void;
   style?: React.CSSProperties;
 }) {
   const ref = useRef<HTMLVideoElement | null>(null);
@@ -62,7 +64,7 @@ export default function VideoSource({
   ];
 
   useEffect(() => {
-    if (preview) return; // 预览模式绝不触发播放
+    if (!mounted || preview) return; // 未挂载或预览模式绝不触发播放
     const v = ref.current;
     if (!v) return;
     let cancelled = false;
@@ -81,14 +83,19 @@ export default function VideoSource({
       else v.addEventListener('loadedmetadata', start);
       // 兜底：有些浏览器 <source> 切换后 loadedmetadata 不触发，用 timeout 强试一次
       const t = setTimeout(start, 1200);
+      // 故障兜底：自动播放模式下 5 秒内仍未真正进入播放态，判定失败并通知上层收走
+      const failTimer = setTimeout(() => {
+        if (!cancelled && v.paused) onError?.();
+      }, 5000);
       return () => {
         cancelled = true;
         clearTimeout(t);
+        clearTimeout(failTimer);
         v.removeEventListener('loadedmetadata', start);
       };
     }
     return () => { cancelled = true; };
-  }, [autoPlay, preview]);
+  }, [autoPlay, preview, mounted]);
 
   if (!mounted) return <VideoPreviewPlaceholder />; // SSR 与首帧统一占位骨架，避免 hydration mismatch
   if (preview) return <VideoPreviewPlaceholder />;  // 预览模式：不创建 <video>
@@ -102,6 +109,7 @@ export default function VideoSource({
       loop={loop}
       onEnded={onEnded}
       onClick={onClick}
+      onError={() => onError?.()}
       style={style}
     >
       {sources.map((src) => (
