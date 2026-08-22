@@ -9,6 +9,7 @@ import CogCompare from './CogCompare';
 import MediaPlayer from './MediaPlayer';
 import ContentSlot from './ContentSlot';
 import { usePageOverrides, pageText, useCurrentPageId } from '@/lib/usePageText';
+import { useVideoPreload } from '@/lib/useVideoPreload';
 
 interface A1Data {
   total: number;
@@ -29,6 +30,9 @@ export default function AvatarA1Screen({
   const [data, setData] = useState<A1Data | null>(null);
   const ov = usePageOverrides(subState);
   const pageId = useCurrentPageId(subState);
+
+  // 进入 A1 即预加载本环节所有视频页（c9/c10）到浏览器缓存，翻到时不卡
+  useVideoPreload('A1', 'avatar', A1_STAGES);
 
   useEffect(() => {
     let closed = false;
