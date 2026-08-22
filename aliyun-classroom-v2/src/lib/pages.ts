@@ -54,9 +54,8 @@ const BUILTIN_SEEDS: BuiltinSeed[] = [
   { group: 'A1', moduleId: 'A1_AVATAR', refKey: 'avatar:c9', label: '现实：一人公司' },
   { group: 'A1', moduleId: 'A1_AVATAR', refKey: 'avatar:c10', label: '现实信号' },
 
-  // ---- A2 快速入门网站（仅"交互功能页"：会前准备/AI团队开会/检验提交/梦想墙 + 钩子/作品墙）
-  //      纯展示环节（发布任务/产生疑问/找到方法/认知思考/未来展开/最后升华）见 CONTENT_SEEDS，做成内容页（铁律）
-  { group: 'A2', moduleId: 'A2_SITE', refKey: 'a2:hook', label: '钩子开场' },
+  // ---- A2 快速入门网站（仅"交互功能页"：会前准备/AI团队开会/检验提交/梦想墙 + 作品墙）
+  //      纯展示环节（钩子开场/发布任务/产生疑问/找到方法/认知思考/未来展开/最后升华）见 CONTENT_SEEDS，做成内容页（铁律）
   { group: 'A2', moduleId: 'A2_SITE', refKey: 'a2:s4', label: '会前准备' },
   { group: 'A2', moduleId: 'A2_SITE', refKey: 'a2:s5', label: 'AI团队开会→自动执行' },
   { group: 'A2', moduleId: 'A2_SITE', refKey: 'a2:s6', label: '检验、迭代，最后提交' },
@@ -88,6 +87,13 @@ export interface ContentSeedDef {
 }
 
 export const CONTENT_SEEDS: ContentSeedDef[] = [
+  { group: 'A2', moduleId: 'A2_SITE', refKey: 'a2:hook', title: '钩子开场', blocks: [
+    { kind: 'text', title: '眉题', content: '快速入门网站' },
+    { kind: 'text', title: '大标题', content: '做一个帮助小白进入陌生领域的手机网站' },
+    { kind: 'text', title: '说明一', content: '选一个你感兴趣、但还不熟悉的领域——咖啡、摄影、露营、健身……都可以。' },
+    { kind: 'text', title: '说明二', content: '今天，你来组建一支「AI 团队」，让它们帮你把这个网站做出来。' },
+    { kind: 'text', title: '收束', content: '你觉得这个好不好？好，那我们就真的来试一次。' },
+  ]},
   { group: 'A2', moduleId: 'A2_SITE', refKey: 'a2:s1', title: '发布任务', blocks: [
     { kind: 'text', title: '任务标题', content: '做一个帮助小白进入陌生领域的手机网站' },
     { kind: 'text', title: '任务说明', content: '帮一个完全不懂的人，快速进入一个陌生领域。' },
@@ -161,6 +167,8 @@ export async function ensurePages(group: PageGroup) {
   const seeds = BUILTIN_SEEDS.filter((s) => s.group === group);
   const contentSeeds = CONTENT_SEEDS.filter((s) => s.group === group);
   const existing = await prisma.lessonPage.findMany({ where: { group }, orderBy: { seq: 'asc' } });
+  // 本次是否有种子页增删：只有增删时才需要重排对齐，避免每次加载把教师手动排序覆盖回默认全序
+  let seedsChanged = false;
 
   // 1) 内容页种子（纯展示环节）：旧内置页迁移为内容页 / 缺失则新建，并 seed 默认内容块
   for (const cs of contentSeeds) {
@@ -169,6 +177,7 @@ export async function ensurePages(group: PageGroup) {
       page = await prisma.lessonPage.create({
         data: { group, moduleId: cs.moduleId, seq: 0, kind: 'content', refKey: cs.refKey, title: cs.title, hidden: false },
       });
+      seedsChanged = true;
     } else if (page.kind !== 'content') {
       // 旧内置纯展示页 → 内容页（保留 refKey 身份与位置，标题给默认）
       await prisma.lessonPage.update({ where: { id: page.id }, data: { kind: 'content', title: cs.title } });
@@ -187,6 +196,7 @@ export async function ensurePages(group: PageGroup) {
   for (const e of afterMigration) {
     if (e.kind === 'builtin' && !seedKeys.has(`${e.moduleId}:${e.refKey ?? ''}`)) {
       await prisma.lessonPage.delete({ where: { id: e.id } }).catch(() => {});
+      seedsChanged = true;
     }
   }
   // 补缺内置页
@@ -207,9 +217,12 @@ export async function ensurePages(group: PageGroup) {
       },
     });
     existingKeys.add(key);
+    seedsChanged = true;
   }
 
   // 3) 重排：种子页（内置 + 内容页）按全序对齐 seq（只动种子页，不碰教师后加的内容页）
+  //    仅在本次新增/删除过种子页时执行——否则跳过，保留教师用上下箭头调过的顺序
+  if (!seedsChanged) return;
   const order = fullOrder(group);
   const all = await prisma.lessonPage.findMany({ where: { group } });
   for (let i = 0; i < order.length; i++) {

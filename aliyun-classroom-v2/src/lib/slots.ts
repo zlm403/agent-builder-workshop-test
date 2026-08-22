@@ -35,9 +35,8 @@ export const CONTENT_SLOTS: SlotDef[] = [
   { key: 'a1_wall_after', label: 'A1 作品墙之后', group: 'A1' },
   { key: 'a1_video_after', label: 'A1 视频·普通人的例子之后', group: 'A1' },
 
-  // ---- A2 快速入门网站（s1/s2/s3/s7/s9/s10 已改内容页，只剩内置功能页 s4/s5/s6/s8 + 钩子/墙）----
+  // ---- A2 快速入门网站（钩子开场/s1/s2/s3/s7/s9/s10 已改内容页，只剩内置功能页 s4/s5/s6/s8 + 墙）----
   { key: 'a2_top', label: 'A2 环节最前', group: 'A2' },
-  { key: 'a2_hook_after', label: 'A2 钩子之后', group: 'A2' },
   { key: 'a2_s4_after', label: 'A2 会前准备之后', group: 'A2' },
   { key: 'a2_s5_after', label: 'A2 AI团队开会→自动执行之后', group: 'A2' },
   { key: 'a2_s6_after', label: 'A2 检验、迭代、提交之后', group: 'A2' },

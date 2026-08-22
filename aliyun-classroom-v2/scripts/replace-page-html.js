@@ -10,7 +10,7 @@
 //   node scripts/replace-page-html.js a2:s1 "page1.html" "发布任务"
 //
 // group:refKey 是环节页的身份标识（见 src/lib/pages.ts）：
-//   A2 内容页：a2:s1 发布任务 / a2:s2 产生疑问 / a2:s3 找到方法 /
+//   A2 内容页：a2:hook 钩子开场 / a2:s1 发布任务 / a2:s2 产生疑问 / a2:s3 找到方法 /
 //              a2:s7 认知思考 / a2:s9 未来展开 / a2:s10 最后升华
 //   A1 内容页：avatar:c1..c6 / avatar:html07 / avatar:c11
 //

@@ -5,7 +5,7 @@
 // 图屏（media=image）只显示图，视频屏（media=video）只显示视频，其余显示标题+问题+任务
 // =========================================================
 import { useEffect, useState } from 'react';
-import { A2_STAGES, A2_HOOK } from '@/features/siteEntry/config';
+import { A2_STAGES } from '@/features/siteEntry/config';
 import ContentSlot from './ContentSlot';
 import { usePageOverrides, pageText } from '@/lib/usePageText';
 
@@ -38,26 +38,7 @@ export default function SiteEntryScreen({
     return () => { closed = true; clearInterval(iv); };
   }, [sessionId]);
 
-  // 钩子开场
-  if (String(subState ?? '') === 'a2:hook') {
-    const tEyebrow = pageText(ov, 'eyebrow', A2_HOOK.eyebrow);
-    const tTitle = pageText(ov, 'title', A2_HOOK.title);
-    const tBody1 = pageText(ov, 'body1', A2_HOOK.body1);
-    const tBody2 = pageText(ov, 'body2', A2_HOOK.body2);
-    const tBridge = pageText(ov, 'bridge', A2_HOOK.bridge);
-    return (
-      <div style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 22, textAlign: 'center', padding: '0 6vw' }}>
-        <ContentSlot slot="a2_top" />
-        {tEyebrow !== null && <div style={{ fontSize: 14, fontWeight: 700, color: '#38bdf8', letterSpacing: '0.12em' }}>{tEyebrow}</div>}
-        {tTitle !== null && <div style={{ fontSize: 'clamp(30px,4vw,52px)', fontWeight: 900, lineHeight: 1.3, background: 'linear-gradient(180deg,#f8fafc,#38bdf8)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent', maxWidth: 1000 }}>{tTitle}</div>}
-        {tBody1 !== null && <div style={{ fontSize: 'clamp(18px,2.2vw,28px)', color: '#e2e8f0', lineHeight: 1.7, maxWidth: 900 }}>{tBody1}</div>}
-        {tBody2 !== null && <div style={{ fontSize: 'clamp(18px,2.2vw,28px)', color: '#fde047', fontWeight: 700, lineHeight: 1.7, maxWidth: 900 }}>{tBody2}</div>}
-        {tBridge !== null && <div style={{ fontSize: 'clamp(16px,1.9vw,24px)', color: '#7dd3fc', lineHeight: 1.7, maxWidth: 900, marginTop: 8 }}>{tBridge}</div>}
-        <ContentSlot slot="a2_hook_after" />
-      </div>
-    );
-  }
-
+  // 钩子开场（a2:hook）已改为内容页（大屏走 ContentPage），此处不再渲染
   const stageIdx = (() => {
     const m = String(subState ?? '').match(/^a2:(s\d+)$/);
     return m ? A2_STAGES.findIndex((s) => s.key === m[1]) : -1;
@@ -77,20 +58,21 @@ export default function SiteEntryScreen({
         const st = A2_STAGES[stageIdx];
         if (st.media === 'image') {
           return (
-            <div style={{ flex: 1, minHeight: 'calc(100vh - 80px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ flex: 1, minHeight: 'calc(100vh - 80px)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 14 }}>
               {st.mediaUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={st.mediaUrl} alt={st.name} style={{ maxWidth: 'min(1500px, 96vw)', maxHeight: '90vh', objectFit: 'contain' }} />
+                <img src={st.mediaUrl} alt={st.name} style={{ maxWidth: 'min(1500px, 96vw)', maxHeight: '82vh', objectFit: 'contain' }} />
               ) : (
                 <div style={{ color: 'var(--muted)', fontSize: 18 }}>图片位（等张老师给图）</div>
               )}
+              <ContentSlot slot={`a2_${A2_STAGES[stageIdx].key}_after`} />
             </div>
           );
         }
         if (st.media === 'video') {
           return (
             <div style={{ flex: 1, minHeight: 'calc(100vh - 80px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <ContentSlot slot={`page:${st.key}`} />
+              <ContentSlot slot={`a2_${A2_STAGES[stageIdx].key}_after`} />
             </div>
           );
         }
