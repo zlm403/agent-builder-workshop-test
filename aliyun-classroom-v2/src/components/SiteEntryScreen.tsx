@@ -85,8 +85,8 @@ export default function SiteEntryScreen({
         }
         if (st.media === 'embed' && st.mediaUrl) {
           return (
-            <div style={{ flex: 1, minHeight: 'calc(100vh - 80px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <iframe src={st.mediaUrl} title={st.name} style={{ width: 'min(1700px, 100%)', height: '100%', border: 'none', background: '#070b16' }} />
+            <div style={{ flex: 1, minHeight: 'calc(100vh - 80px)', display: 'flex', alignItems: 'stretch', justifyContent: 'center' }}>
+              <iframe src={st.mediaUrl} title={st.name} style={{ width: 'min(1700px, 100%)', height: 'calc(100vh - 80px)', minHeight: '60vh', border: 'none', background: '#070b16', display: 'block', flex: '0 0 auto' }} />
             </div>
           );
         }
