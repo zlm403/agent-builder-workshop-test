@@ -350,7 +350,11 @@ function ContentPageHost({ subState }: { subState: string }) {
           const r = await fetch(`/api/pages?group=${g}`);
           const d = await r.json();
           const p = (d.pages ?? []).find((x: any) => x.id === pageId);
-          if (p) { if (!closed) setTitle(p.title ?? ''); break; }
+          if (p) {
+            // A2 内容页大屏不显示金黄大标题（环节名只在教师端卡片显示）
+            if (!closed) setTitle(p.group === 'A2' ? null : (p.title ?? ''));
+            break;
+          }
         } catch { /* noop */ }
       }
     })();

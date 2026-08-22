@@ -78,7 +78,13 @@ const A2_CN: Record<string, string> = {
 };
 
 function pageLabel(p: PageDef): string {
-  if (p.kind === 'content') return p.title || '新页面';
+  if (p.kind === 'content') {
+    if (p.title) return p.title;
+    // content 页标题被清空（大屏不显示金黄标题）时，A2 用环节名兜底
+    const m2 = p.refKey?.match(/^a2:(s\d+)$/);
+    if (m2) return A2_CN[m2[1]] ?? '新页面';
+    return '新页面';
+  }
   if (p.refKey === null) {
     // 模块默认态：A0N_QUESTIONS→三问，A0N_VOTE→系统判定
     if (p.moduleId === 'A0N_QUESTIONS') return '三问';
