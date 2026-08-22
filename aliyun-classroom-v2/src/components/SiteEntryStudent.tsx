@@ -42,6 +42,7 @@ export default function SiteEntryStudent({
   const [litSpeaker, setLitSpeaker] = useState<string | null>(null); // 当前点亮的角色
   const [siteCode, setSiteCode] = useState<string | null>(null);
   const [showSite, setShowSite] = useState(false);
+  const [siteTitle, setSiteTitle] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const ov = usePageOverrides(subState);
   const logRef = useRef<HTMLDivElement>(null);
@@ -65,6 +66,7 @@ export default function SiteEntryStudent({
         if (Array.isArray(d.team)) setTeam(d.team);
         if (Array.isArray(d.chatLog)) setBubbles(d.chatLog.filter((m: any) => m.role === 'user' || m.role === 'assistant'));
         if (d.siteCode) setSiteCode(d.siteCode);
+        if (d.title) setSiteTitle(d.title);
         if (d.submittedAt) setSubmitted(true);
         if (!Array.isArray(d.chatLog) || d.chatLog.length === 0) {
           setBubbles([{ role: 'assistant', content: '你好！我是你今天的「AI 团队」召集人。\n\n我们要一起做一个「帮小白快速进入陌生领域」的手机网站。你先说说：你想帮别人进入哪个领域？（咖啡、摄影、健身……都可以）' }]);
@@ -120,7 +122,7 @@ export default function SiteEntryStudent({
       // 点亮发言者
       if (d.speaker) setLitSpeaker(d.speaker);
 
-      // 若 AI 输出了网站 HTML，自动存为预览
+      // 若 AI 输出了网站 HTML，自动存为预览（后端已持久化时 hasSite=true，且回复里通常带完整 HTML）
       const html = (d.reply || '').match(/<!DOCTYPE html>[\s\S]*<\/html>/i);
       if (html) setSiteCode(html[0]);
     } finally {
@@ -130,15 +132,19 @@ export default function SiteEntryStudent({
 
   async function submit() {
     if (busy) return;
+    if (siteCode && !siteTitle.trim()) {
+      setBubbles((b) => [...b, { role: 'assistant', content: '给你的网站起个名字，再点「提交作品」吧。' }]);
+      return;
+    }
     setBusy(true);
     try {
       await fetch('/api/site-entry/submit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ anonymousId, sessionId }),
+        body: JSON.stringify({ anonymousId, sessionId, title: siteTitle }),
       });
       setSubmitted(true);
-      setBubbles((b) => [...b, { role: 'assistant', content: '🎉 作品已提交，马上上大屏！' }]);
+      setBubbles((b) => [...b, { role: 'assistant', content: '🎉 作品已提交，马上飞上大屏！' }]);
     } finally {
       setBusy(false);
     }
@@ -235,11 +241,21 @@ export default function SiteEntryStudent({
 
         {/* 提交 */}
         {stage?.key === 's6' && siteCode && !submitted && (
-          <button className="primary" style={{ width: '100%', marginTop: 8 }} disabled={busy} onClick={submit}>
-            🚀 提交作品
-          </button>
+          <>
+            <input
+              placeholder="给你的网站起个名字（上墙会显示）"
+              value={siteTitle}
+              maxLength={20}
+              disabled={busy}
+              onChange={(e) => setSiteTitle(e.target.value)}
+              style={{ width: '100%', boxSizing: 'border-box', marginTop: 8, padding: '10px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'rgba(15,23,42,.6)', color: '#f8fafc', fontSize: 14 }}
+            />
+            <button className="primary" style={{ width: '100%', marginTop: 8 }} disabled={busy} onClick={submit}>
+              🚀 提交作品
+            </button>
+          </>
         )}
-        {submitted && <div className="bubble final" style={{ marginTop: 10 }}>✅ 作品已提交，马上上大屏。</div>}
+        {submitted && <div className="bubble final" style={{ marginTop: 10 }}>✅ 作品已提交，马上飞上大屏。</div>}
       </div>
 
       {/* 对话输入 */}

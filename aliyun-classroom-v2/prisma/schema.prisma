@@ -251,6 +251,7 @@ model A2SiteEntry {
   team          Json?    // 已建立的 AI 团队：[{ id, label, icon, duty }]
   chatLog       Json?    // 全程多轮对话 [{ role, content, speaker? }]
   siteCode      String?  // LLM 生成的手机网站 HTML
+  title         String?  // 学生给网站起的作品名（提交时填写）
   submittedAt   DateTime?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt

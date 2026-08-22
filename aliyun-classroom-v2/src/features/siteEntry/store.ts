@@ -54,22 +54,29 @@ export async function saveSiteCode(sessionId: string, anonymousId: string, siteC
   });
 }
 
-// 提交作品
-export async function submitA2(sessionId: string, anonymousId: string) {
+// 提交作品（作品名由学生提交时填写）
+export async function submitA2(sessionId: string, anonymousId: string, title?: string) {
   return prisma.a2SiteEntry.upsert({
     where: { sessionId_anonymousId: { sessionId, anonymousId } },
-    create: { sessionId, anonymousId, participantId: '', submittedAt: new Date() },
-    update: { submittedAt: new Date() },
+    create: { sessionId, anonymousId, participantId: '', title: title?.trim() || null, submittedAt: new Date() },
+    update: { title: title?.trim() || null, submittedAt: new Date() },
   });
 }
 
-// 大屏统计：全班提交情况
+// 大屏统计：全班提交情况（含每件的作品名/团队/HTML，供作品墙渲染）
 export async function getA2Analytics(sessionId: string) {
   const [total, rows] = await Promise.all([
     prisma.a2SiteEntry.count({ where: { sessionId } }),
-    prisma.a2SiteEntry.findMany({ where: { sessionId } }),
+    prisma.a2SiteEntry.findMany({ where: { sessionId }, orderBy: { submittedAt: 'asc' } }),
   ]);
-  const submitted = rows.filter((r) => r.submittedAt).length;
-  const cols = rows.filter((r) => r.siteCode).map((r) => r.siteCode as string);
-  return { total, submitted, cols };
+  const submittedRows = rows.filter((r) => r.submittedAt);
+  const items = submittedRows
+    .filter((r) => r.siteCode)
+    .map((r, i) => ({
+      order: i + 1,
+      title: r.title || `作品 ${i + 1}`,
+      siteCode: r.siteCode as string,
+      team: (r.team as { id: string; label: string; icon: string; duty: string }[]) ?? [],
+    }));
+  return { total, submitted: submittedRows.length, items, cols: items.map((it) => it.siteCode) };
 }

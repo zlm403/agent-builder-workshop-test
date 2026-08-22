@@ -13,6 +13,7 @@ export async function GET(req: NextRequest) {
       team: (rec?.team as any[]) ?? [],
       chatLog: (rec?.chatLog as any[]) ?? [],
       siteCode: rec?.siteCode ?? '',
+      title: rec?.title ?? '',
       submittedAt: rec?.submittedAt ?? null,
     });
   } catch (e: any) {

@@ -1122,3 +1122,6 @@ select {
 .story-foot { position: relative; font-size: 14px; color: var(--muted); letter-spacing: 0.08em; }
 .story-control { display: inline-flex; align-items: center; gap: 6px; }
 .story-hint { font-size: 12px; color: var(--muted); margin-left: 4px; }
+
+/* A2 作品墙 S9 风格：作品卡片逐个"降落"上墙 */
+@keyframes a2land { from { opacity: 0; transform: translateY(40px) scale(.92); } to { opacity: 1; transform: translateY(0) scale(1); } }

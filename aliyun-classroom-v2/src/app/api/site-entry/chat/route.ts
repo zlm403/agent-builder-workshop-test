@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { a2Chat, shouldBuild, parseBuiltRole } from '@/features/siteEntry/ai';
 import { TEAM_ROLES, findTeamRole } from '@/features/siteEntry/config';
-import { getA2Record, ensureA2Record, appendChat, saveTeam } from '@/features/siteEntry/store';
+import { getA2Record, ensureA2Record, appendChat, saveTeam, saveSiteCode } from '@/features/siteEntry/store';
 import { prisma } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
@@ -41,7 +41,13 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    return NextResponse.json({ reply, speaker, built: builtLabel, team });
+    // 若 AI 输出了可运行的网站 HTML，持久化供作品墙上墙
+    const html = reply.match(/<!DOCTYPE html>[\s\S]*<\/html>/i);
+    if (html) {
+      await saveSiteCode(sessionId, anonymousId, html[0]);
+    }
+
+    return NextResponse.json({ reply, speaker, built: builtLabel, team, hasSite: !!html });
   } catch (e: any) {
     return NextResponse.json({ error: { code: 'SERVER', message: String(e) } }, { status: 500 });
   }
