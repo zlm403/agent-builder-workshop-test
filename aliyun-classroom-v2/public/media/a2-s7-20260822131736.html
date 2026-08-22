@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>A2 · 让 AI 模拟一群人来检测（板书）</title>
+
+  <style>
+    :root {
+      --bg-1: #07101f;
+      --bg-2: #0b1730;
+      --blue: #6fa8ff;
+      --blue-light: #cce1ff;
+      --purple: #9d86ff;
+      --green: #65e6ba;
+      --white: #f7faff;
+      --muted: rgba(222, 233, 255, 0.62);
+      --line: rgba(168, 194, 255, 0.16);
+      --card: rgba(19, 37, 70, 0.55);
+    }
+
+    * { box-sizing: border-box; }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+    }
+
+    body {
+      color: var(--white);
+      background:
+        radial-gradient(circle at 22% 16%, rgba(66, 118, 255, 0.16), transparent 34%),
+        radial-gradient(circle at 82% 84%, rgba(126, 81, 255, 0.14), transparent 36%),
+        linear-gradient(135deg, var(--bg-1), var(--bg-2));
+      font-family:
+        "PingFang SC",
+        "Microsoft YaHei",
+        "Noto Sans CJK SC",
+        Arial,
+        sans-serif;
+    }
+
+    /* 板书网格 */
+    .board {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      width: 100vw;
+      height: 100vh;
+      min-height: 640px;
+      padding: clamp(28px, 4vh, 56px) clamp(36px, 4vw, 80px);
+      isolation: isolate;
+    }
+
+    .board::before {
+      position: absolute;
+      inset: 0;
+      z-index: -2;
+      content: "";
+      opacity: 0.5;
+      background-image:
+        linear-gradient(rgba(135, 169, 230, 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(135, 169, 230, 0.05) 1px, transparent 1px);
+      background-size: 46px 46px;
+      mask-image: linear-gradient(to bottom, black, transparent 96%);
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: clamp(14px, 2vh, 26px);
+    }
+
+    .lesson-mark {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: rgba(231, 239, 255, 0.7);
+      font-size: clamp(13px, 0.9vw, 17px);
+      font-weight: 600;
+      letter-spacing: 0.12em;
+    }
+
+    .lesson-mark::before {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 20px rgba(101, 230, 186, 0.8);
+      content: "";
+    }
+
+    .progress {
+      color: rgba(219, 230, 252, 0.46);
+      font-size: clamp(12px, 0.8vw, 15px);
+      letter-spacing: 0.08em;
+    }
+
+    .head {
+      margin-bottom: clamp(12px, 1.8vh, 22px);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(30px, 3.1vw, 54px);
+      font-weight: 740;
+      line-height: 1.12;
+      letter-spacing: -0.03em;
+    }
+
+    h1 .hl {
+      color: transparent;
+      background: linear-gradient(100deg, #f7faff 4%, #bcd7ff 46%, #ab96ff 92%);
+      background-clip: text;
+      -webkit-background-clip: text;
+    }
+
+    .sub {
+      margin: clamp(10px, 1.4vh, 16px) 0 0;
+      color: var(--muted);
+      font-size: clamp(15px, 1.15vw, 21px);
+      line-height: 1.6;
+    }
+
+    .sub b { color: rgba(231, 239, 255, 0.92); }
+
+    .tie {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: clamp(10px, 1.3vh, 16px);
+      padding: 8px 16px;
+      border: 1px solid rgba(124, 168, 255, 0.22);
+      border-radius: 999px;
+      background: rgba(91, 139, 233, 0.1);
+      color: rgba(214, 228, 255, 0.86);
+      font-size: clamp(13px, 0.92vw, 16px);
+    }
+
+    .tie b { color: #cfe0ff; }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: clamp(12px, 1.2vw, 18px);
+      flex: 1;
+      min-height: 0;
+      align-content: center;
+    }
+
+    .cell {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding: clamp(14px, 1.3vw, 20px);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: var(--card);
+      box-shadow:
+        0 14px 36px rgba(0, 0, 0, 0.18),
+        inset 0 1px rgba(255, 255, 255, 0.03);
+      opacity: 0;
+      animation: fadeUp 0.6s both;
+    }
+
+    .avatar {
+      font-size: clamp(26px, 2.2vw, 38px);
+      line-height: 1;
+    }
+
+    .cell h3 {
+      margin: 0;
+      font-size: clamp(15px, 1.05vw, 20px);
+      font-weight: 700;
+    }
+
+    .cell h3 .k { color: var(--blue-light); }
+
+    .cell .say {
+      color: rgba(226, 236, 255, 0.82);
+      font-size: clamp(12px, 0.86vw, 15px);
+      line-height: 1.5;
+    }
+
+    .cell .find {
+      margin-top: auto;
+      padding-top: 8px;
+      border-top: 1px dashed rgba(168, 194, 255, 0.18);
+      color: var(--muted);
+      font-size: clamp(11px, 0.8vw, 13px);
+      line-height: 1.5;
+    }
+
+    .cell .find b { color: rgba(170, 196, 255, 0.95); font-weight: 600; }
+
+    .foot {
+      margin-top: clamp(14px, 1.8vh, 22px);
+      padding: clamp(12px, 1.4vh, 18px) clamp(16px, 1.6vw, 24px);
+      border: 1px solid rgba(124, 168, 255, 0.22);
+      border-radius: 12px;
+      background: rgba(91, 139, 233, 0.08);
+      color: rgba(231, 239, 255, 0.9);
+      font-size: clamp(14px, 1.05vw, 19px);
+      line-height: 1.55;
+      opacity: 0;
+      animation: fadeUp 0.6s both;
+    }
+
+    .foot b { color: #cfe0ff; font-weight: 700; }
+
+    .foot .cmd {
+      display: block;
+      margin-top: 10px;
+      padding: 10px 14px;
+      border-radius: 10px;
+      background: rgba(7, 16, 31, 0.55);
+      border: 1px solid rgba(168, 194, 255, 0.14);
+      color: var(--blue-light);
+      font-size: clamp(13px, 0.92vw, 16px);
+      line-height: 1.5;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (max-width: 1180px) {
+      .grid { grid-template-columns: repeat(3, 1fr); }
+    }
+
+    @media (max-width: 720px) {
+      body { overflow: auto; }
+      .board { height: auto; min-height: 100%; }
+      .grid { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .cell, .foot { animation: none; opacity: 1; }
+    }
+  </style>
+</head>
+
+<body data-slide="7">
+  <main class="board">
+    <header class="topbar">
+      <div class="lesson-mark">A2 · AI 模拟检测</div>
+      <div class="progress">07 / 12</div>
+    </header>
+
+    <div class="head">
+      <h1>别只让一个 AI 查 —— 让 AI <span class="hl">扮成一群人</span>来测。</h1>
+      <p class="sub">
+        很多人只知道「让 AI 挑错」；其实你可以让 AI <b>假装成好几种用户</b>，每人用一遍，毛病一个都跑不掉。
+      </p>
+      <span class="tie">还记得 S5 里那个「测试」吗？他干的就是这活 —— 而且能 <b>一次扮好几种人</b>。</span>
+    </div>
+
+    <section class="grid">
+      <article class="cell" style="animation-delay: 0.05s">
+        <div class="avatar">👶</div>
+        <div class="cell-body">
+          <h3><span class="k">新手小白</span></h3>
+          <p class="say">「我第一次来，啥都不懂，你别考验我。」</p>
+        </div>
+        <p class="find">会卡在：<b>找不到入口、看不懂术语、不知下一步点哪</b></p>
+      </article>
+
+      <article class="cell" style="animation-delay: 0.13s">
+        <div class="avatar">⚡</div>
+        <div class="cell-body">
+          <h3><span class="k">急性子</span></h3>
+          <p class="say">「三步没找到我要的，我就走了。」</p>
+        </div>
+        <p class="find">会卡在：<b>加载慢、步骤多、按钮藏得深</b></p>
+      </article>
+
+      <article class="cell" style="animation-delay: 0.21s">
+        <div class="avatar">🔍</div>
+        <div class="cell-body">
+          <h3><span class="k">挑刺专家</span></h3>
+          <p class="say">「我就专门找毛病，你别想糊弄我。」</p>
+        </div>
+        <p class="find">会卡在：<b>错别字、对齐歪了、配色丑、文案别扭</b></p>
+      </article>
+
+      <article class="cell" style="animation-delay: 0.29s">
+        <div class="avatar">👴</div>
+        <div class="cell-body">
+          <h3><span class="k">长辈用户</span></h3>
+          <p class="say">「字太小我看不清，手也不太灵。」</p>
+        </div>
+        <p class="find">会卡在：<b>字小、按钮小、没说明、没法语音</b></p>
+      </article>
+
+      <article class="cell" style="animation-delay: 0.37s">
+        <div class="avatar">🧪</div>
+        <div class="cell-body">
+          <h3><span class="k">边界用户</span></h3>
+          <p class="say">「我就乱点、乱填，看你会不会崩。」</p>
+        </div>
+        <p class="find">会卡在：<b>报错没提示、输入乱码崩、没兜底</b></p>
+      </article>
+    </section>
+
+    <div class="foot" style="animation-delay: 0.5s">
+      你把「<b>用户画像</b>」告诉 AI，它就能装成那个人，去用你的网站、把卡住的地方报出来。
+      多找几个画像，问题就找全了 —— 这比你一个人闷头想，全得多。
+      <span class="cmd">下指令示例：「你现在是第一次来的长辈用户，字要大才看得清。走一遍这个网站，报告哪里卡、哪里看不懂。」</span>
+    </div>
+  </main>
+
+  <script>/* A2 幻灯片导航脚本
+ * 键盘：F 全屏 | ← / → 切换页面 | 1-9 跳转到对应页 | R 重置动画 | Space 触发当前页动画
+ * 需在每页 body 上添加 data-slide 属性，值为当前页序号（从 0 开始）
+ */
+
+(function () {
+  const slides = [
+    'A2-S0.html',
+    'A2-S2.html',
+    'A2-S3.html',
+    'A2-S4.html',
+    'A2-S5.html',
+    'A2-S6.html',
+    'A2-S7.html',
+    'A2-S8.html',
+    'A2-S9.html',
+    'A2-S10.html',
+  ];
+
+  const currentFile = window.location.pathname.split('/').pop() || slides[0];
+  let currentIndex = slides.indexOf(currentFile);
+  if (currentIndex === -1) currentIndex = 0;
+
+  function go(index) {
+    if (index < 0 || index >= slides.length) return;
+    window.location.href = slides[index];
+  }
+
+  function toggleFullscreen() {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(() => {});
+    } else {
+      document.exitFullscreen().catch(() => {});
+    }
+  }
+
+  function resetAnimations() {
+    document.querySelectorAll('.visible').forEach((el) => {
+      el.classList.remove('visible');
+      void el.offsetWidth;
+      el.classList.add('visible');
+    });
+  }
+
+  function triggerAnimations() {
+    document.querySelectorAll('[data-animate]').forEach((el) => {
+      const delay = parseFloat(el.dataset.animate) || 0;
+      setTimeout(() => el.classList.add('visible'), delay * 1000);
+    });
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+    switch (e.key) {
+      case 'ArrowRight':
+      case 'PageDown':
+      case ' ': // Space 下一页
+        e.preventDefault();
+        go(currentIndex + 1);
+        break;
+      case 'ArrowLeft':
+      case 'PageUp':
+        e.preventDefault();
+        go(currentIndex - 1);
+        break;
+      case 'f':
+      case 'F':
+        e.preventDefault();
+        toggleFullscreen();
+        break;
+      case 'r':
+      case 'R':
+        e.preventDefault();
+        resetAnimations();
+        break;
+      case '1':
+      case '2':
+      case '3':
+      case '4':
+      case '5':
+      case '6':
+      case '7':
+      case '8':
+      case '9':
+        e.preventDefault();
+        const target = parseInt(e.key, 10) - 1;
+        go(target);
+        break;
+    }
+  });
+
+  // —— 远程控制（教师端 → 大屏）——
+  // 同机同源：BroadcastChannel('a2-screen')；也兼容 window.postMessage。
+  // 指令：{action:'next'|'prev'|'step'|'goto'|'reset'}
+  //   当前屏可注册 window.__screenStep(dir) 消费指令（返回 true 表示“本屏内部消化，不要翻页”）。
+  function remoteNext() {
+    const consumed = typeof window.__screenStep === 'function' && window.__screenStep(1);
+    if (!consumed) go(currentIndex + 1);
+  }
+  function remotePrev() {
+    const consumed = typeof window.__screenStep === 'function' && window.__screenStep(-1);
+    if (!consumed) go(currentIndex - 1);
+  }
+  function handleRemote(d) {
+    if (!d || !d.action) return;
+    switch (d.action) {
+      case 'next': remoteNext(); break;
+      case 'prev': remotePrev(); break;
+      case 'step': if (window.__screenStep) window.__screenStep(d.dir === -1 ? -1 : 1); break;
+      case 'goto': if (typeof d.index === 'number') go(d.index); break;
+      case 'reset': location.reload(); break;
+    }
+  }
+  try {
+    const bc = new BroadcastChannel('a2-screen');
+    bc.onmessage = (e) => handleRemote(e.data);
+  } catch (_) {}
+  window.addEventListener('message', (e) => handleRemote(e.data));
+
+  // 页面加载后自动触发带 data-animate 的元素
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', triggerAnimations);
+  } else {
+    triggerAnimations();
+  }
+})();
+</script>
+</body>
+</html>

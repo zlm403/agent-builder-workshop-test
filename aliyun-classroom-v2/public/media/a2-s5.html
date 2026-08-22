@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>A2 · 让 AI 一起开会（板书）</title>
+
+  <style>
+    :root {
+      --bg-1: #07101f;
+      --bg-2: #0b1730;
+      --blue: #6fa8ff;
+      --blue-light: #cce1ff;
+      --purple: #9d86ff;
+      --green: #65e6ba;
+      --white: #f7faff;
+      --muted: rgba(222, 233, 255, 0.62);
+      --line: rgba(168, 194, 255, 0.16);
+      --card: rgba(19, 37, 70, 0.55);
+    }
+
+    * { box-sizing: border-box; }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+    }
+
+    body {
+      color: var(--white);
+      background:
+        radial-gradient(circle at 22% 16%, rgba(66, 118, 255, 0.16), transparent 34%),
+        radial-gradient(circle at 82% 84%, rgba(126, 81, 255, 0.14), transparent 36%),
+        linear-gradient(135deg, var(--bg-1), var(--bg-2));
+      font-family:
+        "PingFang SC",
+        "Microsoft YaHei",
+        "Noto Sans CJK SC",
+        Arial,
+        sans-serif;
+    }
+
+    /* 板书网格 */
+    .board {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      width: 100vw;
+      height: 100vh;
+      min-height: 640px;
+      padding: clamp(28px, 4vh, 56px) clamp(36px, 4vw, 80px);
+      isolation: isolate;
+    }
+
+    .board::before {
+      position: absolute;
+      inset: 0;
+      z-index: -2;
+      content: "";
+      opacity: 0.5;
+      background-image:
+        linear-gradient(rgba(135, 169, 230, 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(135, 169, 230, 0.05) 1px, transparent 1px);
+      background-size: 46px 46px;
+      mask-image: linear-gradient(to bottom, black, transparent 96%);
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: clamp(16px, 2.2vh, 28px);
+    }
+
+    .lesson-mark {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: rgba(231, 239, 255, 0.7);
+      font-size: clamp(13px, 0.9vw, 17px);
+      font-weight: 600;
+      letter-spacing: 0.12em;
+    }
+
+    .lesson-mark::before {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 20px rgba(101, 230, 186, 0.8);
+      content: "";
+    }
+
+    .progress {
+      color: rgba(219, 230, 252, 0.46);
+      font-size: clamp(12px, 0.8vw, 15px);
+      letter-spacing: 0.08em;
+    }
+
+    .head {
+      margin-bottom: clamp(14px, 2vh, 24px);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(30px, 3.1vw, 54px);
+      font-weight: 740;
+      line-height: 1.12;
+      letter-spacing: -0.03em;
+    }
+
+    h1 .hl {
+      color: transparent;
+      background: linear-gradient(100deg, #f7faff 4%, #bcd7ff 46%, #ab96ff 92%);
+      background-clip: text;
+      -webkit-background-clip: text;
+    }
+
+    .sub {
+      margin: clamp(10px, 1.4vh, 16px) 0 0;
+      color: var(--muted);
+      font-size: clamp(15px, 1.15vw, 21px);
+      line-height: 1.6;
+    }
+
+    .sub b { color: rgba(231, 239, 255, 0.92); }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: clamp(14px, 1.4vw, 22px);
+      flex: 1;
+      min-height: 0;
+      align-content: center;
+    }
+
+    .cell {
+      position: relative;
+      display: flex;
+      gap: 14px;
+      padding: clamp(16px, 1.6vw, 24px);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: var(--card);
+      box-shadow:
+        0 14px 36px rgba(0, 0, 0, 0.18),
+        inset 0 1px rgba(255, 255, 255, 0.03);
+      opacity: 0;
+      animation: fadeUp 0.6s both;
+    }
+
+    .no {
+      display: grid;
+      flex: 0 0 auto;
+      width: clamp(34px, 2.4vw, 46px);
+      aspect-ratio: 1;
+      place-items: center;
+      border-radius: 12px;
+      font-size: clamp(16px, 1.2vw, 22px);
+      font-weight: 760;
+      color: #071225;
+      background: linear-gradient(145deg, #dcecff, #a8c8ff 62%, #aa94ff);
+      box-shadow: 0 8px 20px rgba(87, 132, 223, 0.26);
+    }
+
+    .cell-body { min-width: 0; }
+
+    .cell h3 {
+      margin: 0 0 8px;
+      font-size: clamp(17px, 1.25vw, 24px);
+      font-weight: 700;
+    }
+
+    .cell h3 .k {
+      color: var(--blue-light);
+    }
+
+    .cell p {
+      margin: 0;
+      color: rgba(226, 236, 255, 0.82);
+      font-size: clamp(13px, 0.92vw, 16px);
+      line-height: 1.55;
+    }
+
+    .cell .eg {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: clamp(12px, 0.82vw, 14px);
+    }
+
+    .cell .eg b {
+      color: rgba(170, 196, 255, 0.95);
+      font-weight: 600;
+    }
+
+    .foot {
+      margin-top: clamp(14px, 1.8vh, 22px);
+      padding: clamp(12px, 1.4vh, 18px) clamp(16px, 1.6vw, 24px);
+      border: 1px solid rgba(124, 168, 255, 0.22);
+      border-radius: 12px;
+      background: rgba(91, 139, 233, 0.08);
+      color: rgba(231, 239, 255, 0.9);
+      font-size: clamp(14px, 1.05vw, 19px);
+      line-height: 1.55;
+      opacity: 0;
+      animation: fadeUp 0.6s both;
+    }
+
+    .foot b {
+      color: #cfe0ff;
+      font-weight: 700;
+    }
+
+    @keyframes fadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(16px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @media (max-width: 1024px) {
+      .grid { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    @media (max-width: 680px) {
+      body { overflow: auto; }
+      .board { height: auto; min-height: 100%; }
+      .grid { grid-template-columns: 1fr; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .cell, .foot { animation: none; opacity: 1; }
+    }
+  </style>
+</head>
+
+<body data-slide="5">
+  <main class="board">
+    <header class="topbar">
+      <div class="lesson-mark">A2 · 多 AGENT 协作</div>
+      <div class="progress">05 / 12</div>
+    </header>
+
+    <div class="head">
+      <h1>把这 <span class="hl">6 件事</span> 聊清楚，AI <span class="hl">自动开干</span>。</h1>
+      <p class="sub">
+        你不用一个个教、一个个盯 —— 把规矩说清，他们就自己开会、把活干完。
+      </p>
+    </div>
+
+    <section class="grid">
+      <article class="cell" style="animation-delay: 0.05s">
+        <div class="no">①</div>
+        <div class="cell-body">
+          <h3><span class="k">找谁</span> · 需要几个帮手</h3>
+          <p>先想好要哪几种本事的人，把活拆给不同的人。</p>
+          <p class="eg">例：<b>研究员 · 写手 · 设计 · 开发 · 测试 · 统筹</b>（6 个）</p>
+        </div>
+      </article>
+
+      <article class="cell" style="animation-delay: 0.15s">
+        <div class="no">②</div>
+        <div class="cell-body">
+          <h3><span class="k">聊什么</span> · 每人认领哪一块</h3>
+          <p>谁负责哪部分，边界说清，别重叠、别漏掉。</p>
+          <p class="eg">例：研究找资料、写手写内容、设计画图、开发写代码……</p>
+        </div>
+      </article>
+
+      <article class="cell" style="animation-delay: 0.25s">
+        <div class="no">③</div>
+        <div class="cell-body">
+          <h3><span class="k">怎么聊</span> · 开几轮、每轮定什么</h3>
+          <p>让他们来回对几次话，每次把一件事敲定。</p>
+          <p class="eg">例：第 1 轮对齐目标 → 第 2 轮定分工 → 第 3 轮对交付</p>
+        </div>
+      </article>
+
+      <article class="cell" style="animation-delay: 0.35s">
+        <div class="no">④</div>
+        <div class="cell-body">
+          <h3><span class="k">交什么</span> · 最后给你什么、长啥样</h3>
+          <p>每个人干完，交什么格式的东西给你看。</p>
+          <p class="eg">例：研究交清单、设计交稿图、开发交代码、测试交报告</p>
+        </div>
+      </article>
+
+      <article class="cell" style="animation-delay: 0.45s">
+        <div class="no">⑤</div>
+        <div class="cell-body">
+          <h3><span class="k">找你</span> · 什么情况必须喊你</h3>
+          <p>拿不准、要你拍板、涉及方向时，才找你。</p>
+          <p class="eg">例：目标改了、两方吵不起来、要花钱 —— 喊你定</p>
+        </div>
+      </article>
+
+      <article class="cell" style="animation-delay: 0.55s">
+        <div class="no">⑥</div>
+        <div class="cell-body">
+          <h3><span class="k">自决</span> · 什么他们自己定</h3>
+          <p>小改动、常规活，他们自己搞定，别烦你。</p>
+          <p class="eg">例：措辞微调、配色换一版、排版对齐 —— 自己来</p>
+        </div>
+      </article>
+    </section>
+
+    <div class="foot" style="animation-delay: 0.7s">
+      你就按这 <b>6 步</b> 去安排：AI 们会自己开完会、把活干完 —— 你只在 <b>⑤ 必须喊你</b> 的时候出现。
+    </div>
+  </main>
+
+  <script>/* A2 幻灯片导航脚本
+ * 键盘：F 全屏 | ← / → 切换页面 | 1-9 跳转到对应页 | R 重置动画 | Space 触发当前页动画
+ * 需在每页 body 上添加 data-slide 属性，值为当前页序号（从 0 开始）
+ */
+
+(function () {
+  const slides = [
+    'A2-S0.html',
+    'A2-S2.html',
+    'A2-S3.html',
+    'A2-S4.html',
+    'A2-S5.html',
+    'A2-S6.html',
+    'A2-S7.html',
+    'A2-S8.html',
+    'A2-S9.html',
+    'A2-S10.html',
+  ];
+
+  const currentFile = window.location.pathname.split('/').pop() || slides[0];
+  let currentIndex = slides.indexOf(currentFile);
+  if (currentIndex === -1) currentIndex = 0;
+
+  function go(index) {
+    if (index < 0 || index >= slides.length) return;
+    window.location.href = slides[index];
+  }
+
+  function toggleFullscreen() {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(() => {});
+    } else {
+      document.exitFullscreen().catch(() => {});
+    }
+  }
+
+  function resetAnimations() {
+    document.querySelectorAll('.visible').forEach((el) => {
+      el.classList.remove('visible');
+      void el.offsetWidth;
+      el.classList.add('visible');
+    });
+  }
+
+  function triggerAnimations() {
+    document.querySelectorAll('[data-animate]').forEach((el) => {
+      const delay = parseFloat(el.dataset.animate) || 0;
+      setTimeout(() => el.classList.add('visible'), delay * 1000);
+    });
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+    switch (e.key) {
+      case 'ArrowRight':
+      case 'PageDown':
+      case ' ': // Space 下一页
+        e.preventDefault();
+        go(currentIndex + 1);
+        break;
+      case 'ArrowLeft':
+      case 'PageUp':
+        e.preventDefault();
+        go(currentIndex - 1);
+        break;
+      case 'f':
+      case 'F':
+        e.preventDefault();
+        toggleFullscreen();
+        break;
+      case 'r':
+      case 'R':
+        e.preventDefault();
+        resetAnimations();
+        break;
+      case '1':
+      case '2':
+      case '3':
+      case '4':
+      case '5':
+      case '6':
+      case '7':
+      case '8':
+      case '9':
+        e.preventDefault();
+        const target = parseInt(e.key, 10) - 1;
+        go(target);
+        break;
+    }
+  });
+
+  // —— 远程控制（教师端 → 大屏）——
+  // 同机同源：BroadcastChannel('a2-screen')；也兼容 window.postMessage。
+  // 指令：{action:'next'|'prev'|'step'|'goto'|'reset'}
+  //   当前屏可注册 window.__screenStep(dir) 消费指令（返回 true 表示“本屏内部消化，不要翻页”）。
+  function remoteNext() {
+    const consumed = typeof window.__screenStep === 'function' && window.__screenStep(1);
+    if (!consumed) go(currentIndex + 1);
+  }
+  function remotePrev() {
+    const consumed = typeof window.__screenStep === 'function' && window.__screenStep(-1);
+    if (!consumed) go(currentIndex - 1);
+  }
+  function handleRemote(d) {
+    if (!d || !d.action) return;
+    switch (d.action) {
+      case 'next': remoteNext(); break;
+      case 'prev': remotePrev(); break;
+      case 'step': if (window.__screenStep) window.__screenStep(d.dir === -1 ? -1 : 1); break;
+      case 'goto': if (typeof d.index === 'number') go(d.index); break;
+      case 'reset': location.reload(); break;
+    }
+  }
+  try {
+    const bc = new BroadcastChannel('a2-screen');
+    bc.onmessage = (e) => handleRemote(e.data);
+  } catch (_) {}
+  window.addEventListener('message', (e) => handleRemote(e.data));
+
+  // 页面加载后自动触发带 data-animate 的元素
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', triggerAnimations);
+  } else {
+    triggerAnimations();
+  }
+})();
+</script>
+</body>
+</html>

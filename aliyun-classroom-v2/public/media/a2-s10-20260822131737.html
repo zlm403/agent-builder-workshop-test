@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>A2 · 最后升华</title>
+
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root{
+      --white: #f3f7ff;
+      --gold: #ffe6a8;
+    }
+
+    html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; }
+
+    body{
+      color: var(--white);
+      font-family:
+        "PingFang SC","Microsoft YaHei","Noto Sans CJK SC","Hiragino Sans GB",sans-serif;
+      background:
+        radial-gradient(900px 560px at 50% -12%, rgba(150, 180, 255, 0.22), transparent 60%),
+        radial-gradient(700px 520px at 14% 88%, rgba(120, 90, 230, 0.18), transparent 58%),
+        radial-gradient(680px 520px at 88% 86%, rgba(230, 180, 110, 0.14), transparent 58%),
+        linear-gradient(160deg, #081026 0%, #060d1c 52%, #040812 100%);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ===== 灵气：从上洒下的天光 ===== */
+    .light-shaft{
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background:
+        radial-gradient(60% 42% at 50% -6%, rgba(190, 210, 255, 0.30), rgba(190,210,255,0) 70%);
+      filter: blur(8px);
+    }
+    .light-line{
+      position: fixed; top: 0; left: 0; right: 0; height: 3px; z-index: 0; pointer-events: none;
+      background: linear-gradient(90deg, transparent, rgba(200,220,255,.9), rgba(243,196,116,.7), transparent);
+      box-shadow: 0 0 24px rgba(200,220,255,.7);
+      opacity: .8;
+    }
+
+    /* ===== 漂浮光斑（灵气粒子） ===== */
+    .particles{ position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+    .particle{
+      position: absolute; border-radius: 50%;
+      background: radial-gradient(circle, rgba(255,255,255,.95), rgba(200,220,255,0) 70%);
+      filter: blur(1px);
+      animation: drift linear infinite;
+    }
+    @keyframes drift{
+      0%   { transform: translateY(20px) scale(.8); opacity: 0; }
+      20%  { opacity: .5; }
+      80%  { opacity: .35; }
+      100% { transform: translateY(-60px) scale(1.1); opacity: 0; }
+    }
+
+    .stage{
+      position: relative; z-index: 1;
+      width: 100vw; height: 100vh; min-height: 640px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .lines{
+      position: relative;
+      width: min(92vw, 1180px);
+      height: 46vh;
+    }
+    .line{
+      position: absolute; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      text-align: center; padding: 0 4vw;
+      font-weight: 800; letter-spacing: 4px; line-height: 1.4;
+      font-size: clamp(30px, 4.4vw, 72px);
+      opacity: 0;
+    }
+
+    /* 句级窗口：控制「整句渐显 → 停留 → 熄灭」，三句顺次 */
+    .l1{ animation: seq1 15s both; }
+    .l2{ animation: seq2 15s both; }
+    .l3{ animation: seq3 15s both; }
+
+    @keyframes seq1{ 0%{opacity:0} 4%{opacity:1} 26%{opacity:1} 30%{opacity:0} 100%{opacity:0} }
+    @keyframes seq2{ 0%,29%{opacity:0} 33%{opacity:1} 56%{opacity:1} 60%{opacity:0} 100%{opacity:0} }
+    @keyframes seq3{ 0%,57%{opacity:0} 60%{opacity:1} 100%{opacity:1} }
+
+    /* 字级：逐字吐出，模拟说话节奏 */
+    .char{
+      display: inline-block; opacity: 0;
+      animation: charIn .55s both;
+      animation-delay: var(--d);
+      will-change: opacity, transform;
+    }
+    /* 重读：放大 + 强辉光 + 轻微弹一下（像重音顿挫） */
+    .char.em{
+      font-size: 1.16em;
+      color: #eaf3ff;
+      text-shadow: 0 0 34px rgba(150,190,255,.6);
+      animation-name: charInEm;
+    }
+    /* 收口重音：金色、最大 */
+    .char.em.gold{
+      font-size: 1.34em;
+      color: #ffe6a8;
+      text-shadow: 0 0 52px rgba(255,230,168,.75);
+    }
+    /* 轻读：小一号、稍暗（疑问尾 / 连接词 / 收尾） */
+    .char.soft{
+      font-size: .8em;
+      color: rgba(208,222,255,.6);
+      text-shadow: none;
+    }
+
+    @keyframes charIn{
+      0%   { opacity: 0; transform: translateY(.32em); }
+      100% { opacity: 1; transform: none; }
+    }
+    @keyframes charInEm{
+      0%   { opacity: 0; transform: translateY(.32em) scale(.82); }
+      55%  { opacity: 1; transform: translateY(0) scale(1.14); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+
+    @media (prefers-reduced-motion: reduce){
+      .l1, .l2{ opacity: 0 !important; animation: none !important; }
+      .l3{ opacity: 1 !important; animation: none !important; }
+      .char{ opacity: 1 !important; animation: none !important; transform: none !important; }
+      .particle{ display: none; }
+    }
+  </style>
+</head>
+
+<body data-slide="10">
+  <div class="light-shaft"></div>
+  <div class="light-line"></div>
+  <div class="particles" id="particles"></div>
+
+  <main class="stage">
+    <div class="lines">
+      <!-- 句1：提问。重音「最重要」，疑问尾「呢？」轻读 -->
+      <div class="line l1">
+        <span class="char" style="--d:.60s">现</span><span class="char" style="--d:.73s">在</span><span class="char em" style="--d:.92s">最</span><span class="char em" style="--d:1.12s">重</span><span class="char em" style="--d:1.34s">要</span><span class="char" style="--d:1.60s">的</span><span class="char" style="--d:1.73s">是</span><span class="char" style="--d:1.86s">什</span><span class="char" style="--d:2.00s">么</span><span class="char soft" style="--d:2.16s">呢</span><span class="char soft" style="--d:2.28s">？</span>
+      </div>
+
+      <!-- 句2：重音「想象力」「更重要」。连接「比知识」快连轻读 -->
+      <div class="line l2">
+        <span class="char em" style="--d:4.90s">想</span><span class="char em" style="--d:5.08s">象</span><span class="char em" style="--d:5.28s">力</span><span class="char soft" style="--d:5.56s">比</span><span class="char soft" style="--d:5.63s">知</span><span class="char soft" style="--d:5.70s">识</span><span class="char em" style="--d:5.96s">更</span><span class="char em" style="--d:6.14s">重</span><span class="char em" style="--d:6.34s">要</span>
+      </div>
+
+      <!-- 句3：铺垫快连，核心「创造」金色爆发收口，「它」轻收 -->
+      <div class="line l3">
+        <span class="char" style="--d:9.30s">预</span><span class="char" style="--d:9.37s">测</span><span class="char" style="--d:9.44s">未</span><span class="char" style="--d:9.51s">来</span><span class="char" style="--d:9.72s">最</span><span class="char" style="--d:9.79s">好</span><span class="char" style="--d:9.86s">的</span><span class="char" style="--d:9.93s">方</span><span class="char" style="--d:10.00s">式</span><span class="char" style="--d:10.07s">是</span><span class="char" style="--d:10.14s">去</span><span class="char em gold" style="--d:10.55s">创</span><span class="char em gold" style="--d:10.82s">造</span><span class="char soft" style="--d:11.10s">它</span>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    (function () {
+      var box = document.getElementById('particles');
+      var n = 18;
+      for (var i = 0; i < n; i++) {
+        var p = document.createElement('span');
+        p.className = 'particle';
+        var size = 2 + Math.random() * 5;
+        p.style.width = size + 'px';
+        p.style.height = size + 'px';
+        p.style.left = (Math.random() * 100) + 'vw';
+        p.style.top = (Math.random() * 100) + 'vh';
+        p.style.animationDuration = (6 + Math.random() * 8) + 's';
+        p.style.animationDelay = (-Math.random() * 10) + 's';
+        box.appendChild(p);
+      }
+    })();
+  </script>
+  <script>/* A2 幻灯片导航脚本
+ * 键盘：F 全屏 | ← / → 切换页面 | 1-9 跳转到对应页 | R 重置动画 | Space 触发当前页动画
+ * 需在每页 body 上添加 data-slide 属性，值为当前页序号（从 0 开始）
+ */
+
+(function () {
+  const slides = [
+    'A2-S0.html',
+    'A2-S2.html',
+    'A2-S3.html',
+    'A2-S4.html',
+    'A2-S5.html',
+    'A2-S6.html',
+    'A2-S7.html',
+    'A2-S8.html',
+    'A2-S9.html',
+    'A2-S10.html',
+  ];
+
+  const currentFile = window.location.pathname.split('/').pop() || slides[0];
+  let currentIndex = slides.indexOf(currentFile);
+  if (currentIndex === -1) currentIndex = 0;
+
+  function go(index) {
+    if (index < 0 || index >= slides.length) return;
+    window.location.href = slides[index];
+  }
+
+  function toggleFullscreen() {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(() => {});
+    } else {
+      document.exitFullscreen().catch(() => {});
+    }
+  }
+
+  function resetAnimations() {
+    document.querySelectorAll('.visible').forEach((el) => {
+      el.classList.remove('visible');
+      void el.offsetWidth;
+      el.classList.add('visible');
+    });
+  }
+
+  function triggerAnimations() {
+    document.querySelectorAll('[data-animate]').forEach((el) => {
+      const delay = parseFloat(el.dataset.animate) || 0;
+      setTimeout(() => el.classList.add('visible'), delay * 1000);
+    });
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+    switch (e.key) {
+      case 'ArrowRight':
+      case 'PageDown':
+      case ' ': // Space 下一页
+        e.preventDefault();
+        go(currentIndex + 1);
+        break;
+      case 'ArrowLeft':
+      case 'PageUp':
+        e.preventDefault();
+        go(currentIndex - 1);
+        break;
+      case 'f':
+      case 'F':
+        e.preventDefault();
+        toggleFullscreen();
+        break;
+      case 'r':
+      case 'R':
+        e.preventDefault();
+        resetAnimations();
+        break;
+      case '1':
+      case '2':
+      case '3':
+      case '4':
+      case '5':
+      case '6':
+      case '7':
+      case '8':
+      case '9':
+        e.preventDefault();
+        const target = parseInt(e.key, 10) - 1;
+        go(target);
+        break;
+    }
+  });
+
+  // —— 远程控制（教师端 → 大屏）——
+  // 同机同源：BroadcastChannel('a2-screen')；也兼容 window.postMessage。
+  // 指令：{action:'next'|'prev'|'step'|'goto'|'reset'}
+  //   当前屏可注册 window.__screenStep(dir) 消费指令（返回 true 表示“本屏内部消化，不要翻页”）。
+  function remoteNext() {
+    const consumed = typeof window.__screenStep === 'function' && window.__screenStep(1);
+    if (!consumed) go(currentIndex + 1);
+  }
+  function remotePrev() {
+    const consumed = typeof window.__screenStep === 'function' && window.__screenStep(-1);
+    if (!consumed) go(currentIndex - 1);
+  }
+  function handleRemote(d) {
+    if (!d || !d.action) return;
+    switch (d.action) {
+      case 'next': remoteNext(); break;
+      case 'prev': remotePrev(); break;
+      case 'step': if (window.__screenStep) window.__screenStep(d.dir === -1 ? -1 : 1); break;
+      case 'goto': if (typeof d.index === 'number') go(d.index); break;
+      case 'reset': location.reload(); break;
+    }
+  }
+  try {
+    const bc = new BroadcastChannel('a2-screen');
+    bc.onmessage = (e) => handleRemote(e.data);
+  } catch (_) {}
+  window.addEventListener('message', (e) => handleRemote(e.data));
+
+  // 页面加载后自动触发带 data-animate 的元素
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', triggerAnimations);
+  } else {
+    triggerAnimations();
+  }
+})();
+</script>
+</body>
+</html>

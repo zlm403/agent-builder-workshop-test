@@ -1,0 +1,1170 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0"
+  />
+  <title>A2 · 组织一支 Agent 团队</title>
+
+  <style>
+    :root {
+      --bg-1: #07101f;
+      --bg-2: #0b1730;
+      --blue: #6fa8ff;
+      --blue-light: #cce1ff;
+      --purple: #9d86ff;
+      --green: #65e6ba;
+      --white: #f7faff;
+      --muted: rgba(222, 233, 255, 0.62);
+      --line: rgba(168, 194, 255, 0.16);
+      --card: rgba(19, 37, 70, 0.58);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+    }
+
+    body {
+      color: var(--white);
+      background:
+        radial-gradient(circle at 22% 18%, rgba(66, 118, 255, 0.18), transparent 32%),
+        radial-gradient(circle at 82% 72%, rgba(126, 81, 255, 0.16), transparent 34%),
+        linear-gradient(135deg, var(--bg-1), var(--bg-2));
+      font-family:
+        "PingFang SC",
+        "Microsoft YaHei",
+        "Noto Sans CJK SC",
+        Arial,
+        sans-serif;
+    }
+
+    button {
+      font: inherit;
+    }
+
+    .stage {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      min-height: 620px;
+      isolation: isolate;
+    }
+
+    /* 背景网格 */
+    .stage::before {
+      position: absolute;
+      inset: 0;
+      z-index: -4;
+      content: "";
+      opacity: 0.28;
+      background-image:
+        linear-gradient(rgba(135, 169, 230, 0.055) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(135, 169, 230, 0.055) 1px, transparent 1px);
+      background-size: 54px 54px;
+      mask-image: linear-gradient(to bottom, black, transparent 92%);
+    }
+
+    /* 背景光晕 */
+    .glow {
+      position: absolute;
+      z-index: -3;
+      width: 42vw;
+      height: 42vw;
+      min-width: 520px;
+      min-height: 520px;
+      border-radius: 50%;
+      filter: blur(20px);
+      opacity: 0.55;
+      pointer-events: none;
+    }
+
+    .glow-a {
+      top: -28%;
+      left: -10%;
+      background: radial-gradient(circle, rgba(75, 135, 255, 0.25), transparent 70%);
+    }
+
+    .glow-b {
+      right: -12%;
+      bottom: -36%;
+      background: radial-gradient(circle, rgba(134, 91, 255, 0.28), transparent 70%);
+    }
+
+    /* 顶部 */
+    .topbar {
+      position: absolute;
+      top: 0;
+      left: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      padding: clamp(24px, 3.2vh, 42px) clamp(32px, 4vw, 76px);
+    }
+
+    .lesson-mark {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      color: rgba(231, 239, 255, 0.7);
+      font-size: clamp(13px, 0.88vw, 17px);
+      font-weight: 600;
+      letter-spacing: 0.12em;
+    }
+
+    .lesson-mark::before {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 20px rgba(101, 230, 186, 0.8);
+      content: "";
+    }
+
+    .progress {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .progress-label {
+      color: rgba(219, 230, 252, 0.46);
+      font-size: clamp(12px, 0.78vw, 15px);
+      letter-spacing: 0.08em;
+    }
+
+    .progress-track {
+      width: clamp(120px, 9vw, 180px);
+      height: 4px;
+      overflow: hidden;
+      border-radius: 20px;
+      background: rgba(194, 214, 255, 0.12);
+    }
+
+    .progress-value {
+      width: 33%;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--blue), var(--purple));
+      box-shadow: 0 0 16px rgba(111, 168, 255, 0.55);
+    }
+
+    /* 主体 */
+    .content {
+      display: grid;
+      grid-template-columns: minmax(520px, 1.04fr) minmax(480px, 0.96fr);
+      align-items: center;
+      gap: clamp(34px, 4.6vw, 90px);
+      width: min(1760px, calc(100vw - 10vw));
+      height: 100%;
+      margin: 0 auto;
+      padding-top: 4vh;
+    }
+
+    .copy {
+      position: relative;
+      z-index: 4;
+      padding-left: clamp(4px, 1.3vw, 22px);
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: clamp(24px, 3.2vh, 38px);
+      padding: 9px 15px;
+      border: 1px solid rgba(124, 168, 255, 0.25);
+      border-radius: 999px;
+      color: var(--blue-light);
+      background: rgba(91, 139, 233, 0.08);
+      font-size: clamp(14px, 0.95vw, 18px);
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      animation: fadeUp 0.75s 0.1s both;
+    }
+
+    .eyebrow-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--blue);
+      box-shadow: 0 0 14px rgba(111, 168, 255, 0.85);
+    }
+
+    .headline {
+      max-width: 850px;
+      margin: 0;
+      font-size: clamp(56px, 5.3vw, 102px);
+      font-weight: 720;
+      line-height: 1.08;
+      letter-spacing: -0.045em;
+      text-wrap: balance;
+      animation: fadeUp 0.85s 0.22s both;
+    }
+
+    .headline .soft {
+      display: block;
+      margin-bottom: 0.1em;
+      color: rgba(238, 244, 255, 0.56);
+      font-size: 0.53em;
+      font-weight: 560;
+      letter-spacing: -0.02em;
+    }
+
+    .headline .focus {
+      color: transparent;
+      background: linear-gradient(
+        100deg,
+        #f7faff 3%,
+        #bcd7ff 44%,
+        #ab96ff 92%
+      );
+      background-clip: text;
+      -webkit-background-clip: text;
+    }
+
+    .description {
+      max-width: 690px;
+      margin: clamp(26px, 3.2vh, 38px) 0 0;
+      color: var(--muted);
+      font-size: clamp(18px, 1.35vw, 26px);
+      line-height: 1.75;
+      letter-spacing: 0.015em;
+      animation: fadeUp 0.85s 0.34s both;
+    }
+
+    .description strong {
+      color: rgba(242, 247, 255, 0.92);
+      font-weight: 600;
+    }
+
+    .actions {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      margin-top: clamp(34px, 4.4vh, 54px);
+      animation: fadeUp 0.85s 0.46s both;
+    }
+
+    .primary-button {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      gap: 16px;
+      min-width: 220px;
+      padding: 17px 25px 17px 28px;
+      border: 0;
+      border-radius: 15px;
+      color: #071225;
+      background: linear-gradient(110deg, #eef6ff, #a9caff 72%, #b9a9ff);
+      box-shadow:
+        0 16px 45px rgba(71, 122, 228, 0.24),
+        inset 0 1px rgba(255, 255, 255, 0.8);
+      font-size: clamp(16px, 1.05vw, 20px);
+      font-weight: 700;
+      cursor: pointer;
+      transition:
+        transform 180ms ease,
+        box-shadow 180ms ease,
+        filter 180ms ease;
+    }
+
+    .primary-button:hover {
+      transform: translateY(-3px);
+      filter: brightness(1.04);
+      box-shadow:
+        0 22px 56px rgba(71, 122, 228, 0.34),
+        inset 0 1px rgba(255, 255, 255, 0.9);
+    }
+
+    .primary-button:active {
+      transform: translateY(0) scale(0.98);
+    }
+
+    .button-arrow {
+      display: grid;
+      width: 29px;
+      height: 29px;
+      place-items: center;
+      border-radius: 9px;
+      color: #f5f8ff;
+      background: rgba(14, 37, 80, 0.84);
+      font-size: 17px;
+    }
+
+    .hint {
+      color: rgba(217, 229, 251, 0.42);
+      font-size: clamp(13px, 0.85vw, 16px);
+    }
+
+    /* 右侧团队可视化 */
+    .visual {
+      position: relative;
+      display: grid;
+      height: min(70vh, 720px);
+      min-height: 520px;
+      place-items: center;
+      animation: visualEnter 1s 0.24s both;
+    }
+
+    .visual::before {
+      position: absolute;
+      width: 78%;
+      aspect-ratio: 1;
+      border: 1px solid rgba(129, 164, 236, 0.1);
+      border-radius: 50%;
+      content: "";
+      animation: slowSpin 40s linear infinite;
+    }
+
+    .visual::after {
+      position: absolute;
+      width: 57%;
+      aspect-ratio: 1;
+      border: 1px dashed rgba(152, 128, 255, 0.14);
+      border-radius: 50%;
+      content: "";
+      animation: slowSpinReverse 32s linear infinite;
+    }
+
+    .connection-svg {
+      position: absolute;
+      z-index: 0;
+      width: 88%;
+      height: 88%;
+      overflow: visible;
+    }
+
+    .connection-line {
+      fill: none;
+      stroke: url("#lineGradient");
+      stroke-width: 1.6;
+      stroke-dasharray: 5 8;
+      opacity: 0.5;
+      animation: dash 14s linear infinite;
+    }
+
+    .connection-node {
+      fill: #b9d5ff;
+      filter: drop-shadow(0 0 6px rgba(128, 179, 255, 0.8));
+    }
+
+    .core {
+      position: relative;
+      z-index: 3;
+      display: grid;
+      width: clamp(190px, 14vw, 270px);
+      aspect-ratio: 1;
+      place-items: center;
+      border: 1px solid rgba(169, 196, 255, 0.34);
+      border-radius: 50%;
+      text-align: center;
+      background:
+        radial-gradient(circle at 36% 26%, rgba(179, 208, 255, 0.18), transparent 34%),
+        linear-gradient(145deg, rgba(33, 62, 111, 0.9), rgba(15, 28, 57, 0.92));
+      box-shadow:
+        0 40px 100px rgba(0, 0, 0, 0.28),
+        0 0 85px rgba(81, 128, 225, 0.16),
+        inset 0 0 50px rgba(125, 167, 245, 0.08);
+    }
+
+    .core::before,
+    .core::after {
+      position: absolute;
+      border-radius: 50%;
+      content: "";
+      pointer-events: none;
+    }
+
+    .core::before {
+      inset: -14px;
+      border: 1px solid rgba(120, 162, 244, 0.14);
+    }
+
+    .core::after {
+      inset: -32px;
+      border: 1px solid rgba(129, 96, 239, 0.08);
+    }
+
+    .core-inner {
+      transform: translateY(-2px);
+    }
+
+    .core-icon {
+      display: grid;
+      width: clamp(52px, 4vw, 76px);
+      aspect-ratio: 1;
+      margin: 0 auto 15px;
+      place-items: center;
+      border-radius: 21px;
+      color: #081329;
+      background: linear-gradient(145deg, #dcecff, #a8c8ff 62%, #aa94ff);
+      box-shadow: 0 13px 30px rgba(87, 132, 223, 0.3);
+    }
+
+    .core-icon svg {
+      width: 58%;
+      height: 58%;
+    }
+
+    .core-title {
+      font-size: clamp(19px, 1.38vw, 27px);
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+
+    .core-state {
+      margin-top: 7px;
+      color: rgba(210, 224, 250, 0.5);
+      font-size: clamp(12px, 0.78vw, 15px);
+    }
+
+    .agent {
+      position: absolute;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      gap: 13px;
+      width: clamp(174px, 12.2vw, 234px);
+      padding: 14px 16px;
+      border: 1px solid rgba(157, 185, 239, 0.17);
+      border-radius: 17px;
+      background:
+        linear-gradient(135deg, rgba(31, 55, 97, 0.77), rgba(17, 31, 61, 0.72));
+      box-shadow:
+        0 18px 50px rgba(0, 0, 0, 0.18),
+        inset 0 1px rgba(255, 255, 255, 0.035);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      animation: float 4.5s ease-in-out infinite;
+    }
+
+    .agent-avatar {
+      position: relative;
+      display: grid;
+      flex: 0 0 auto;
+      width: clamp(39px, 2.8vw, 53px);
+      aspect-ratio: 1;
+      place-items: center;
+      border-radius: 14px;
+      color: #e9f2ff;
+      background: linear-gradient(
+        145deg,
+        rgba(100, 151, 248, 0.72),
+        rgba(98, 72, 184, 0.72)
+      );
+      box-shadow: inset 0 1px rgba(255, 255, 255, 0.15);
+      font-size: clamp(15px, 1vw, 19px);
+      font-weight: 760;
+    }
+
+    .agent-avatar::after {
+      position: absolute;
+      right: -2px;
+      bottom: -2px;
+      width: 9px;
+      height: 9px;
+      border: 2px solid #162847;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 9px rgba(101, 230, 186, 0.65);
+      content: "";
+    }
+
+    .agent-copy {
+      min-width: 0;
+    }
+
+    .agent-name {
+      overflow: hidden;
+      color: rgba(244, 248, 255, 0.92);
+      font-size: clamp(14px, 0.92vw, 18px);
+      font-weight: 650;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .agent-job {
+      margin-top: 5px;
+      overflow: hidden;
+      color: rgba(206, 220, 247, 0.45);
+      font-size: clamp(11px, 0.72vw, 14px);
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .agent-1 {
+      top: 8%;
+      left: 9%;
+      animation-delay: -1.2s;
+    }
+
+    .agent-2 {
+      top: 11%;
+      right: 0;
+      animation-delay: -3.1s;
+    }
+
+    .agent-3 {
+      top: 43%;
+      right: -4%;
+      animation-delay: -2s;
+    }
+
+    .agent-4 {
+      right: 8%;
+      bottom: 4%;
+      animation-delay: -0.4s;
+    }
+
+    .agent-5 {
+      bottom: 6%;
+      left: 4%;
+      animation-delay: -2.8s;
+    }
+
+    .agent-6 {
+      top: 43%;
+      left: -5%;
+      animation-delay: -0.8s;
+    }
+
+    /* 底部提示 */
+    .footer-note {
+      position: absolute;
+      right: clamp(32px, 4vw, 76px);
+      bottom: clamp(22px, 3vh, 38px);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: rgba(210, 224, 250, 0.36);
+      font-size: clamp(11px, 0.73vw, 14px);
+      letter-spacing: 0.06em;
+    }
+
+    .footer-note svg {
+      width: 17px;
+      height: 17px;
+      opacity: 0.7;
+    }
+
+    /* 点击按钮后的过渡提示 */
+    .transition-layer {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      display: grid;
+      place-items: center;
+      visibility: hidden;
+      opacity: 0;
+      background: rgba(5, 12, 26, 0.72);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      transition:
+        opacity 420ms ease,
+        visibility 420ms ease;
+    }
+
+    .transition-layer.show {
+      visibility: visible;
+      opacity: 1;
+    }
+
+    .transition-copy {
+      padding: 40px;
+      text-align: center;
+      transform: translateY(20px);
+      transition: transform 500ms ease;
+    }
+
+    .transition-layer.show .transition-copy {
+      transform: translateY(0);
+    }
+
+    .transition-kicker {
+      margin-bottom: 18px;
+      color: var(--blue);
+      font-size: clamp(15px, 1vw, 19px);
+      font-weight: 650;
+      letter-spacing: 0.12em;
+    }
+
+    .transition-title {
+      margin: 0;
+      font-size: clamp(42px, 4.5vw, 84px);
+      line-height: 1.15;
+      letter-spacing: -0.04em;
+    }
+
+    .transition-subtitle {
+      margin-top: 24px;
+      color: var(--muted);
+      font-size: clamp(17px, 1.25vw, 24px);
+    }
+
+    /* 动画 */
+    @keyframes fadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(24px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes visualEnter {
+      from {
+        opacity: 0;
+        transform: translateX(30px) scale(0.97);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0) scale(1);
+      }
+    }
+
+    @keyframes float {
+      0%,
+      100% {
+        transform: translateY(0);
+      }
+      50% {
+        transform: translateY(-9px);
+      }
+    }
+
+    @keyframes dash {
+      to {
+        stroke-dashoffset: -130;
+      }
+    }
+
+    @keyframes slowSpin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    @keyframes slowSpinReverse {
+      to {
+        transform: rotate(-360deg);
+      }
+    }
+
+    /* 中等宽度 */
+    @media (max-width: 1180px) {
+      .content {
+        grid-template-columns: 0.95fr 1.05fr;
+        width: calc(100vw - 7vw);
+        gap: 18px;
+      }
+
+      .agent {
+        width: 180px;
+      }
+
+      .agent-2,
+      .agent-3 {
+        right: 0;
+      }
+
+      .agent-1 {
+        left: 2%;
+      }
+
+      .agent-5 {
+        left: 0;
+      }
+
+      .agent-6 {
+        left: -1%;
+      }
+    }
+
+    /* 竖屏与小窗口 */
+    @media (max-width: 860px) {
+      html,
+      body {
+        overflow: auto;
+      }
+
+      .stage {
+        min-height: 920px;
+      }
+
+      .topbar {
+        padding: 24px;
+      }
+
+      .progress-label {
+        display: none;
+      }
+
+      .content {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        width: 100%;
+        height: auto;
+        min-height: 100%;
+        padding: 120px 26px 70px;
+      }
+
+      .copy {
+        width: min(700px, 100%);
+        padding: 0;
+        text-align: center;
+      }
+
+      .eyebrow {
+        margin-bottom: 20px;
+      }
+
+      .headline {
+        font-size: clamp(48px, 10vw, 74px);
+      }
+
+      .description {
+        margin-right: auto;
+        margin-left: auto;
+        font-size: 18px;
+      }
+
+      .actions {
+        justify-content: center;
+      }
+
+      .visual {
+        width: min(680px, 100%);
+        height: 580px;
+        min-height: 580px;
+        margin-top: 20px;
+      }
+
+      .footer-note {
+        display: none;
+      }
+    }
+
+    @media (max-width: 570px) {
+      .stage {
+        min-height: 980px;
+      }
+
+      .lesson-mark {
+        font-size: 12px;
+      }
+
+      .progress-track {
+        width: 74px;
+      }
+
+      .content {
+        padding-right: 18px;
+        padding-left: 18px;
+      }
+
+      .headline {
+        font-size: 48px;
+      }
+
+      .description {
+        font-size: 16px;
+      }
+
+      .actions {
+        flex-direction: column;
+      }
+
+      .hint {
+        display: none;
+      }
+
+      .visual {
+        height: 520px;
+        min-height: 520px;
+        transform: scale(0.86);
+      }
+
+      .agent {
+        width: 168px;
+      }
+
+      .agent-1,
+      .agent-6 {
+        left: -6%;
+      }
+
+      .agent-2,
+      .agent-3 {
+        right: -6%;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        scroll-behavior: auto !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+      }
+    }
+  </style>
+</head>
+
+<body data-slide="4">
+  <main class="stage">
+    <div class="glow glow-a"></div>
+    <div class="glow glow-b"></div>
+
+    <header class="topbar">
+      <div class="lesson-mark">A2 · AGENT 团队</div>
+
+      <div class="progress" aria-label="课程进度">
+        <span class="progress-label">04 / 12</span>
+        <div class="progress-track">
+          <div class="progress-value"></div>
+        </div>
+      </div>
+    </header>
+
+    <section class="content">
+      <div class="copy">
+        <div class="eyebrow">
+          <span class="eyebrow-dot"></span>
+          新任务
+        </div>
+
+        <h1 class="headline">
+          <span class="soft">目标已经有了。</span>
+          <span class="focus">怎么组织一支<br />Agent 团队？</span>
+        </h1>
+
+        <p class="description">
+          找到合适的人，把<strong>每个人的事情</strong>说清楚，
+          再把他们的<strong>协作方式</strong>定下来。
+        </p>
+
+        <div class="actions">
+          <button class="primary-button" id="startButton" type="button">
+            开始组织
+            <span class="button-arrow">→</span>
+          </button>
+
+          <span class="hint">按空格键继续</span>
+        </div>
+      </div>
+
+      <div class="visual" aria-label="Agent 团队示意图">
+        <svg
+          class="connection-svg"
+          viewBox="0 0 700 700"
+          aria-hidden="true"
+        >
+          <defs>
+            <linearGradient
+              id="lineGradient"
+              x1="0"
+              y1="0"
+              x2="1"
+              y2="1"
+            >
+              <stop offset="0%" stop-color="#6fa8ff" stop-opacity="0.18" />
+              <stop offset="50%" stop-color="#a7c7ff" stop-opacity="0.75" />
+              <stop offset="100%" stop-color="#9d86ff" stop-opacity="0.2" />
+            </linearGradient>
+          </defs>
+
+          <path class="connection-line" d="M350 350 L183 138" />
+          <path class="connection-line" d="M350 350 L525 145" />
+          <path class="connection-line" d="M350 350 L595 335" />
+          <path class="connection-line" d="M350 350 L525 558" />
+          <path class="connection-line" d="M350 350 L185 565" />
+          <path class="connection-line" d="M350 350 L105 340" />
+
+          <circle class="connection-node" cx="350" cy="350" r="4" />
+          <circle class="connection-node" cx="183" cy="138" r="3" />
+          <circle class="connection-node" cx="525" cy="145" r="3" />
+          <circle class="connection-node" cx="595" cy="335" r="3" />
+          <circle class="connection-node" cx="525" cy="558" r="3" />
+          <circle class="connection-node" cx="185" cy="565" r="3" />
+          <circle class="connection-node" cx="105" cy="340" r="3" />
+        </svg>
+
+        <article class="core">
+          <div class="core-inner">
+            <div class="core-icon">
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path
+                  d="M12 4.5V8M12 16v3.5M4.5 12H8M16 12h3.5"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                />
+                <circle
+                  cx="12"
+                  cy="12"
+                  r="4"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                />
+                <circle cx="12" cy="3.5" r="1.5" fill="currentColor" />
+                <circle cx="12" cy="20.5" r="1.5" fill="currentColor" />
+                <circle cx="3.5" cy="12" r="1.5" fill="currentColor" />
+                <circle cx="20.5" cy="12" r="1.5" fill="currentColor" />
+              </svg>
+            </div>
+
+            <div class="core-title">项目负责人</div>
+            <div class="core-state">等待组建团队</div>
+          </div>
+        </article>
+
+        <article class="agent agent-1">
+          <div class="agent-avatar">研</div>
+          <div class="agent-copy">
+            <div class="agent-name">用户研究员</div>
+            <div class="agent-job">等待分配工作</div>
+          </div>
+        </article>
+
+        <article class="agent agent-2">
+          <div class="agent-avatar">内</div>
+          <div class="agent-copy">
+            <div class="agent-name">内容策划</div>
+            <div class="agent-job">等待分配工作</div>
+          </div>
+        </article>
+
+        <article class="agent agent-3">
+          <div class="agent-avatar">设</div>
+          <div class="agent-copy">
+            <div class="agent-name">网页设计师</div>
+            <div class="agent-job">等待分配工作</div>
+          </div>
+        </article>
+
+        <article class="agent agent-4">
+          <div class="agent-avatar">开</div>
+          <div class="agent-copy">
+            <div class="agent-name">开发工程师</div>
+            <div class="agent-job">等待分配工作</div>
+          </div>
+        </article>
+
+        <article class="agent agent-5">
+          <div class="agent-avatar">测</div>
+          <div class="agent-copy">
+            <div class="agent-name">产品测试员</div>
+            <div class="agent-job">等待分配工作</div>
+          </div>
+        </article>
+
+        <article class="agent agent-6">
+          <div class="agent-avatar">管</div>
+          <div class="agent-copy">
+            <div class="agent-name">项目经理</div>
+            <div class="agent-job">等待组织团队</div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <div class="footer-note">
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <rect
+          x="4"
+          y="3"
+          width="16"
+          height="18"
+          rx="3"
+          stroke="currentColor"
+          stroke-width="1.5"
+        />
+        <path
+          d="M9 7h6M8 11h8M8 15h5"
+          stroke="currentColor"
+          stroke-width="1.5"
+          stroke-linecap="round"
+        />
+      </svg>
+      教师大屏 · A2 第 4 屏
+    </div>
+  </main>
+
+  <div class="transition-layer" id="transitionLayer">
+    <div class="transition-copy">
+      <div class="transition-kicker">第一步</div>
+      <h2 class="transition-title">我们应该找谁？</h2>
+      <div class="transition-subtitle">
+        不知道需要哪些人，就先把目标告诉 AI。
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const startButton = document.getElementById("startButton");
+    const transitionLayer = document.getElementById("transitionLayer");
+
+    function goNext() {
+      transitionLayer.classList.add("show");
+    }
+
+    startButton.addEventListener("click", goNext);
+
+    /* 键盘导航（空格/方向键翻页）统一交给 assets/nav.js。
+     * 这里只保留 Escape 与点击关闭转场层。 */
+    document.addEventListener("keydown", (event) => {
+      if (event.code === "Escape") {
+        transitionLayer.classList.remove("show");
+      }
+    });
+
+    transitionLayer.addEventListener("click", () => {
+      transitionLayer.classList.remove("show");
+    });
+  </script>
+
+  <script>/* A2 幻灯片导航脚本
+ * 键盘：F 全屏 | ← / → 切换页面 | 1-9 跳转到对应页 | R 重置动画 | Space 触发当前页动画
+ * 需在每页 body 上添加 data-slide 属性，值为当前页序号（从 0 开始）
+ */
+
+(function () {
+  const slides = [
+    'A2-S0.html',
+    'A2-S2.html',
+    'A2-S3.html',
+    'A2-S4.html',
+    'A2-S5.html',
+    'A2-S6.html',
+    'A2-S7.html',
+    'A2-S8.html',
+    'A2-S9.html',
+    'A2-S10.html',
+  ];
+
+  const currentFile = window.location.pathname.split('/').pop() || slides[0];
+  let currentIndex = slides.indexOf(currentFile);
+  if (currentIndex === -1) currentIndex = 0;
+
+  function go(index) {
+    if (index < 0 || index >= slides.length) return;
+    window.location.href = slides[index];
+  }
+
+  function toggleFullscreen() {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(() => {});
+    } else {
+      document.exitFullscreen().catch(() => {});
+    }
+  }
+
+  function resetAnimations() {
+    document.querySelectorAll('.visible').forEach((el) => {
+      el.classList.remove('visible');
+      void el.offsetWidth;
+      el.classList.add('visible');
+    });
+  }
+
+  function triggerAnimations() {
+    document.querySelectorAll('[data-animate]').forEach((el) => {
+      const delay = parseFloat(el.dataset.animate) || 0;
+      setTimeout(() => el.classList.add('visible'), delay * 1000);
+    });
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+    switch (e.key) {
+      case 'ArrowRight':
+      case 'PageDown':
+      case ' ': // Space 下一页
+        e.preventDefault();
+        go(currentIndex + 1);
+        break;
+      case 'ArrowLeft':
+      case 'PageUp':
+        e.preventDefault();
+        go(currentIndex - 1);
+        break;
+      case 'f':
+      case 'F':
+        e.preventDefault();
+        toggleFullscreen();
+        break;
+      case 'r':
+      case 'R':
+        e.preventDefault();
+        resetAnimations();
+        break;
+      case '1':
+      case '2':
+      case '3':
+      case '4':
+      case '5':
+      case '6':
+      case '7':
+      case '8':
+      case '9':
+        e.preventDefault();
+        const target = parseInt(e.key, 10) - 1;
+        go(target);
+        break;
+    }
+  });
+
+  // —— 远程控制（教师端 → 大屏）——
+  // 同机同源：BroadcastChannel('a2-screen')；也兼容 window.postMessage。
+  // 指令：{action:'next'|'prev'|'step'|'goto'|'reset'}
+  //   当前屏可注册 window.__screenStep(dir) 消费指令（返回 true 表示“本屏内部消化，不要翻页”）。
+  function remoteNext() {
+    const consumed = typeof window.__screenStep === 'function' && window.__screenStep(1);
+    if (!consumed) go(currentIndex + 1);
+  }
+  function remotePrev() {
+    const consumed = typeof window.__screenStep === 'function' && window.__screenStep(-1);
+    if (!consumed) go(currentIndex - 1);
+  }
+  function handleRemote(d) {
+    if (!d || !d.action) return;
+    switch (d.action) {
+      case 'next': remoteNext(); break;
+      case 'prev': remotePrev(); break;
+      case 'step': if (window.__screenStep) window.__screenStep(d.dir === -1 ? -1 : 1); break;
+      case 'goto': if (typeof d.index === 'number') go(d.index); break;
+      case 'reset': location.reload(); break;
+    }
+  }
+  try {
+    const bc = new BroadcastChannel('a2-screen');
+    bc.onmessage = (e) => handleRemote(e.data);
+  } catch (_) {}
+  window.addEventListener('message', (e) => handleRemote(e.data));
+
+  // 页面加载后自动触发带 data-animate 的元素
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', triggerAnimations);
+  } else {
+    triggerAnimations();
+  }
+})();
+</script>
+</body>
+</html>

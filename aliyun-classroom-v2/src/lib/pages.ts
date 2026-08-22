@@ -239,9 +239,10 @@ function fullOrder(group: PageGroup): { refKey: string | null; kind: 'builtin' |
   const builtins = BUILTIN_SEEDS.filter((s) => s.group === group);
   const contents = CONTENT_SEEDS.filter((s) => s.group === group);
   if (group === 'A2') {
-    // A2 全序：钩子 → 发布任务 → 产生疑问 → 找到方法 → 会前准备 → AI团队开会 → 检验提交
-    //           → 作品墙 → 认知思考 → 梦想墙 → 未来展开 → 最后升华
-    const keys = ['a2:hook', 'a2:s1', 'a2:s2', 'a2:s3', 'a2:s4', 'a2:s5', 'a2:s6', 'a2:wall', 'a2:s7', 'a2:s8', 'a2:s9', 'a2:s10'];
+    // A2 全序：钩子 → 产生疑问 → 找到方法 → 会前准备 → AI团队开会 → 自动执行 → 检验提交
+    //           → 作品墙 → [新增"三种认知"内容页] → 未来展开 → 梦想墙 → 最后升华
+    //           （发布任务 s1 已隐藏，不在序列）
+    const keys = ['a2:hook', 'a2:s2', 'a2:s3', 'a2:s4', 'a2:s5', 'a2:s6', 'a2:s7', 'a2:wall', 'a2:s9', 'a2:s8', 'a2:s10'];
     return keys
       .map((k) => {
         const b = builtins.find((x) => x.refKey === k);

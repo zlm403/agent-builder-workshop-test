@@ -61,6 +61,8 @@ export const A2_STAGES: A2Stage[] = [
     action: '和 AI 对话',
     output: '团队配置 + Skill + 会议 Prompt + 协作规则',
     teacherHint: '调用预置 Skill；确定员工后手机页面上方出现「我的 AI 团队」，显示员工角色、名称和职责。',
+    media: 'embed',
+    mediaUrl: '/api/media/file/a2-s4.html',
   },
   {
     key: 's5',
@@ -71,8 +73,8 @@ export const A2_STAGES: A2Stage[] = [
     action: '继续对话',
     output: '从团队决议 → 自动执行 → 做出第一版手机网站',
     teacherHint: '放图：年轻项目负责人喝咖啡，一群数字 AI 员工开会研究设计建站测试，任务不断流动。谁发言谁的卡片高亮；决议后团队自动执行。',
-    media: 'image',
-    mediaUrl: '/api/media/file/1786796383987-i6t3uh.png',
+    media: 'embed',
+    mediaUrl: '/api/media/file/a2-s5.html',
   },
   {
     key: 's6',
@@ -83,6 +85,8 @@ export const A2_STAGES: A2Stage[] = [
     action: '对话 + 检验 + 提交',
     output: '经过检验和迭代的最终作品',
     teacherHint: 'AI 模拟不同用户检查 → 输出反馈 → 返回团队 → 修改 → 再测试；完成后提交。',
+    media: 'embed',
+    mediaUrl: '/api/media/file/a2-s6.html',
   },
   {
     key: 's7',

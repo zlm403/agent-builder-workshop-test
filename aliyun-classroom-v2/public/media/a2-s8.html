@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>A2 · 三种认知（灵气）</title>
+
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root{
+      --bg-1: #060d1c;
+      --bg-2: #0a142b;
+      --do: #8ea2ff;       /* 做事认知 - 靛蓝辉光 */
+      --learn: #5fe6b8;    /* 学习认知 - 翠绿辉光 */
+      --create: #f3c474;   /* 创造认知 - 琥珀辉光 */
+      --gold: #ffe6a8;
+      --white: #f3f7ff;
+      --muted: rgba(206, 220, 250, 0.66);
+      --line: rgba(168, 194, 255, 0.18);
+      --card: rgba(16, 30, 58, 0.5);
+    }
+
+    html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; }
+
+    body{
+      color: var(--white);
+      font-family:
+        "PingFang SC","Microsoft YaHei","Noto Sans CJK SC","Hiragino Sans GB",sans-serif;
+      background:
+        radial-gradient(900px 560px at 50% -12%, rgba(150, 180, 255, 0.22), transparent 60%),
+        radial-gradient(700px 520px at 14% 88%, rgba(120, 90, 230, 0.18), transparent 58%),
+        radial-gradient(680px 520px at 88% 86%, rgba(230, 180, 110, 0.14), transparent 58%),
+        linear-gradient(160deg, #081026 0%, #060d1c 52%, #040812 100%);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ===== 灵气：从上洒下的天光 ===== */
+    .light-shaft{
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background:
+        radial-gradient(60% 42% at 50% -6%, rgba(190, 210, 255, 0.30), rgba(190,210,255,0) 70%);
+      filter: blur(8px);
+    }
+    /* 顶部横向光带 */
+    .light-line{
+      position: fixed; top: 0; left: 0; right: 0; height: 3px; z-index: 0; pointer-events: none;
+      background: linear-gradient(90deg, transparent, rgba(200,220,255,.9), rgba(243,196,116,.7), transparent);
+      box-shadow: 0 0 24px rgba(200,220,255,.7);
+      opacity: .8;
+    }
+
+    /* ===== 漂浮光斑（灵气粒子） ===== */
+    .particles{ position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+    .particle{
+      position: absolute; border-radius: 50%;
+      background: radial-gradient(circle, rgba(255,255,255,.95), rgba(200,220,255,0) 70%);
+      filter: blur(1px);
+      animation: drift linear infinite;
+    }
+    @keyframes drift{
+      0%   { transform: translateY(20px) scale(.8); opacity: 0; }
+      20%  { opacity: .5; }
+      80%  { opacity: .35; }
+      100% { transform: translateY(-60px) scale(1.1); opacity: 0; }
+    }
+
+    .board{
+      position: relative; z-index: 1;
+      display: flex; flex-direction: column;
+      width: 100vw; height: 100vh; min-height: 640px;
+      padding: clamp(26px, 3.6vh, 50px) clamp(34px, 4vw, 76px);
+    }
+
+    .topbar{ display:flex; align-items:center; justify-content:space-between; margin-bottom: clamp(12px,1.8vh,22px); }
+    .lesson-mark{ display:flex; align-items:center; gap:12px; color:rgba(220,232,255,.78); font-size:clamp(13px,0.9vw,17px); font-weight:700; letter-spacing:0.12em; }
+    .lesson-mark::before{ width:9px; height:9px; border-radius:50%; background:var(--gold); box-shadow:0 0 16px rgba(255,230,168,.9); content:""; }
+    .progress{ color:rgba(206,220,250,.45); font-size:clamp(12px,0.8vw,15px); letter-spacing:0.08em; }
+
+    .head{ text-align:center; margin-bottom: clamp(16px,2.4vh,30px); }
+    .kicker{
+      display:inline-block; font-size:clamp(13px,0.9vw,16px); letter-spacing:6px; font-weight:700;
+      color:#cfe0ff; background:rgba(120,160,255,.12); border:1px solid rgba(150,180,255,.35);
+      padding:7px 18px; border-radius:999px; margin-bottom:16px;
+      box-shadow: 0 0 24px rgba(120,160,255,.25), inset 0 0 16px rgba(150,180,255,.15);
+    }
+    .title{
+      font-size:clamp(34px,3.4vw,58px); font-weight:800; letter-spacing:3px;
+      background:linear-gradient(180deg,#ffffff 0%,#dfe9ff 55%,#ffe6a8 100%);
+      -webkit-background-clip:text; background-clip:text; color:transparent;
+      text-shadow: 0 0 40px rgba(190,210,255,.35);
+    }
+    .subtitle{ margin-top:12px; font-size:clamp(15px,1.2vw,21px); color:var(--muted); letter-spacing:1px; }
+
+    .grid{
+      display:grid; grid-template-columns:repeat(3,1fr);
+      gap:clamp(16px,1.6vw,28px); flex:1; min-height:0; align-content:center;
+    }
+
+    .card{
+      position:relative; border-radius:24px; padding:clamp(18px,1.7vw,30px);
+      background:linear-gradient(180deg, rgba(22,38,72,.55), rgba(12,22,44,.5));
+      border:1px solid rgba(160,190,255,.22);
+      box-shadow:
+        0 0 34px rgba(80,120,220,.16),
+        inset 0 0 30px rgba(90,130,230,.07),
+        inset 0 1px rgba(255,255,255,.05);
+      backdrop-filter: blur(6px);
+      opacity:0; animation:fadeUp .6s both;
+    }
+    .card::before{
+      content:""; position:absolute; top:-1px; left:24px; right:24px; height:2px; border-radius:2px;
+      background:linear-gradient(90deg, transparent, var(--c1), transparent);
+      box-shadow:0 0 18px var(--c1);
+    }
+    .card.do{ --c1:var(--do); }
+    .card.learn{ --c1:var(--learn); }
+    .card.create{ --c1:var(--create); }
+
+    .card-head{ display:flex; align-items:center; gap:14px; margin-bottom:6px; }
+    .badge{
+      width:clamp(44px,3vw,56px); height:clamp(44px,3vw,56px); flex:0 0 auto; border-radius:16px;
+      display:flex; align-items:center; justify-content:center;
+      color:#fff; font-size:clamp(22px,1.6vw,26px); font-weight:800;
+      background:linear-gradient(135deg, var(--c1), rgba(255,255,255,.25));
+      box-shadow:0 0 22px var(--c1), inset 0 0 14px rgba(255,255,255,.3);
+    }
+    .card-title{ font-size:clamp(20px,1.5vw,28px); font-weight:800; letter-spacing:1px; text-shadow:0 0 18px rgba(200,220,255,.25); }
+    .card-sub{ font-size:clamp(12px,0.86vw,15px); color:var(--muted); margin-top:3px; letter-spacing:1px; }
+
+    .rows{ margin-top:16px; display:flex; flex-direction:column; gap:11px; }
+    .row-label{
+      font-size:clamp(11px,0.8vw,13px); font-weight:700; color:var(--c1);
+      background:color-mix(in srgb, var(--c1) 16%, transparent);
+      display:inline-block; padding:3px 12px; border-radius:999px; margin-bottom:7px; letter-spacing:1px;
+    }
+    .swap{ display:flex; align-items:center; gap:10px; }
+    .pill{
+      flex:1; text-align:center; padding:11px 10px; border-radius:14px;
+      font-size:clamp(13px,0.95vw,17px); font-weight:600; line-height:1.3;
+    }
+    .pill.old{
+      background:rgba(255,255,255,.04); color:rgba(170,185,215,.7);
+      border:1px solid rgba(150,170,200,.14); text-decoration:line-through; text-decoration-color:rgba(150,170,200,.4);
+    }
+    .pill.new{
+      color:#fff; font-weight:700;
+      background:linear-gradient(135deg, color-mix(in srgb, var(--c1) 55%, #0c1830), rgba(12,24,48,.7));
+      border:1px solid var(--c1);
+      box-shadow:0 0 20px color-mix(in srgb, var(--c1) 55%, transparent), inset 0 0 14px rgba(255,255,255,.12);
+    }
+    .arrow{ flex:0 0 22px; color:var(--c1); font-size:22px; font-weight:800; text-align:center; text-shadow:0 0 12px var(--c1); }
+
+    .summary{
+      margin-top:14px; padding:15px 14px; border-radius:18px; text-align:center;
+      background:linear-gradient(135deg, color-mix(in srgb, var(--c1) 40%, #0c1830), rgba(12,24,48,.6));
+      border:1px solid var(--c1);
+      box-shadow:0 0 26px color-mix(in srgb, var(--c1) 45%, transparent), inset 0 0 18px rgba(255,255,255,.1);
+    }
+    .summary .tag{ font-size:12px; letter-spacing:3px; opacity:.85; font-weight:600; color:var(--gold); }
+    .summary .quote{ font-size:clamp(18px,1.5vw,26px); font-weight:800; margin-top:6px; letter-spacing:1px; text-shadow:0 0 18px rgba(255,230,168,.4); }
+
+    .footer{
+      margin-top:clamp(14px,2vh,22px); padding:clamp(16px,1.8vh,24px) clamp(24px,2.4vw,32px);
+      border-radius:22px;
+      background:linear-gradient(180deg, rgba(20,34,66,.5), rgba(10,18,38,.5));
+      border:1px solid rgba(160,190,255,.2);
+      box-shadow:0 0 30px rgba(80,120,220,.14), inset 0 0 24px rgba(90,130,230,.06);
+      opacity:0; animation:fadeUp .6s both;
+    }
+    .footer-title{ text-align:center; font-size:clamp(15px,1.1vw,19px); font-weight:700; color:#cfe0ff; letter-spacing:2px; margin-bottom:16px; text-shadow:0 0 16px rgba(200,220,255,.3); }
+    .chips{ display:grid; grid-template-columns:repeat(3,1fr); gap:clamp(14px,1.4vw,20px); }
+    .chip{ border-radius:16px; padding:16px 14px; text-align:center; color:#fff;
+      border:1px solid var(--c1);
+      box-shadow:0 0 24px color-mix(in srgb, var(--c1) 40%, transparent), inset 0 0 16px rgba(255,255,255,.1); }
+    .chip.do{ --c1:var(--do); background:linear-gradient(135deg, color-mix(in srgb, var(--do) 40%, #0c1830), rgba(12,24,48,.6)); }
+    .chip.learn{ --c1:var(--learn); background:linear-gradient(135deg, color-mix(in srgb, var(--learn) 40%, #0c1830), rgba(12,24,48,.6)); }
+    .chip.create{ --c1:var(--create); background:linear-gradient(135deg, color-mix(in srgb, var(--create) 40%, #0c1830), rgba(12,24,48,.6)); }
+    .chip .name{ font-size:clamp(12px,0.85vw,15px); opacity:.9; letter-spacing:2px; }
+    .chip .q{ font-size:clamp(18px,1.4vw,23px); font-weight:800; margin-top:6px; letter-spacing:1px; text-shadow:0 0 16px rgba(255,255,255,.35); }
+
+    @keyframes fadeUp{ from{opacity:0; transform:translateY(16px);} to{opacity:1; transform:translateY(0);} }
+
+    @media (max-width: 980px){
+      body{ overflow:auto; }
+      .board{ height:auto; min-height:100%; }
+      .grid{ grid-template-columns:1fr; }
+    }
+    @media (prefers-reduced-motion: reduce){
+      .card, .footer{ animation:none; opacity:1; }
+      .particle{ display:none; }
+    }
+  </style>
+</head>
+
+<body data-slide="8">
+  <!-- 灵气光层 -->
+  <div class="light-shaft"></div>
+  <div class="light-line"></div>
+  <div class="particles" id="particles"></div>
+
+  <main class="board">
+    <div class="head">
+      <div class="title">三 种 认 知</div>
+      <div class="subtitle">AI 时代，我们如何改变认知？</div>
+    </div>
+
+    <div class="grid">
+      <div class="card do" style="animation-delay:0.05s">
+        <div class="card-head">
+          <div class="badge">做</div>
+          <div>
+            <div class="card-title">做事认知</div>
+            <div class="card-sub">A1 数字分身 · 一个人，就是一支队伍</div>
+          </div>
+        </div>
+        <div class="rows">
+          <div><span class="row-label">认知 ①</span><div class="swap"><div class="pill old">人比 AI 厉害</div><div class="arrow">→</div><div class="pill new">AI 能力远超个人</div></div></div>
+          <div><span class="row-label">认知 ②</span><div class="swap"><div class="pill old">AI 只是工具</div><div class="arrow">→</div><div class="pill new">人与 AI 融为一体</div></div></div>
+          <div><span class="row-label">认知 ③</span><div class="swap"><div class="pill old">一个人做事</div><div class="arrow">→</div><div class="pill new">带着一群 AI 做事</div></div></div>
+        </div>
+        <div class="summary"><div class="tag">整 体 转 变</div><div class="quote">一个人，就是一支队伍</div></div>
+      </div>
+
+      <div class="card learn" style="animation-delay:0.13s">
+        <div class="card-head">
+          <div class="badge">学</div>
+          <div>
+            <div class="card-title">学习认知</div>
+            <div class="card-sub">A2 快速入门网站 · 马上去做，不用等</div>
+          </div>
+        </div>
+        <div class="rows">
+          <div><span class="row-label">认知 ①</span><div class="swap"><div class="pill old">学得越深越好</div><div class="arrow">→</div><div class="pill new">学得越广越好</div></div></div>
+          <div><span class="row-label">认知 ②</span><div class="swap"><div class="pill old">学得牢，才能用</div><div class="arrow">→</div><div class="pill new">随时找，随时用</div></div></div>
+          <div><span class="row-label">认知 ③</span><div class="swap"><div class="pill old">你得会</div><div class="arrow">→</div><div class="pill new">你得有感觉</div></div></div>
+        </div>
+        <div class="summary"><div class="tag">整 体 转 变</div><div class="quote">马上去做，不用等</div></div>
+      </div>
+
+      <div class="card create" style="animation-delay:0.21s">
+        <div class="card-head">
+          <div class="badge">创</div>
+          <div>
+            <div class="card-title">创造认知</div>
+            <div class="card-sub">A3 养成游戏 · 有了想法，就能做出来</div>
+          </div>
+        </div>
+        <div class="rows">
+          <div><span class="row-label">认知 ①</span><div class="swap"><div class="pill old">普通人很难创造</div><div class="arrow">→</div><div class="pill new">普通人借助 AI 也能创造</div></div></div>
+          <div><span class="row-label">认知 ②</span><div class="swap"><div class="pill old">执行比想法重要</div><div class="arrow">→</div><div class="pill new">想法和判断更重要</div></div></div>
+          <div><span class="row-label">认知 ③</span><div class="swap"><div class="pill old">等别人给我问题</div><div class="arrow">→</div><div class="pill new">主动发现问题</div></div></div>
+        </div>
+        <div class="summary"><div class="tag">整 体 转 变</div><div class="quote">有了想法，就能做出来</div></div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    // 灵气光斑：随机漂浮的柔光点
+    (function () {
+      var box = document.getElementById('particles');
+      var n = 18;
+      for (var i = 0; i < n; i++) {
+        var p = document.createElement('span');
+        p.className = 'particle';
+        var size = 2 + Math.random() * 5;
+        p.style.width = size + 'px';
+        p.style.height = size + 'px';
+        p.style.left = (Math.random() * 100) + 'vw';
+        p.style.top = (Math.random() * 100) + 'vh';
+        p.style.animationDuration = (6 + Math.random() * 8) + 's';
+        p.style.animationDelay = (-Math.random() * 10) + 's';
+        box.appendChild(p);
+      }
+    })();
+  </script>
+  <script>/* A2 幻灯片导航脚本
+ * 键盘：F 全屏 | ← / → 切换页面 | 1-9 跳转到对应页 | R 重置动画 | Space 触发当前页动画
+ * 需在每页 body 上添加 data-slide 属性，值为当前页序号（从 0 开始）
+ */
+
+(function () {
+  const slides = [
+    'A2-S0.html',
+    'A2-S2.html',
+    'A2-S3.html',
+    'A2-S4.html',
+    'A2-S5.html',
+    'A2-S6.html',
+    'A2-S7.html',
+    'A2-S8.html',
+    'A2-S9.html',
+    'A2-S10.html',
+  ];
+
+  const currentFile = window.location.pathname.split('/').pop() || slides[0];
+  let currentIndex = slides.indexOf(currentFile);
+  if (currentIndex === -1) currentIndex = 0;
+
+  function go(index) {
+    if (index < 0 || index >= slides.length) return;
+    window.location.href = slides[index];
+  }
+
+  function toggleFullscreen() {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(() => {});
+    } else {
+      document.exitFullscreen().catch(() => {});
+    }
+  }
+
+  function resetAnimations() {
+    document.querySelectorAll('.visible').forEach((el) => {
+      el.classList.remove('visible');
+      void el.offsetWidth;
+      el.classList.add('visible');
+    });
+  }
+
+  function triggerAnimations() {
+    document.querySelectorAll('[data-animate]').forEach((el) => {
+      const delay = parseFloat(el.dataset.animate) || 0;
+      setTimeout(() => el.classList.add('visible'), delay * 1000);
+    });
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+    switch (e.key) {
+      case 'ArrowRight':
+      case 'PageDown':
+      case ' ': // Space 下一页
+        e.preventDefault();
+        go(currentIndex + 1);
+        break;
+      case 'ArrowLeft':
+      case 'PageUp':
+        e.preventDefault();
+        go(currentIndex - 1);
+        break;
+      case 'f':
+      case 'F':
+        e.preventDefault();
+        toggleFullscreen();
+        break;
+      case 'r':
+      case 'R':
+        e.preventDefault();
+        resetAnimations();
+        break;
+      case '1':
+      case '2':
+      case '3':
+      case '4':
+      case '5':
+      case '6':
+      case '7':
+      case '8':
+      case '9':
+        e.preventDefault();
+        const target = parseInt(e.key, 10) - 1;
+        go(target);
+        break;
+    }
+  });
+
+  // —— 远程控制（教师端 → 大屏）——
+  // 同机同源：BroadcastChannel('a2-screen')；也兼容 window.postMessage。
+  // 指令：{action:'next'|'prev'|'step'|'goto'|'reset'}
+  //   当前屏可注册 window.__screenStep(dir) 消费指令（返回 true 表示“本屏内部消化，不要翻页”）。
+  function remoteNext() {
+    const consumed = typeof window.__screenStep === 'function' && window.__screenStep(1);
+    if (!consumed) go(currentIndex + 1);
+  }
+  function remotePrev() {
+    const consumed = typeof window.__screenStep === 'function' && window.__screenStep(-1);
+    if (!consumed) go(currentIndex - 1);
+  }
+  function handleRemote(d) {
+    if (!d || !d.action) return;
+    switch (d.action) {
+      case 'next': remoteNext(); break;
+      case 'prev': remotePrev(); break;
+      case 'step': if (window.__screenStep) window.__screenStep(d.dir === -1 ? -1 : 1); break;
+      case 'goto': if (typeof d.index === 'number') go(d.index); break;
+      case 'reset': location.reload(); break;
+    }
+  }
+  try {
+    const bc = new BroadcastChannel('a2-screen');
+    bc.onmessage = (e) => handleRemote(e.data);
+  } catch (_) {}
+  window.addEventListener('message', (e) => handleRemote(e.data));
+
+  // 页面加载后自动触发带 data-animate 的元素
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', triggerAnimations);
+  } else {
+    triggerAnimations();
+  }
+})();
+</script>
+</body>
+</html>
