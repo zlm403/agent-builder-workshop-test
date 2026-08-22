@@ -46,6 +46,12 @@ export async function deleteMedia(id: string) {
   return { ok: true };
 }
 
+// 按插槽批量删除（用于内容页「清空本页」：删除该页所有内容块）
+export async function deleteMediaBySlot(slot: string) {
+  const { count } = await prisma.mediaItem.deleteMany({ where: { slot } });
+  return { ok: true, count };
+}
+
 export async function updateMedia(
   id: string,
   patch: Partial<{ title: string; kind: string; url: string | null; content: string | null; slot: string; sort: number; align: string; hidden: boolean }>,

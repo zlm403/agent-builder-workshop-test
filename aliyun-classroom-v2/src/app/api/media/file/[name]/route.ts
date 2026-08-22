@@ -17,6 +17,8 @@ const MIME: Record<string, string> = {
   '.mov': 'video/quicktime',
   '.pdf': 'application/pdf',
   '.txt': 'text/plain',
+  '.html': 'text/html',
+  '.htm': 'text/html',
 };
 
 export async function GET(

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { listMedia, createMedia, deleteMedia, updateMedia } from '@/lib/mediaStore';
+import { listMedia, createMedia, deleteMedia, deleteMediaBySlot, updateMedia } from '@/lib/mediaStore';
 
 export const dynamic = 'force-dynamic';
 
@@ -50,9 +50,16 @@ export async function POST(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   try {
     const id = req.nextUrl.searchParams.get('id') ?? '';
-    if (!id) return NextResponse.json({ error: { code: 'BAD_REQUEST' } }, { status: 400 });
-    await deleteMedia(id);
-    return NextResponse.json({ ok: true });
+    const slot = req.nextUrl.searchParams.get('slot') ?? '';
+    if (id) {
+      await deleteMedia(id);
+      return NextResponse.json({ ok: true });
+    }
+    if (slot) {
+      const res = await deleteMediaBySlot(slot);
+      return NextResponse.json(res);
+    }
+    return NextResponse.json({ error: { code: 'BAD_REQUEST' } }, { status: 400 });
   } catch (e: any) {
     return NextResponse.json({ error: { code: 'SERVER', message: String(e) } }, { status: 500 });
   }

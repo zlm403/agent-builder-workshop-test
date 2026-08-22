@@ -12,12 +12,13 @@ export async function POST(req: NextRequest) {
     if (!(file instanceof File)) {
       return NextResponse.json({ error: { code: 'BAD_REQUEST', message: '未收到文件' } }, { status: 400 });
     }
-    // 仅允许视频/图片
+    // 仅允许视频/图片/HTML（HTML 用于内容页整页网页，iframe 渲染）
     const type = file.type;
-    if (!type.startsWith('video/') && !type.startsWith('image/')) {
-      return NextResponse.json({ error: { code: 'BAD_TYPE', message: '仅支持视频/图片文件' } }, { status: 400 });
+    const isHtml = /\.html?$/i.test(file.name) || type === 'text/html';
+    if (!type.startsWith('video/') && !type.startsWith('image/') && !isHtml) {
+      return NextResponse.json({ error: { code: 'BAD_TYPE', message: '仅支持视频/图片/HTML 文件' } }, { status: 400 });
     }
-    const ext = path.extname(file.name) || (type.startsWith('video/') ? '.mp4' : '.png');
+    const ext = path.extname(file.name) || (type.startsWith('video/') ? '.mp4' : isHtml ? '.html' : '.png');
     const safeName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}${ext}`;
     const dir = path.join(process.cwd(), 'public', 'media');
     await mkdir(dir, { recursive: true });

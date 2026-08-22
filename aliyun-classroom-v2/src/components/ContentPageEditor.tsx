@@ -111,9 +111,26 @@ export default function ContentPageEditor({ pageId, onClose }: { pageId: string;
       const d = await r.json();
       if (!r.ok) { setMsg(d.error?.message || '上传失败'); return; }
       setUrl(d.url);
-      setKind(file.type.startsWith('video/') ? 'video' : 'image');
+      if (file.type === 'text/html' || /\.html?$/i.test(file.name)) {
+        setKind('embed');
+      } else {
+        setKind(file.type.startsWith('video/') ? 'video' : 'image');
+      }
       if (!title.trim()) setTitle(file.name.replace(/\.[^.]+$/, ''));
     } finally { setUploading(false); }
+  }
+
+  async function clearAll() {
+    if (items.length === 0) return;
+    if (!window.confirm(`清空本页全部 ${items.length} 个内容块？只留背景，之后可重新添加。`)) return;
+    setBusy(true);
+    setMsg('');
+    try {
+      const r = await fetch(`/api/media?slot=${encodeURIComponent(slot)}`, { method: 'DELETE' });
+      const d = await r.json();
+      if (!r.ok) { setMsg(d.error?.message || '清空失败'); return; }
+      await load();
+    } finally { setBusy(false); }
   }
 
   return (
@@ -121,7 +138,10 @@ export default function ContentPageEditor({ pageId, onClose }: { pageId: string;
       <div style={{ background: '#0f172a', border: '1px solid #334155', borderRadius: 16, padding: 24, width: 'min(720px, 94vw)', maxHeight: '90vh', overflowY: 'auto' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <h3 style={{ margin: 0 }}>编辑这一页的内容</h3>
-          <button className="secondary" onClick={onClose}>关闭</button>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button className="danger" disabled={busy || items.length === 0} onClick={clearAll}>🗑 清空本页</button>
+            <button className="secondary" onClick={onClose}>关闭</button>
+          </div>
         </div>
 
         <div style={{ background: 'rgba(15,23,42,0.6)', border: '1px solid var(--border)', borderRadius: 12, padding: 14, marginBottom: 16 }}>
@@ -136,13 +156,11 @@ export default function ContentPageEditor({ pageId, onClose }: { pageId: string;
             <textarea placeholder="文字内容…" value={content} onChange={(e) => setContent(e.target.value)} style={{ minHeight: 70 }} />
           ) : (
             <div style={{ display: 'flex', gap: 8 }}>
-              <input placeholder={kind === 'embed' ? '网页地址（https://…）' : kind === 'video' ? 'mp4 地址或 URL' : '图片/链接 URL'} value={url} onChange={(e) => setUrl(e.target.value)} style={{ flex: 1 }} />
-              {kind !== 'embed' && (
+              <input placeholder={kind === 'embed' ? '网页地址（https://… 或 /api/media/file/xx.html）' : kind === 'video' ? 'mp4 地址或 URL' : '图片/链接 URL'} value={url} onChange={(e) => setUrl(e.target.value)} style={{ flex: 1 }} />
                 <label className="secondary" style={{ display: 'inline-flex', alignItems: 'center', padding: '8px 14px', borderRadius: 8, cursor: 'pointer', fontSize: 13 }}>
-                  {uploading ? '上传中…' : '上传文件'}
-                  <input type="file" accept="video/*,image/*" style={{ display: 'none' }} disabled={uploading} onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadFile(f); }} />
+                  {uploading ? '上传中…' : kind === 'embed' ? '上传 HTML' : '上传文件'}
+                  <input type="file" accept={kind === 'embed' ? '.html,.htm,text/html' : 'video/*,image/*'} style={{ display: 'none' }} disabled={uploading} onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadFile(f); }} />
                 </label>
-              )}
             </div>
           )}
           <button className="primary" style={{ marginTop: 10 }} disabled={busy || uploading} onClick={add}>{busy ? '添加中…' : '添加'}</button>

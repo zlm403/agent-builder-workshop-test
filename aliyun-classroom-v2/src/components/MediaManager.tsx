@@ -23,6 +23,7 @@ const KIND_LABELS: Record<string, string> = {
   image: '图片',
   video: '视频',
   link: '链接',
+  embed: '网页',
 };
 
 const KIND_ICONS: Record<string, string> = {
@@ -30,6 +31,7 @@ const KIND_ICONS: Record<string, string> = {
   image: '🖼️',
   video: '🎬',
   link: '🔗',
+  embed: '🌐',
 };
 
 // 动态插入位置（来自 /api/pages/slots：命名 slot + 内容页 page:{id}）
@@ -126,7 +128,11 @@ export default function MediaManager({ onClose, initialSlot }: { onClose: () => 
       const d = await r.json();
       if (!r.ok) { setMsg(d.error?.message || '上传失败'); return; }
       setUrl(d.url);
-      setKind(file.type.startsWith('video/') ? 'video' : 'image');
+      if (file.type === 'text/html' || /\.html?$/i.test(file.name)) {
+        setKind('embed');
+      } else {
+        setKind(file.type.startsWith('video/') ? 'video' : 'image');
+      }
       if (!title.trim()) setTitle(file.name.replace(/\.[^.]+$/, ''));
     } finally { setUploading(false); }
   }
@@ -183,10 +189,10 @@ export default function MediaManager({ onClose, initialSlot }: { onClose: () => 
               <textarea placeholder="文字内容…" value={content} onChange={(e) => setContent(e.target.value)} style={{ minHeight: 70 }} />
             ) : (
               <div style={{ display: 'flex', gap: 8 }}>
-                <input placeholder={kind === 'video' ? 'mp4 地址或 URL' : '图片/链接 URL'} value={url} onChange={(e) => setUrl(e.target.value)} style={{ flex: 1 }} />
+                <input placeholder={kind === 'embed' ? '网页地址（https://… 或 /api/media/file/xx.html）' : kind === 'video' ? 'mp4 地址或 URL' : '图片/链接 URL'} value={url} onChange={(e) => setUrl(e.target.value)} style={{ flex: 1 }} />
                 <label className="secondary" style={{ display: 'inline-flex', alignItems: 'center', padding: '8px 14px', borderRadius: 8, cursor: 'pointer', fontSize: 13 }}>
-                  {uploading ? '上传中…' : '上传文件'}
-                  <input type="file" accept="video/*,image/*" style={{ display: 'none' }} disabled={uploading} onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadFile(f); }} />
+                  {uploading ? '上传中…' : kind === 'embed' ? '上传 HTML' : '上传文件'}
+                  <input type="file" accept={kind === 'embed' ? '.html,.htm,text/html' : 'video/*,image/*'} style={{ display: 'none' }} disabled={uploading} onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadFile(f); }} />
                 </label>
               </div>
             )}
