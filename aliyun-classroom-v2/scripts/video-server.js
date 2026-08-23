@@ -14,6 +14,7 @@ const os = require('node:os');
 
 const PORT = 9123;
 const VIDEOS_DIR = path.join(__dirname, '..', 'public', 'videos');
+const MEDIA_DIR = path.join(__dirname, '..', 'public', 'media');
 
 function ipv4s() {
   const out = [];
@@ -39,8 +40,25 @@ function send404(res) {
   res.end('404 Not Found');
 }
 
+// 跨域头：页面跑在阿里云公网（http://8.130.70.114:3000），视频源在本机局域网 9123，
+// 浏览器跨域请求需要 CORS + Private Network Access 预检放行，否则本地源被拦、自动回退云端。
+function cors(res) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Private-Network', 'true');
+  res.setHeader('Access-Control-Allow-Headers', 'Range');
+  res.setHeader('Access-Control-Expose-Headers', 'Accept-Ranges, Content-Length, Content-Range');
+}
+
 const server = http.createServer((req, res) => {
   const url = new URL(req.url, `http://localhost:${PORT}`);
+
+  // 所有响应统一带 CORS 头；OPTIONS 预检（含 PNA 预检）直接放行
+  cors(res);
+  if (req.method === 'OPTIONS') {
+    res.writeHead(204);
+    res.end();
+    return;
+  }
 
   // 根路径：文件名列表 html（教学提示用）
   if (url.pathname === '/') {
@@ -68,37 +86,52 @@ const server = http.createServer((req, res) => {
       send404(res);
       return;
     }
-    const stat = fs.statSync(file);
-    const total = stat.size;
-    const mime = MIME[path.extname(file).toLowerCase()] || 'application/octet-stream';
-    const range = req.headers.range;
+    serveFile(res, file, req.headers.range);
+    return;
+  }
 
-    if (range) {
-      const m = /bytes=(\d*)-(\d*)/.exec(range);
-      const start = m && m[1] ? parseInt(m[1], 10) : 0;
-      const reqEnd = m && m[2] ? parseInt(m[2], 10) : total - 1;
-      const end = Math.min(reqEnd, total - 1);
-      if (start > end || start >= total) {
-        res.writeHead(416, { 'Content-Range': `bytes */${total}` });
-        res.end();
-        return;
-      }
-      res.writeHead(206, {
-        'Content-Type': mime,
-        'Content-Range': `bytes ${start}-${end}/${total}`,
-        'Accept-Ranges': 'bytes',
-        'Content-Length': end - start + 1,
-      });
-      fs.createReadStream(file, { start, end }).pipe(res);
-    } else {
-      res.writeHead(200, { 'Content-Type': mime, 'Accept-Ranges': 'bytes', 'Content-Length': total });
-      fs.createReadStream(file).pipe(res);
+  // /api/media/file/<文件名>：媒体库文件（public/media/），兼容前端 SmartVideo 拼出的本地地址（支持 Range）
+  if (url.pathname.startsWith('/api/media/file/')) {
+    const name = decodeURIComponent(url.pathname.slice('/api/media/file/'.length));
+    const file = path.join(MEDIA_DIR, name);
+    if (!file.startsWith(MEDIA_DIR) || !fs.existsSync(file) || !fs.statSync(file).isFile()) {
+      send404(res);
+      return;
     }
+    serveFile(res, file, req.headers.range);
     return;
   }
 
   send404(res);
 });
+
+function serveFile(res, file, range) {
+  const stat = fs.statSync(file);
+  const total = stat.size;
+  const mime = MIME[path.extname(file).toLowerCase()] || 'application/octet-stream';
+
+  if (range) {
+    const m = /bytes=(\d*)-(\d*)/.exec(range);
+    const start = m && m[1] ? parseInt(m[1], 10) : 0;
+    const reqEnd = m && m[2] ? parseInt(m[2], 10) : total - 1;
+    const end = Math.min(reqEnd, total - 1);
+    if (start > end || start >= total) {
+      res.writeHead(416, { 'Content-Range': `bytes */${total}` });
+      res.end();
+      return;
+    }
+    res.writeHead(206, {
+      'Content-Type': mime,
+      'Content-Range': `bytes ${start}-${end}/${total}`,
+      'Accept-Ranges': 'bytes',
+      'Content-Length': end - start + 1,
+    });
+    fs.createReadStream(file, { start, end }).pipe(res);
+  } else {
+    res.writeHead(200, { 'Content-Type': mime, 'Accept-Ranges': 'bytes', 'Content-Length': total });
+    fs.createReadStream(file).pipe(res);
+  }
+}
 
 server.on('error', (err) => {
   console.error('启动失败：', err.message);
@@ -106,7 +139,7 @@ server.on('error', (err) => {
   process.exit(1);
 });
 
-server.listen(PORT, () => {
+server.listen(PORT, '0.0.0.0', () => {
   const ips = ipv4s();
   console.log('教室笔记本视频服务已启动');
   console.log('端口：' + PORT);
