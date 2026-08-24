@@ -1,4 +1,5 @@
 'use client';
+import { api } from '@/lib/basePath';
 // =========================================================
 // 教师端设置：教室笔记本视频服务器地址（运行时配置）
 // 存服务器文件 data/video-server.txt，保存后全局生效，无需重新构建/重启端页面。
@@ -15,7 +16,7 @@ export default function VideoServerSettings() {
   useEffect(() => {
     (async () => {
       try {
-        const r = await fetch('/api/video-server', { cache: 'no-store' });
+        const r = await fetch(api('/api/video-server'), { cache: 'no-store' });
         if (r.ok) {
           const d = await r.json();
           if (typeof d?.base === 'string') setBase(d.base);
@@ -30,7 +31,7 @@ export default function VideoServerSettings() {
     setBusy(true);
     setSaved(false);
     try {
-      const r = await fetch('/api/video-server', {
+      const r = await fetch(api('/api/video-server'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ base: base.trim() }),

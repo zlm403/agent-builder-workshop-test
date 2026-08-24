@@ -9,7 +9,7 @@ import ContentPageEditor from '@/components/ContentPageEditor';
 import BuiltinTextEditor from '@/components/BuiltinTextEditor';
 import PreviewIframe from '@/components/PreviewIframe';
 import VideoServerSettings from '@/components/VideoServerSettings';
-import { withBasePath } from '@/lib/basePath';
+import { withBasePath, api } from '@/lib/basePath';
 
 const pctOf = (n: number, base: number) => (base > 0 ? Math.round((n / base) * 100) : 0);
 
@@ -128,7 +128,7 @@ export default function TeacherPage() {
       // 没有本地课堂记录：自动尝试恢复后端正在进行的课堂
       (async () => {
         try {
-          const r = await fetch('/api/classroom/latest');
+          const r = await fetch(api('/api/classroom/latest'));
           if (r.ok) {
             const s = await r.json();
             if (s && s.id) {
@@ -150,7 +150,7 @@ export default function TeacherPage() {
     } else {
       loadState(saved);
     }
-    fetch('/api/network')
+    fetch(api('/api/network'))
       .then((r) => r.json())
       .then((d) => setIps(d.ips || []))
       .catch(() => setIps([]));
@@ -162,7 +162,7 @@ export default function TeacherPage() {
     let retryTimer: ReturnType<typeof setTimeout> | null = null;
     function connect() {
       if (closed) return;
-      const es = new EventSource(`/api/events/${sessionId}`);
+      const es = new EventSource(api(`/api/events/${sessionId}`));
       esRef.current = es;
       es.onmessage = (e) => {
         try {
@@ -226,7 +226,7 @@ export default function TeacherPage() {
   async function fetchAnalytics(id: string, moduleId = 'A01_BASELINE') {
     try {
       if (moduleId === 'A0_SCREENING') {
-        const res = await fetch(`/api/screening/analytics?sessionId=${id}`);
+        const res = await fetch(api(`/api/screening/analytics?sessionId=${id}`));
         if (res.ok) {
           const data = await res.json();
           setScreening(data);
@@ -234,21 +234,21 @@ export default function TeacherPage() {
           setModuleHistory((prev) => ({ ...prev, [moduleId]: { type: 'a0', data } }));
         }
       } else if (['A0N_QUESTIONS', 'A0N_VOTE', 'A0N_REVEAL'].includes(moduleId)) {
-        const res = await fetch(`/api/avatar/a0/analytics?sessionId=${id}`);
+        const res = await fetch(api(`/api/avatar/a0/analytics?sessionId=${id}`));
         if (res.ok) {
           const data = await res.json();
           setScreening(null);
           setModuleHistory((prev) => ({ ...prev, [moduleId]: { type: 'a0n', data } }));
         }
       } else if (moduleId === 'A1_AVATAR') {
-        const res = await fetch(`/api/avatar/a1/analytics?sessionId=${id}`);
+        const res = await fetch(api(`/api/avatar/a1/analytics?sessionId=${id}`));
         if (res.ok) {
           const data = await res.json();
           setScreening(null);
           setModuleHistory((prev) => ({ ...prev, [moduleId]: { type: 'a1', data } }));
         }
       } else {
-        const res = await fetch(`/api/analytics?sessionId=${id}&moduleId=${moduleId}`);
+        const res = await fetch(api(`/api/analytics?sessionId=${id}&moduleId=${moduleId}`));
         if (res.ok) {
           const data = await res.json();
           setAnalytics(data);
@@ -262,7 +262,7 @@ export default function TeacherPage() {
   }
   async function fetchInvitations(id: string) {
     try {
-      const res = await fetch(`/api/classroom/${id}/invitations`);
+      const res = await fetch(api(`/api/classroom/${id}/invitations`));
       if (res.ok) setInvitations(await res.json());
     } catch {
       /* noop */
@@ -270,7 +270,7 @@ export default function TeacherPage() {
   }
   async function fetchThoughts(id: string) {
     try {
-      const res = await fetch(`/api/classroom/${id}/thoughts`);
+      const res = await fetch(api(`/api/classroom/${id}/thoughts`));
       if (res.ok) {
         const d = await res.json();
         setThoughts(d?.thoughts ?? []);
@@ -283,7 +283,7 @@ export default function TeacherPage() {
     if (!sessionId || count < 1) return;
     setGenBusy(true);
     try {
-      const res = await fetch(`/api/classroom/${sessionId}/invitations`, {
+      const res = await fetch(api(`/api/classroom/${sessionId}/invitations`), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ count }),
@@ -305,7 +305,7 @@ export default function TeacherPage() {
     setSessionId(id);
     localStorage.setItem(LS_KEY, id);
     try {
-      const res = await fetch(`/api/classroom/${id}`);
+      const res = await fetch(api(`/api/classroom/${id}`));
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const state = await res.json();
       if (state.error) throw new Error(state.error.message || state.error.code);
@@ -323,7 +323,7 @@ export default function TeacherPage() {
       console.warn('loadState failed for', id, err);
       // Session 不存在时，自动回退到最新有效 session
       try {
-        const latestRes = await fetch('/api/classroom/latest');
+        const latestRes = await fetch(api('/api/classroom/latest'));
         if (latestRes.ok) {
           const latest = await latestRes.json();
           if (latest.id && latest.id !== id) {
@@ -344,7 +344,7 @@ export default function TeacherPage() {
 
   async function fetchSettings() {
     try {
-      const res = await fetch('/api/settings/llm');
+      const res = await fetch(api('/api/settings/llm'));
       if (!res.ok) return;
       const d = await res.json();
       setLlmStatus(d);
@@ -362,7 +362,7 @@ export default function TeacherPage() {
     }
     setSettingsBusy(true);
     try {
-      const res = await fetch('/api/settings/llm', {
+      const res = await fetch(api('/api/settings/llm'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -398,7 +398,7 @@ export default function TeacherPage() {
       // 新建课堂前，先关闭当前正在运行的旧课堂，避免堆积多个未关闭的课堂
       if (sessionId && status !== 'closed') {
         try {
-          await fetch(`/api/classroom/${sessionId}/control`, {
+          await fetch(api(`/api/classroom/${sessionId}/control`), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ action: 'close' }),
@@ -407,7 +407,7 @@ export default function TeacherPage() {
           /* 关闭旧课堂失败不阻断新建 */
         }
       }
-      const res = await fetch('/api/classroom', {
+      const res = await fetch(api('/api/classroom'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ version: 'A', scheduledStartAt: scheduledStartAt ? new Date(scheduledStartAt).toISOString() : null }),
@@ -433,7 +433,7 @@ export default function TeacherPage() {
     if (!sessionId) return;
     setBusy(true);
     try {
-      const res = await fetch(`/api/classroom/${sessionId}/control`, {
+      const res = await fetch(api(`/api/classroom/${sessionId}/control`), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action, ...extra }),
@@ -805,7 +805,7 @@ export default function TeacherPage() {
 
   async function copySalesBrief() {
     try {
-      const res = await fetch(`/api/screening/sales-brief?sessionId=${sessionId}`);
+      const res = await fetch(api(`/api/screening/sales-brief?sessionId=${sessionId}`));
       const d = await res.json();
       if (!res.ok) {
         alert('生成销售简报失败');
@@ -1430,7 +1430,7 @@ function WorldVisualBar() {
 
   async function load() {
     try {
-      const r = await fetch('/api/world/visual', { cache: 'no-store' });
+      const r = await fetch(api('/api/world/visual'), { cache: 'no-store' });
       const d = await r.json();
       setSpeed(Number(d.speed) || 1);
       setBrightness(Number(d.brightness) || 1);
@@ -1445,7 +1445,7 @@ function WorldVisualBar() {
     if (busy) return;
     setBusy(true);
     try {
-      await fetch('/api/world/visual', {
+      await fetch(api('/api/world/visual'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ speed: s, brightness: b }),
@@ -1481,7 +1481,7 @@ function WorldPresetBar() {
     if (busy) return;
     setBusy(id);
     try {
-      const res = await fetch('/api/world/preset', {
+      const res = await fetch(api('/api/world/preset'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ presetId: id }),
@@ -1531,7 +1531,7 @@ function WorldTipsBar() {
 
   async function load() {
     try {
-      const r = await fetch('/api/world/popup', { cache: 'no-store' });
+      const r = await fetch(api('/api/world/popup'), { cache: 'no-store' });
       const d = await r.json();
       if (d.show) setActive(d.content ?? null);
       else setActive(null);
@@ -1544,7 +1544,7 @@ function WorldTipsBar() {
     if (busy) return;
     setBusy(true);
     try {
-      await fetch('/api/world/popup', {
+      await fetch(api('/api/world/popup'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content: id, show: true }),
@@ -1559,7 +1559,7 @@ function WorldTipsBar() {
     if (busy) return;
     setBusy(true);
     try {
-      await fetch('/api/world/popup', {
+      await fetch(api('/api/world/popup'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content: null, show: false }),

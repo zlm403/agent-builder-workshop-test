@@ -5,7 +5,7 @@ import VocabBrowser from '@/components/VocabBrowser';
 import { vocabText } from '@/lib/vocab';
 import { compareRounds } from '@/lib/analytics';
 import { KNOWLEDGE_DOCS, SKILL_BLOCKS } from '@/lib/courseConfig';
-import { withBasePath } from '@/lib/basePath';
+import { withBasePath, api } from '@/lib/basePath';
 import AvatarA0Screen from '@/components/AvatarA0Screen';
 import AvatarA1Screen from '@/components/AvatarA1Screen';
 import SiteEntryScreen from '@/components/SiteEntryScreen';
@@ -114,10 +114,10 @@ export default function ScreenPage() {
     (async () => {
       let id = idParam;
       // 校验 session 是否存在，不存在则回退到最新有效 session
-      const check = await fetch(`/api/classroom/${id}`);
+      const check = await fetch(api(`/api/classroom/${id}`));
       if (!check.ok) {
         try {
-          const latest = await (await fetch('/api/classroom/latest')).json();
+          const latest = await (await fetch(api('/api/classroom/latest'))).json();
           if (latest?.id) {
             id = latest.id;
             const url = new URL(window.location.href);
@@ -134,7 +134,7 @@ export default function ScreenPage() {
       let retryTimer: ReturnType<typeof setTimeout> | null = null;
       function connect() {
         if (closed) return;
-        const es = new EventSource(`/api/events/${id}`);
+        const es = new EventSource(api(`/api/events/${id}`));
         esRef.current = es;
         es.onmessage = (e) => {
           try {
@@ -184,7 +184,7 @@ export default function ScreenPage() {
 
   async function load(id: string) {
     try {
-      const res = await fetch(`/api/classroom/${id}`);
+      const res = await fetch(api(`/api/classroom/${id}`));
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const s = await res.json();
       setSummary(s.summary);
@@ -209,7 +209,7 @@ export default function ScreenPage() {
   }
   async function fetchAnalytics(id: string, moduleId = 'A01_BASELINE') {
     try {
-      const a = await (await fetch(`/api/analytics?sessionId=${id}&moduleId=${moduleId}`)).json();
+      const a = await (await fetch(api(`/api/analytics?sessionId=${id}&moduleId=${moduleId}`))).json();
       setAnalytics(a);
     } catch {
       /* noop */
@@ -217,7 +217,7 @@ export default function ScreenPage() {
   }
   async function fetchScreening(id: string) {
     try {
-      const d = await (await fetch(`/api/screening/analytics?sessionId=${id}`)).json();
+      const d = await (await fetch(api(`/api/screening/analytics?sessionId=${id}`))).json();
       setScreening(d);
     } catch {
       /* noop */
@@ -227,7 +227,7 @@ export default function ScreenPage() {
     try {
       const pub = process.env.NEXT_PUBLIC_APP_URL;
       const eb = pub && !new URL(pub).hostname.includes('localhost') ? pub : window.location.origin;
-      const q = await (await fetch(`/api/classroom/${id}/qrcode?host=${encodeURIComponent(eb)}`)).json();
+      const q = await (await fetch(api(`/api/classroom/${id}/qrcode?host=${encodeURIComponent(eb)}`))).json();
       setQr({ dataUrl: q.dataUrl, joinUrl: q.joinUrl });
     } catch {
       /* noop */
@@ -235,7 +235,7 @@ export default function ScreenPage() {
   }
   async function fetchThoughts(id: string) {
     try {
-      const r = await (await fetch(`/api/classroom/${id}/thoughts`)).json();
+      const r = await (await fetch(api(`/api/classroom/${id}/thoughts`))).json();
       setThoughts(r?.thoughts ?? []);
     } catch {
       /* noop */
@@ -348,7 +348,7 @@ function ContentPageHost({ subState }: { subState: string }) {
     let closed = false;
     (async () => {
       for (const g of ['A0', 'A1', 'A2']) {        try {
-          const r = await fetch(`/api/pages?group=${g}`);
+          const r = await fetch(api(`/api/pages?group=${g}`));
           const d = await r.json();
           const p = (d.pages ?? []).find((x: any) => x.id === pageId);
           if (p) {
@@ -442,7 +442,7 @@ function A01Screen({
     setChatInput('');
     setSending(true);
     try {
-      const res = await fetch('/api/screen/demo-chat', {
+      const res = await fetch(api('/api/screen/demo-chat'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ messages: next }),
@@ -739,7 +739,7 @@ function A03Screen({ module, analytics, total, summary, startedAt, subState, ses
 
   useEffect(() => {
     if (subState === 'compare' && sessionId) {
-      fetch(`/api/analytics?sessionId=${sessionId}&moduleId=A01_BASELINE`).then((r) => r.json()).then(setBaseline).catch(() => {});
+      fetch(api(`/api/analytics?sessionId=${sessionId}&moduleId=A01_BASELINE`)).then((r) => r.json()).then(setBaseline).catch(() => {});
     }
   }, [subState, sessionId]);
 

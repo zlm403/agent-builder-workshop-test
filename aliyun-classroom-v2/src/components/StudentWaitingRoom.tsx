@@ -1,3 +1,4 @@
+import { api } from '@/lib/basePath';
 import { useState } from 'react';
 
 interface Props {
@@ -19,7 +20,7 @@ export default function StudentWaitingRoom({ anonymousId, sessionId }: Props) {
     setBusy(true);
     setErr('');
     try {
-      const res = await fetch(`/api/classroom/${sessionId}/thoughts`, {
+      const res = await fetch(api(`/api/classroom/${sessionId}/thoughts`), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ anonymousId, text: t }),

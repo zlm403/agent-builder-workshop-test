@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from 'react';
 import { A0_INTRO, A0_VOTE_OPTIONS, A0_REVEAL } from '@/features/avatarLesson/config';
 import ContentSlot from './ContentSlot';
 import { usePageOverrides, pageText } from '@/lib/usePageText';
+import { api } from '@/lib/basePath';
 
 interface A0Data {
   total: number;
@@ -42,7 +43,7 @@ export default function AvatarA0Screen({
     let closed = false;
     async function fetchIt() {
       try {
-        const r = await fetch(`/api/avatar/a0/analytics?sessionId=${sessionId}`);
+        const r = await fetch(api(`/api/avatar/a0/analytics?sessionId=${sessionId}`));
         if (!closed) setData(await r.json());
       } catch { /* noop */ }
     }

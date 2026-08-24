@@ -8,7 +8,7 @@ import { useEffect, useState } from 'react';
 import { A2_STAGES } from '@/features/siteEntry/config';
 import ContentSlot from './ContentSlot';
 import { usePageOverrides, pageText } from '@/lib/usePageText';
-import { withBasePath } from '@/lib/basePath';
+import { withBasePath, api } from '@/lib/basePath';
 
 interface A2Item {
   order: number;
@@ -37,7 +37,7 @@ export default function SiteEntryScreen({
     let closed = false;
     async function fetchIt() {
       try {
-        const r = await fetch(`/api/site-entry/analytics?sessionId=${sessionId}`);
+        const r = await fetch(api(`/api/site-entry/analytics?sessionId=${sessionId}`));
         if (!closed) setData(await r.json());
       } catch { /* noop */ }
     }

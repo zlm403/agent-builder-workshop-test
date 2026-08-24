@@ -14,3 +14,8 @@ export function withBasePath(p: string): string {
   if (p.startsWith(`${BASE_PATH}/`)) return p;
   return `${BASE_PATH}${p}`;
 }
+
+// fetch/EventSource 的路径也要带 basePath（裸 fetch(api('/api/...')) 不会被 Next 自动加前缀）。
+export function api(p: string): string {
+  return withBasePath(p);
+}

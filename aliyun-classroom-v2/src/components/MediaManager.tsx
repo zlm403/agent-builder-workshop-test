@@ -5,6 +5,7 @@
 // =========================================================
 import { useCallback, useEffect, useState } from 'react';
 import { slotLabel } from '@/lib/slots';
+import { api } from '@/lib/basePath';
 
 interface MediaItem {
   id: string;
@@ -65,8 +66,8 @@ export default function MediaManager({ onClose, initialSlot }: { onClose: () => 
   const load = useCallback(async () => {
     try {
       const [mediaR, slotsR] = await Promise.all([
-        fetch('/api/media?includeHidden=1'),
-        fetch('/api/pages/slots'),
+        fetch(api('/api/media?includeHidden=1')),
+        fetch(api('/api/pages/slots')),
       ]);
       const d = await mediaR.json();
       const sd = await slotsR.json();
@@ -91,7 +92,7 @@ export default function MediaManager({ onClose, initialSlot }: { onClose: () => 
     setBusy(true);
     setMsg('');
     try {
-      const r = await fetch('/api/media', {
+      const r = await fetch(api('/api/media'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title: title.trim(), kind, url: url.trim() || undefined, content: content.trim() || undefined, slot }),
@@ -105,12 +106,12 @@ export default function MediaManager({ onClose, initialSlot }: { onClose: () => 
 
   async function remove(id: string) {
     if (!window.confirm('删除这个内容块？')) return;
-    await fetch(`/api/media?id=${id}`, { method: 'DELETE' });
+    await fetch(api(`/api/media?id=${id}`), { method: 'DELETE' });
     await load();
   }
 
   async function toggleHidden(id: string, hidden: boolean) {
-    await fetch('/api/media', {
+    await fetch(api('/api/media'), {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id, hidden }),
@@ -124,7 +125,7 @@ export default function MediaManager({ onClose, initialSlot }: { onClose: () => 
     try {
       const fd = new FormData();
       fd.append('file', file);
-      const r = await fetch('/api/media/upload', { method: 'POST', body: fd });
+      const r = await fetch(api('/api/media/upload'), { method: 'POST', body: fd });
       const d = await r.json();
       if (!r.ok) { setMsg(d.error?.message || '上传失败'); return; }
       setUrl(d.url);
@@ -142,7 +143,7 @@ export default function MediaManager({ onClose, initialSlot }: { onClose: () => 
     setAiBusy(true);
     setMsg('');
     try {
-      const r = await fetch('/api/media/ai', {
+      const r = await fetch(api('/api/media/ai'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt: aiPrompt.trim(), slot }),

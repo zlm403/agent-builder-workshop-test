@@ -8,6 +8,7 @@
 // =========================================================
 import { useEffect, useRef, useState } from 'react';
 import { findTip } from '@/lib/world/tips';
+import { api } from '@/lib/basePath';
 
 interface WorldLife {
   id: string;
@@ -107,7 +108,7 @@ export default function WorldScreen({ sessionId }: { sessionId: string }) {
     let closed = false;
     async function load() {
       try {
-        const r = await fetch(`/api/world?view=screen&sessionId=${sessionId}`);
+        const r = await fetch(api(`/api/world?view=screen&sessionId=${sessionId}`));
         const d = await r.json();
         if (!closed) { dataRef.current = d; setData(d); }
       } catch { /* noop */ }
@@ -122,7 +123,7 @@ export default function WorldScreen({ sessionId }: { sessionId: string }) {
     let closed = false;
     async function loadPopup() {
       try {
-        const r = await fetch('/api/world/popup', { cache: 'no-store' });
+        const r = await fetch(api('/api/world/popup'), { cache: 'no-store' });
         const d = await r.json();
         if (!closed) setPopup({ show: !!d.show, content: d.content ?? null });
       } catch { /* noop */ }
@@ -137,7 +138,7 @@ export default function WorldScreen({ sessionId }: { sessionId: string }) {
     let closed = false;
     async function loadVisual() {
       try {
-        const r = await fetch('/api/world/visual', { cache: 'no-store' });
+        const r = await fetch(api('/api/world/visual'), { cache: 'no-store' });
         const d = await r.json();
         if (!closed) visualRef.current = { speed: Number(d.speed) || 1, brightness: Number(d.brightness) || 1 };
       } catch { /* noop */ }

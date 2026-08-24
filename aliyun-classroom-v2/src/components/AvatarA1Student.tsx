@@ -8,6 +8,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { A1_STAGES } from '@/features/avatarLesson/config';
 import { usePageOverrides, pageText } from '@/lib/usePageText';
+import { api } from '@/lib/basePath';
 
 interface Bubble {
   role: 'ai' | 'user';
@@ -59,7 +60,7 @@ export default function AvatarA1Student({
     if (!anonymousId || !sessionId) return;
     (async () => {
       try {
-        const res = await fetch(`/api/avatar/a1/state?sessionId=${sessionId}&anonymousId=${anonymousId}`);
+        const res = await fetch(api(`/api/avatar/a1/state?sessionId=${sessionId}&anonymousId=${anonymousId}`));
         const d = await res.json();
         if (d.chatLog && Array.isArray(d.chatLog)) {
           setBubbles(d.chatLog.filter((m: any) => m.role === 'ai' || m.role === 'user'));
@@ -87,7 +88,7 @@ export default function AvatarA1Student({
     setInput('');
     setBubbles((b) => [...b, { role: 'user', content: text }]);
     try {
-      const res = await fetch('/api/avatar/a1/chat', {
+      const res = await fetch(api('/api/avatar/a1/chat'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ anonymousId, sessionId, stage: stage.key, message: text }),
@@ -102,7 +103,7 @@ export default function AvatarA1Student({
       // c5 AI采访完成 → 自动生成 Skill
       if (stage.key === 'c5' && d.done) {
         setSkillLoading(true);
-        const sres = await fetch('/api/avatar/a1/skill', {
+        const sres = await fetch(api('/api/avatar/a1/skill'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ anonymousId, sessionId }),
@@ -123,7 +124,7 @@ export default function AvatarA1Student({
     try {
       const msg = '现在用我的分身 Skill，为最近一件真实的事写一条朋友圈。写完我来看看像不像我。';
       setBubbles((b) => [...b, { role: 'user', content: msg }]);
-      const res = await fetch('/api/avatar/a1/chat', {
+      const res = await fetch(api('/api/avatar/a1/chat'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ anonymousId, sessionId, stage: 'c6', message: msg }),
@@ -142,7 +143,7 @@ export default function AvatarA1Student({
     try {
       const msg = '这一版还不太像我说的话，请你根据我的分身档案再改一版，改得更像我。';
       setBubbles((b) => [...b, { role: 'user', content: msg }]);
-      const res = await fetch('/api/avatar/a1/chat', {
+      const res = await fetch(api('/api/avatar/a1/chat'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ anonymousId, sessionId, stage: 'c6', message: msg }),
@@ -160,7 +161,7 @@ export default function AvatarA1Student({
     if (!text || busy || !stage) return;
     setBusy(true);
     try {
-      const res = await fetch('/api/avatar/a1/chat', {
+      const res = await fetch(api('/api/avatar/a1/chat'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ anonymousId, sessionId, stage: 'c6', message: `我的最终朋友圈：${text}。请提交。` }),

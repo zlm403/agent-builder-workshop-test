@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { getStyleProfile } from '@/lib/styleProfiles';
+import { api } from '@/lib/basePath';
 import { A1_REVIEW } from '@/lib/a1Review';
 import StudentWaitingRoom from '@/components/StudentWaitingRoom';
 import VocabBrowser from '@/components/VocabBrowser';
@@ -139,7 +140,7 @@ export default function StudentPage() {
     let retryTimer: ReturnType<typeof setTimeout> | null = null;
     function connect() {
       if (closed) return;
-      const es = new EventSource(`/api/events/${sessionId}`);
+      const es = new EventSource(api(`/api/events/${sessionId}`));
       esRef.current = es;
       es.onmessage = (e) => {
         try {
@@ -240,7 +241,7 @@ export default function StudentPage() {
   }, [current?.type, current?.id, screeningResult]);
 
   async function doResume(token: string) {
-    const res = await fetch('/api/student/resume', {
+    const res = await fetch(api('/api/student/resume'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ resumeToken: token }),
@@ -260,7 +261,7 @@ export default function StudentPage() {
 
   // 扫码进入：用旧 token 尝试恢复，但仅当 token 属于当前课堂才恢复，否则清掉重新报名
   async function resumeForCode(token: string, code: string) {
-    const res = await fetch('/api/student/resume', {
+    const res = await fetch(api('/api/student/resume'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ resumeToken: token }),
@@ -288,7 +289,7 @@ export default function StudentPage() {
     const useInvitation = invitationCodeOverride ?? invitationCode;
     setBusy(true);
     setMessage('');
-    const res = await fetch('/api/student/join', {
+    const res = await fetch(api('/api/student/join'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -324,7 +325,7 @@ export default function StudentPage() {
     const id = anonId ?? anonymousId;
     if (!id) return;
     try {
-      const res = await fetch(`/api/student/${id}`);
+      const res = await fetch(api(`/api/student/${id}`));
       if (!res.ok) {
         // participant 已被删除（重置/关闭），清除本地状态回到加入页
         localStorage.removeItem('studentResumeToken');
@@ -380,7 +381,7 @@ export default function StudentPage() {
     if (attachVocab) vocabIncludedRef.current = true;
     setTurns((t) => [...t, { role: 'user', content: text }]);
     try {
-      const res = await fetch(`/api/student/${anonymousId}/ai-chat`, {
+      const res = await fetch(api(`/api/student/${anonymousId}/ai-chat`), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: text, materialReferenced: attachVocab, attachVocab }),
@@ -404,7 +405,7 @@ export default function StudentPage() {
   async function submitTask() {
     setBusy(true);
     setMessage('');
-    const res = await fetch(`/api/student/${anonymousId}/ai-chat`, {
+    const res = await fetch(api(`/api/student/${anonymousId}/ai-chat`), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ submit: true, finalText }),
@@ -423,7 +424,7 @@ export default function StudentPage() {
   async function submit() {
     setBusy(true);
     setMessage('');
-    const res = await fetch('/api/module/submit', {
+    const res = await fetch(api('/api/module/submit'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ anonymousId, moduleId: current?.id, data: form }),
@@ -443,7 +444,7 @@ export default function StudentPage() {
     setRunLoading(true);
     setRunError('');
     try {
-      const res = await fetch('/api/agent/run', {
+      const res = await fetch(api('/api/agent/run'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ anonymousId, scenario }),
@@ -476,7 +477,7 @@ export default function StudentPage() {
     setBusy(true);
     setMessage('');
     try {
-      const res = await fetch('/api/screening/submit', {
+      const res = await fetch(api('/api/screening/submit'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ anonymousId, answer }),
@@ -501,7 +502,7 @@ export default function StudentPage() {
     setBusy(true);
     setMessage('');
     try {
-      const res = await fetch('/api/screening/followup', {
+      const res = await fetch(api('/api/screening/followup'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ anonymousId, followupAnswer: answer }),

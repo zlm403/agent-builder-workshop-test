@@ -9,6 +9,7 @@ import CogCompare from './CogCompare';
 import MediaPlayer from './MediaPlayer';
 import ContentSlot from './ContentSlot';
 import { usePageOverrides, pageText, useCurrentPageId } from '@/lib/usePageText';
+import { api } from '@/lib/basePath';
 import { useVideoPreload } from '@/lib/useVideoPreload';
 
 interface A1Data {
@@ -38,7 +39,7 @@ export default function AvatarA1Screen({
     let closed = false;
     async function fetchIt() {
       try {
-        const r = await fetch(`/api/avatar/a1/analytics?sessionId=${sessionId}`);
+        const r = await fetch(api(`/api/avatar/a1/analytics?sessionId=${sessionId}`));
         if (!closed) setData(await r.json());
       } catch { /* noop */ }
     }

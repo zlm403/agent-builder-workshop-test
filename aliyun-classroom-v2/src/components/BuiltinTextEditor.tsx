@@ -10,6 +10,7 @@
 // =========================================================
 import { useEffect, useState } from 'react';
 import { getFieldDefs, getBannerFields } from '@/lib/pageTextFields';
+import { api } from '@/lib/basePath';
 import { REMOVED } from '@/lib/usePageText';
 
 interface PageDef {
@@ -60,7 +61,7 @@ export default function BuiltinTextEditor({ page, onClose, onSaved }: { page: Pa
           if (v) ov[f.key] = v;
         }
       }
-      const r = await fetch('/api/pages', {
+      const r = await fetch(api('/api/pages'), {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: page.id, overrides: ov }),

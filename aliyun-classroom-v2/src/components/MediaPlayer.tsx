@@ -5,7 +5,7 @@
 // =========================================================
 import { useEffect, useState } from 'react';
 import SmartVideo from '@/components/SmartVideo';
-import { withBasePath } from '@/lib/basePath';
+import { withBasePath, api } from '@/lib/basePath';
 
 interface MediaItem {
   id: string;
@@ -24,7 +24,7 @@ export default function MediaPlayer({ slot, title }: { slot: string; title: stri
     let closed = false;
     async function fetchIt() {
       try {
-        const r = await fetch(`/api/media?slot=${encodeURIComponent(slot)}`);
+        const r = await fetch(api(`/api/media?slot=${encodeURIComponent(slot)}`));
         const d = await r.json();
         if (!closed && d.items) setItems(d.items);
       } catch { /* noop */ }

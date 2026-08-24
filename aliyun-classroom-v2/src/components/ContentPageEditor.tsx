@@ -1,4 +1,5 @@
 'use client';
+import { api } from '@/lib/basePath';
 // =========================================================
 // 教师端 · 内容页编辑器（编辑某一内容页里的内容块）
 // 一个内容页 = 大标题 + 一串内容块（文字/图片/视频/链接/网页），
@@ -39,7 +40,7 @@ export default function ContentPageEditor({ pageId, onClose }: { pageId: string;
 
   const load = useCallback(async () => {
     try {
-      const r = await fetch(`/api/media?slot=${encodeURIComponent(slot)}&includeHidden=1`);
+      const r = await fetch(api(`/api/media?slot=${encodeURIComponent(slot)}&includeHidden=1`));
       const d = await r.json();
       if (d.items) setItems(d.items);
     } catch { /* noop */ }
@@ -53,7 +54,7 @@ export default function ContentPageEditor({ pageId, onClose }: { pageId: string;
     setBusy(true);
     setMsg('');
     try {
-      const r = await fetch('/api/media', {
+      const r = await fetch(api('/api/media'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -73,17 +74,17 @@ export default function ContentPageEditor({ pageId, onClose }: { pageId: string;
 
   async function remove(id: string) {
     if (!window.confirm('删除这个内容块？')) return;
-    await fetch(`/api/media?id=${id}`, { method: 'DELETE' });
+    await fetch(api(`/api/media?id=${id}`), { method: 'DELETE' });
     await load();
   }
 
   async function toggleHidden(id: string, hidden: boolean) {
-    await fetch('/api/media', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, hidden }) });
+    await fetch(api('/api/media'), { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, hidden }) });
     await load();
   }
 
   async function setAlign(id: string, align: string) {
-    await fetch('/api/media', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, align }) });
+    await fetch(api('/api/media'), { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, align }) });
     await load();
   }
 
@@ -96,7 +97,7 @@ export default function ContentPageEditor({ pageId, onClose }: { pageId: string;
     // 更新 sort 顺序
     setItems(arr);
     for (let i = 0; i < arr.length; i++) {
-      await fetch('/api/media', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: arr[i].id, sort: i }) });
+      await fetch(api('/api/media'), { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: arr[i].id, sort: i }) });
     }
     await load();
   }
@@ -107,7 +108,7 @@ export default function ContentPageEditor({ pageId, onClose }: { pageId: string;
     try {
       const fd = new FormData();
       fd.append('file', file);
-      const r = await fetch('/api/media/upload', { method: 'POST', body: fd });
+      const r = await fetch(api('/api/media/upload'), { method: 'POST', body: fd });
       const d = await r.json();
       if (!r.ok) { setMsg(d.error?.message || '上传失败'); return; }
       setUrl(d.url);
@@ -126,7 +127,7 @@ export default function ContentPageEditor({ pageId, onClose }: { pageId: string;
     setBusy(true);
     setMsg('');
     try {
-      const r = await fetch(`/api/media?slot=${encodeURIComponent(slot)}`, { method: 'DELETE' });
+      const r = await fetch(api(`/api/media?slot=${encodeURIComponent(slot)}`), { method: 'DELETE' });
       const d = await r.json();
       if (!r.ok) { setMsg(d.error?.message || '清空失败'); return; }
       await load();

@@ -1,4 +1,5 @@
 'use client';
+import { api } from '@/lib/basePath';
 // =========================================================
 // 内置页文字覆盖 hook（客户端）
 // 大屏组件渲染内置页时，用此 hook 取该页的 overrides，
@@ -51,7 +52,7 @@ export function usePageOverrides(subState: string | null | undefined): Record<st
         if (cached && Date.now() - cached.ts < TTL) {
           pages = cached.pages;
         } else {
-          const r = await fetch(`/api/pages?group=${g}`);
+          const r = await fetch(api(`/api/pages?group=${g}`));
           const d = await r.json();
           pages = d.pages ?? [];
           _cache.set(g, { ts: Date.now(), pages });
@@ -85,7 +86,7 @@ export function useCurrentPageId(subState: string | null | undefined): string | 
         if (cached && Date.now() - cached.ts < TTL) {
           pages = cached.pages;
         } else {
-          const r = await fetch(`/api/pages?group=${g}`);
+          const r = await fetch(api(`/api/pages?group=${g}`));
           const d = await r.json();
           pages = d.pages ?? [];
           _cache.set(g, { ts: Date.now(), pages });

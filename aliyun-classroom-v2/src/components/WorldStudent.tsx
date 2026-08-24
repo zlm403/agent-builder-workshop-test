@@ -7,6 +7,7 @@
 // =========================================================
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { findTip } from '@/lib/world/tips';
+import { api } from '@/lib/basePath';
 
 interface MyLife {
   id: string;
@@ -73,7 +74,7 @@ export default function WorldStudent({
 
   async function load() {
     try {
-      const r = await fetch(`/api/world?anonymousId=${anonymousId}&sessionId=${sessionId}`);
+      const r = await fetch(api(`/api/world?anonymousId=${anonymousId}&sessionId=${sessionId}`));
       const d = await r.json();
       setData(d);
     } catch { /* noop */ }
@@ -86,7 +87,7 @@ export default function WorldStudent({
     let closed = false;
     async function loadTip() {
       try {
-        const r = await fetch('/api/world/popup', { cache: 'no-store' });
+        const r = await fetch(api('/api/world/popup'), { cache: 'no-store' });
         const d = await r.json();
         if (!closed) {
           const c = d.content as string | null;
@@ -113,7 +114,7 @@ export default function WorldStudent({
     setMsg('');
     try {
       // AI 基于这句话生成完整生命（mode=create）
-      const res = await fetch('/api/world/ai', {
+      const res = await fetch(api('/api/world/ai'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ anonymousId, message: text, mode: 'create' }),
@@ -140,7 +141,7 @@ export default function WorldStudent({
     setBusy(true);
     setMsg('');
     try {
-      const res = await fetch('/api/world/life', {
+      const res = await fetch(api('/api/world/life'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -172,7 +173,7 @@ export default function WorldStudent({
     setChatBusy(true);
     setChatLog((log) => [...log, { role: 'user', text }]);
     try {
-      const res = await fetch('/api/world/ai', {
+      const res = await fetch(api('/api/world/ai'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ anonymousId, message: text, mode }),

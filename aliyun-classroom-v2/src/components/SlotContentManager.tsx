@@ -9,6 +9,7 @@
 // =========================================================
 import { useCallback, useEffect, useState } from 'react';
 import { CONTENT_SLOTS } from '@/lib/slots';
+import { api } from '@/lib/basePath';
 
 interface MediaItem {
   id: string;
@@ -46,7 +47,7 @@ export default function SlotContentManager({
 
   const load = useCallback(async () => {
     try {
-      const r = await fetch('/api/media?includeHidden=1');
+      const r = await fetch(api('/api/media?includeHidden=1'));
       const d = await r.json();
       if (d.items) setItems(d.items);
     } catch { /* noop */ }
@@ -61,7 +62,7 @@ export default function SlotContentManager({
   for (const it of items) if (it.slot in bySlot) bySlot[it.slot].push(it);
 
   async function toggleHidden(id: string, hidden: boolean) {
-    await fetch('/api/media', {
+    await fetch(api('/api/media'), {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id, hidden }),
@@ -71,7 +72,7 @@ export default function SlotContentManager({
 
   async function remove(id: string) {
     if (!window.confirm('删除这个内容块？')) return;
-    await fetch(`/api/media?id=${id}`, { method: 'DELETE' });
+    await fetch(api(`/api/media?id=${id}`), { method: 'DELETE' });
     await load();
   }
 

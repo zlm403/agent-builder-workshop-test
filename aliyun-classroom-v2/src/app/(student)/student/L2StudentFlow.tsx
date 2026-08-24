@@ -2,6 +2,7 @@
 
 import { Fragment, useEffect, useRef, useState } from 'react';
 import { KNOWLEDGE_DOCS, SKILL_BLOCKS } from '@/lib/courseConfig';
+import { api } from '@/lib/basePath';
 
 // 与后端 L2ProcessData 对齐的最小结构（前端只用，不做严格类型校验）
 type SkillVersion = {
@@ -87,7 +88,7 @@ export default function L2StudentFlow({
     let active = true;
     (async () => {
       try {
-        const res = await fetch(`/api/l2/process?anonymousId=${encodeURIComponent(anonymousId)}`);
+        const res = await fetch(api(`/api/l2/process?anonymousId=${encodeURIComponent(anonymousId)}`));
         const d = await res.json();
         if (active) setProcess(d.process ?? defaultProcess());
       } catch {
@@ -106,7 +107,7 @@ export default function L2StudentFlow({
     const next = { ...base, ...partial };
     setProcess(next);
     try {
-      await fetch('/api/l2/process', {
+      await fetch(api('/api/l2/process'), {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ anonymousId, data: next }),
@@ -124,7 +125,7 @@ export default function L2StudentFlow({
         const base = process ?? defaultProcess();
         const next = { ...base, ...payload };
         setProcess(next);
-        await fetch('/api/l2/process', {
+        await fetch(api('/api/l2/process'), {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ anonymousId, data: next }),
@@ -134,7 +135,7 @@ export default function L2StudentFlow({
       // 导致 submit 覆盖 A06_TRY 中由 /api/l2/run、/api/l2/check 写入的结果
       let toSubmit: any = payload ?? process ?? {};
       try {
-        const r = await fetch(`/api/l2/process?anonymousId=${encodeURIComponent(anonymousId)}`);
+        const r = await fetch(api(`/api/l2/process?anonymousId=${encodeURIComponent(anonymousId)}`));
         if (r.ok) {
           const d = await r.json();
           if (d.process) toSubmit = { ...d.process, ...(payload ?? {}) };
@@ -142,7 +143,7 @@ export default function L2StudentFlow({
       } catch {
         /* ignore */
       }
-      const res = await fetch('/api/module/submit', {
+      const res = await fetch(api('/api/module/submit'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ anonymousId, moduleId: current.id, data: toSubmit }),
@@ -491,7 +492,7 @@ function A06Try({
     const skill = skillOverride ?? process?.skill?.initialVersion ?? blankSkill();
     setLoadingRun(true);
     try {
-      const res = await fetch('/api/l2/run', {
+      const res = await fetch(api('/api/l2/run'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ anonymousId, action, knowledgeSelection: selection, skill }),
@@ -519,7 +520,7 @@ function A06Try({
     setMessage('');
     try {
       // 把当前运行结果和 Skill 一起传给后端，避免因 DB 延迟/新学生导致 400
-      const res = await fetch('/api/l2/check', {
+      const res = await fetch(api('/api/l2/check'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ anonymousId, firstRun: run, skill: editSkill }),

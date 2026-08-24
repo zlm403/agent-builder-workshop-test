@@ -1,4 +1,5 @@
 'use client';
+import { api } from '@/lib/basePath';
 // =========================================================
 // A0 + A1 + P2 + P3 · 教师端环节页面序列控制（PPT 式）
 // 每个环节由一串"页"组成：内置功能页（三问/判定/揭晓/滑块/共生缸…）+ 内容页（文字/图/视频/链接/网页）
@@ -123,7 +124,7 @@ export default function AvatarTeacher({
   const load = useCallback(async () => {
     if (!group) return;
     try {
-      const r = await fetch(`/api/pages?group=${group}`);
+      const r = await fetch(api(`/api/pages?group=${group}`));
       const d = await r.json();
       if (d.pages) setPages(d.pages);
     } catch { /* noop */ }
@@ -166,7 +167,7 @@ export default function AvatarTeacher({
     if (busyLocal) return;
     setBusyLocal(true);
     try {
-      await fetch('/api/pages', {
+      await fetch(api('/api/pages'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ group, afterId, title: '新页面' }),
@@ -179,7 +180,7 @@ export default function AvatarTeacher({
 
   async function toggleHidden(p: PageDef) {
     const nextHidden = !p.hidden;
-    await fetch('/api/pages', {
+    await fetch(api('/api/pages'), {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id: p.id, hidden: nextHidden }),
@@ -203,7 +204,7 @@ export default function AvatarTeacher({
     if (j < 0 || j >= pages.length) return;
     const ids = pages.map((x) => x.id);
     const t = ids[idx]; ids[idx] = ids[j]; ids[j] = t;
-    await fetch('/api/pages', {
+    await fetch(api('/api/pages'), {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ group, order: ids }),
@@ -213,7 +214,7 @@ export default function AvatarTeacher({
 
   async function saveEdit() {
     if (!editingId) return;
-    await fetch('/api/pages', {
+    await fetch(api('/api/pages'), {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id: editingId, title: editTitle }),
@@ -224,7 +225,7 @@ export default function AvatarTeacher({
 
   async function remove(p: PageDef) {
     if (!window.confirm(`确定删除「${pageLabel(p)}」这一页吗？`)) return;
-    await fetch(`/api/pages?id=${p.id}`, { method: 'DELETE' });
+    await fetch(api(`/api/pages?id=${p.id}`), { method: 'DELETE' });
     await load();
   }
 

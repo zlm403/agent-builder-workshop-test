@@ -8,6 +8,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { A2_STAGES } from '@/features/siteEntry/config';
 import { usePageOverrides, pageText } from '@/lib/usePageText';
+import { api } from '@/lib/basePath';
 
 interface Bubble {
   role: 'user' | 'assistant';
@@ -61,7 +62,7 @@ export default function SiteEntryStudent({
     if (!anonymousId || !sessionId) return;
     (async () => {
       try {
-        const r = await fetch(`/api/site-entry/state?sessionId=${sessionId}&anonymousId=${anonymousId}`);
+        const r = await fetch(api(`/api/site-entry/state?sessionId=${sessionId}&anonymousId=${anonymousId}`));
         const d = await r.json();
         if (Array.isArray(d.team)) setTeam(d.team);
         if (Array.isArray(d.chatLog)) setBubbles(d.chatLog.filter((m: any) => m.role === 'user' || m.role === 'assistant'));
@@ -95,7 +96,7 @@ export default function SiteEntryStudent({
     setInput('');
     setBubbles((b) => [...b, { role: 'user', content: text }]);
     try {
-      const res = await fetch('/api/site-entry/chat', {
+      const res = await fetch(api('/api/site-entry/chat'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ anonymousId, sessionId, message: text }),
@@ -138,7 +139,7 @@ export default function SiteEntryStudent({
     }
     setBusy(true);
     try {
-      await fetch('/api/site-entry/submit', {
+      await fetch(api('/api/site-entry/submit'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ anonymousId, sessionId, title: siteTitle }),

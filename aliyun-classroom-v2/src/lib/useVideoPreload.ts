@@ -11,6 +11,7 @@ import { useEffect } from 'react';
 import { getVideoBase } from '@/lib/video-src';
 import { cacheVideo, getCachedVideo } from '@/lib/videoCache';
 import type { A1Stage } from '@/features/avatarLesson/config';
+import { api } from '@/lib/basePath';
 
 // 下载单个视频（base 源优先，失败回退云端源），成功后入缓存
 async function downloadAndCache(videoUrl: string, base: string | null): Promise<boolean> {
@@ -49,7 +50,7 @@ export function useVideoPreload(group: string, refKeyPrefix: string, stages: A1S
       try {
         const [base, pagesRes] = await Promise.all([
           getVideoBase(),
-          fetch(`/api/pages?group=${group}`).then((r) => r.json()),
+          fetch(api(`/api/pages?group=${group}`)).then((r) => r.json()),
         ]);
         for (const key of keys) {
           if (cancelled) return;
@@ -57,7 +58,7 @@ export function useVideoPreload(group: string, refKeyPrefix: string, stages: A1S
             (x: any) => x.kind === 'builtin' && x.refKey === `${refKeyPrefix}:${key}`,
           );
           if (!page?.id) continue;
-          const d = await (await fetch(`/api/media?slot=${encodeURIComponent(`page:${page.id}`)}`)).json();
+          const d = await (await fetch(api(`/api/media?slot=${encodeURIComponent(`page:${page.id}`)}`))).json();
           for (const it of d.items ?? []) {
             if (cancelled) return;
             if (it.kind !== 'video' || !it.url) continue;

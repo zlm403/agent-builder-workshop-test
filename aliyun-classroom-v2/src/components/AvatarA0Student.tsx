@@ -1,4 +1,5 @@
 'use client';
+import { api } from '@/lib/basePath';
 // =========================================================
 // A0 新版 · 学生端组件（覆盖 A0-1 三问 / A0-2 关系题 / A0-3 揭晓等待 / 滑杆）
 // =========================================================
@@ -46,7 +47,7 @@ export default function AvatarA0Student({
     setBusy(true);
     setMsg('');
     try {
-      const res = await fetch('/api/avatar/a0/questions', {
+      const res = await fetch(api('/api/avatar/a0/questions'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ anonymousId, sessionId, answers }),
