@@ -8,6 +8,8 @@
 //   A1_AVATAR     (avatar_flow)  A1 数字分身 · 六步连续对话
 // =========================================================
 
+import { withBasePath } from '@/lib/basePath';
+
 export const A0N_FIRST_MODULE = 'A0N_QUESTIONS';
 
 // ---- A0-1 三问 ----
@@ -24,14 +26,14 @@ export const A0_INTRO = {
   intro1: {
     eyebrow: '开头',
     title: '我们和 AI 第一次相遇的瞬间',
-    image: '/story/A0-1.jpg',
+    image: withBasePath('/story/A0-1.jpg'),
   },
   // P2 二维发展图 · 横轴时间 / 纵轴"人们开始用 AI 做什么"
   intro2: {
     eyebrow: '它走了多远',
     title: '从 ChatGPT-3.5 到今天，人们开始用 AI 做什么',
     body1: '每一段台阶，都代表一段"人们开始用它做什么"——越来越复杂、越来越向上。',
-    image: '/ai-timeline.html', // 张老师自制图后替换（现为占位）
+    image: withBasePath('/ai-timeline.html'), // 张老师自制图后替换（现为占位）
   },
   // P4 镜子 · "我们在哪儿？" 心理停顿
   mirror: {
@@ -46,7 +48,7 @@ export const A0_INTRO = {
     title: '这个东西，已经来了',
     body1: '就在我们身边，就在离我们不远处，有一个看不见的人工智能。不管我承认不承认，它就在身边，而且在不断地成长、不断地进化。',
     body2: '我们来看看，世界外面到底发生了什么事？',
-    image: '/story/A0-2.jpg',
+    image: withBasePath('/story/A0-2.jpg'),
     videos: [
       { title: '罗振宇 · 从工具到伙伴', url: 'https://www.toutiao.com/article/7590932729160532522/' },
       { title: '腾讯 · 当"AI 是伙伴"不再只是一句口号', url: 'https://news.qq.com/rain/a/20260804A0EPJN00' },
@@ -143,7 +145,7 @@ export const A0_REVEAL = {
     },
   },
   // 工具 vs 伙伴 两张对比图（张老师画）：左=工具·单打独斗，右=伙伴·军团
-  artImages: ['/story/A0-tool.webp', '/story/A0-partner.webp'],
+  artImages: [withBasePath('/story/A0-tool.webp'), withBasePath('/story/A0-partner.webp')],
 };
 
 // =========================================================
@@ -161,7 +163,7 @@ export interface A1Step {
 
 // A1 钩子开场（屏1 · 只显示一张孙悟空分身图，无文字）
 export const A1_HOOK = {
-  image: '/api/media/file/1786706693302-hi3j9o.webp',
+  image: withBasePath('/api/media/file/1786706693302-hi3j9o.webp'),
   alt: '孙悟空抱着手微笑，身后无数分身正在替他做事',
 };
 
@@ -262,7 +264,7 @@ export const A1_STAGES: A1Stage[] = [
     output: '万物皆可蒸馏的感受',
     teacherHint: '从"蒸馏自己"突然把梦想扩大到"万物"。',
     media: 'image',
-    mediaUrl: '/api/media/file/1786707334547-chfj9g.webp',
+    mediaUrl: withBasePath('/api/media/file/1786707334547-chfj9g.webp'),
   },
   // 屏12 · 梦想②一个人与一支队伍
   {
@@ -275,7 +277,7 @@ export const A1_STAGES: A1Stage[] = [
     output: '强烈对比的感受',
     teacherHint: '把宏大的梦想落回"我自己"：一个人 vs 一支队伍。',
     media: 'image',
-    mediaUrl: '/api/media/file/1786707336155-pi69mb.webp',
+    mediaUrl: withBasePath('/api/media/file/1786707336155-pi69mb.webp'),
   },
   // 屏13 · 现实：一人公司
   {

@@ -14,6 +14,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { getVideoBase } from '@/lib/video-src';
 import { isPreviewMode } from '@/lib/preview-mode';
+import { withBasePath } from '@/lib/basePath';
 import VideoPreviewPlaceholder from '@/components/VideoPreviewPlaceholder';
 
 export default function VideoSource({
@@ -59,8 +60,8 @@ export default function VideoSource({
   // 笔记本优先，云端兜底；浏览器按 <source> 顺序自动回退（base 已含协议域端口，直接拼 /videos/）
   const sources = [
     ...(base ? [`${base}/videos/${fileName}`] : []),
-    `/videos/${fileName}`,
-    `/api/media/file/${fileName}`,
+    withBasePath(`/videos/${fileName}`),
+    withBasePath(`/api/media/file/${fileName}`),
   ];
 
   useEffect(() => {

@@ -5,6 +5,8 @@
 // 团队用「一个 DeepSeek 模拟多角色」实现（方案 A）。
 // =========================================================
 
+import { withBasePath } from '@/lib/basePath';
+
 export interface A2Stage {
   key: string; // s1..s11
   name: string; // 阶段名
@@ -98,7 +100,7 @@ export const A2_STAGES: A2Stage[] = [
     output: '完成认知思考',
     teacherHint: '认知的三次重写：三件事（做事/学习/创造）对 AI 的认知转变。',
     media: 'embed',
-    mediaUrl: '/ai-cognition-shift.html',
+    mediaUrl: withBasePath('/ai-cognition-shift.html'),
   },
   {
     key: 's8',

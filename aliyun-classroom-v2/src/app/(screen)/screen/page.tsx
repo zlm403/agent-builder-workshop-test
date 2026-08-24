@@ -5,6 +5,7 @@ import VocabBrowser from '@/components/VocabBrowser';
 import { vocabText } from '@/lib/vocab';
 import { compareRounds } from '@/lib/analytics';
 import { KNOWLEDGE_DOCS, SKILL_BLOCKS } from '@/lib/courseConfig';
+import { withBasePath } from '@/lib/basePath';
 import AvatarA0Screen from '@/components/AvatarA0Screen';
 import AvatarA1Screen from '@/components/AvatarA1Screen';
 import SiteEntryScreen from '@/components/SiteEntryScreen';
@@ -1347,7 +1348,7 @@ function StoryScreen({
           </div>
         ) : (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={step.image} alt={step.caption ?? ''} style={{ width: 'min(94vw, 1600px)', maxHeight: '80vh', objectFit: 'contain', borderRadius: 16, boxShadow: '0 24px 80px rgba(0,0,0,0.5)' }} />
+          <img src={withBasePath(step.image || '')} alt={step.caption ?? ''} style={{ width: 'min(94vw, 1600px)', maxHeight: '80vh', objectFit: 'contain', borderRadius: 16, boxShadow: '0 24px 80px rgba(0,0,0,0.5)' }} />
         )}
       </div>
       <div className="story-foot">

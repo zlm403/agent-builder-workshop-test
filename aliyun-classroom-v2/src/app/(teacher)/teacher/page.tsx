@@ -9,6 +9,7 @@ import ContentPageEditor from '@/components/ContentPageEditor';
 import BuiltinTextEditor from '@/components/BuiltinTextEditor';
 import PreviewIframe from '@/components/PreviewIframe';
 import VideoServerSettings from '@/components/VideoServerSettings';
+import { withBasePath } from '@/lib/basePath';
 
 const pctOf = (n: number, base: number) => (base > 0 ? Math.round((n / base) * 100) : 0);
 
@@ -716,9 +717,9 @@ export default function TeacherPage() {
 
           {/* 角色导航入口 */}
           <div style={{ display: 'flex', gap: 16, marginTop: 24, paddingTop: 20, borderTop: '1px solid #1e293b' }}>
-            <a href="/teacher" style={navStyle}>教师端</a>
-            <a href={`/screen?code=${inviteCode || ''}`} style={navStyle}>大屏幕</a>
-            <a href="/student" style={navStyle}>学生端</a>
+            <a href={withBasePath('/teacher')} style={navStyle}>教师端</a>
+            <a href={withBasePath(`/screen?code=${inviteCode || ''}`)} style={navStyle}>大屏幕</a>
+            <a href={withBasePath('/student')} style={navStyle}>学生端</a>
           </div>
         </div>
       </div>
@@ -841,11 +842,11 @@ export default function TeacherPage() {
           >
             媒体库 🎬
           </button>
-          <a href={`/screen?sessionId=${sessionId}`} target="_blank" rel="noreferrer">
+          <a href={withBasePath(`/screen?sessionId=${sessionId}`)} target="_blank" rel="noreferrer">
             <button className="secondary">打开大屏 ↗</button>
           </a>
           {inviteCode && (
-            <a href={`/student?code=${inviteCode}`} target="_blank" rel="noreferrer">
+            <a href={withBasePath(`/student?code=${inviteCode}`)} target="_blank" rel="noreferrer">
               <button className="secondary">进入学生端 ↗</button>
             </a>
           )}
@@ -1224,10 +1225,10 @@ export default function TeacherPage() {
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <h3 style={{ margin: 0 }}>双屏预览</h3>
             <div style={{ display: 'flex', gap: 8 }}>
-              <a href={`/student?code=${inviteCode || ''}`} target="_blank" rel="noreferrer">
+              <a href={withBasePath(`/student?code=${inviteCode || ''}`)} target="_blank" rel="noreferrer">
                 <button className="secondary" style={{ fontSize: 11, padding: '4px 10px' }}>学生端 ↗</button>
               </a>
-              <a href={`/screen?sessionId=${sessionId || ''}`} target="_blank" rel="noreferrer">
+              <a href={withBasePath(`/screen?sessionId=${sessionId || ''}`)} target="_blank" rel="noreferrer">
                 <button className="secondary" style={{ fontSize: 11, padding: '4px 10px' }}>大屏 ↗</button>
               </a>
             </div>
@@ -1235,12 +1236,12 @@ export default function TeacherPage() {
           {/* 大屏预览 */}
           <div>
             <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 6 }}>大屏（投屏显示）</div>
-            <PreviewIframe src={`/screen?sessionId=${sessionId || ''}&preview=1`} title="大屏预览" maxWidth={600} />
+            <PreviewIframe src={withBasePath(`/screen?sessionId=${sessionId || ''}&preview=1`)} title="大屏预览" maxWidth={600} />
           </div>
           {/* 学生端预览 */}
           <div>
             <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 6 }}>学生端（手机工作台）</div>
-            <PreviewIframe src={`/student?code=${inviteCode || ''}&preview=1`} title="学生端预览" maxWidth={380} />
+            <PreviewIframe src={withBasePath(`/student?code=${inviteCode || ''}&preview=1`)} title="学生端预览" maxWidth={380} />
           </div>
         </div>
       </div>

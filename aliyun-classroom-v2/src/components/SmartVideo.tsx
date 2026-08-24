@@ -10,6 +10,7 @@ import { useEffect, useState } from 'react';
 import { getVideoBase } from '@/lib/video-src';
 import { getCachedVideo } from '@/lib/videoCache';
 import { isPreviewMode } from '@/lib/preview-mode';
+import { withBasePath } from '@/lib/basePath';
 import VideoPreviewPlaceholder from '@/components/VideoPreviewPlaceholder';
 
 interface SmartVideoProps extends React.VideoHTMLAttributes<HTMLVideoElement> {
@@ -80,7 +81,7 @@ export default function SmartVideo({ src, ...rest }: SmartVideoProps) {
       {base ? (
         <source key={`${base}${src.startsWith('/') ? '' : '/'}${src}`} src={`${base}${src.startsWith('/') ? '' : '/'}${src}`} />
       ) : null}
-      <source key={src} src={src} />
+      <source key={src} src={withBasePath(src)} />
     </video>
   );
 }

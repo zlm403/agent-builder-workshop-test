@@ -7,6 +7,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { getVideoBase } from '@/lib/video-src';
 import { isPreviewMode } from '@/lib/preview-mode';
+import { withBasePath } from '@/lib/basePath';
 import VideoPreviewPlaceholder from '@/components/VideoPreviewPlaceholder';
 
 export default function A1RealityVideo({ fileName }: { fileName: string }) {
@@ -75,8 +76,8 @@ export default function A1RealityVideo({ fileName }: { fileName: string }) {
         style={{ width: 'min(1200px, 92vw)', maxHeight: '74vh', borderRadius: 16, background: '#000' }}
       >
         {base ? <source src={`${base}/videos/${fileName}`} /> : null}
-        <source src={`/videos/${fileName}`} />
-        <source src={`/api/media/file/${fileName}`} />
+        <source src={withBasePath(`/videos/${fileName}`)} />
+        <source src={withBasePath(`/api/media/file/${fileName}`)} />
       </video>
       <div style={{ display: 'flex', gap: 12 }}>
         <button style={{ ...btn, ...(playing ? { opacity: 0.5, cursor: 'default' } : { background: 'rgba(34,197,94,0.15)', borderColor: 'rgba(34,197,94,0.5)', color: '#86efac' }) }} onClick={play} disabled={playing}>▶ 播放</button>

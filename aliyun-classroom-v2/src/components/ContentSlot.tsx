@@ -6,6 +6,7 @@
 // =========================================================
 import { useEffect, useState } from 'react';
 import SmartVideo from '@/components/SmartVideo';
+import { withBasePath } from '@/lib/basePath';
 
 interface MediaItem {
   id: string;
@@ -67,7 +68,7 @@ export default function ContentSlot({
           return (
             <div key={it.id} style={{ maxWidth: 1100, maxHeight: '50vh', display: 'flex', flexDirection: 'column', ...align }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={it.url || ''} alt={it.title} style={{ maxWidth: '100%', maxHeight: '50vh', objectFit: 'contain', borderRadius: 14 }} />
+              <img src={withBasePath(it.url || '')} alt={it.title} style={{ maxWidth: '100%', maxHeight: '50vh', objectFit: 'contain', borderRadius: 14 }} />
             </div>
           );
         }
@@ -81,13 +82,13 @@ export default function ContentSlot({
         if (it.kind === 'embed') {
           return (
             <div key={it.id} style={{ display: 'flex', flexDirection: 'column', ...align }}>
-              <iframe src={it.url || ''} title={it.title} style={{ width: 'min(1100px, 92vw)', height: '58vh', border: '1px solid rgba(251,146,60,.3)', borderRadius: 14, background: '#fff' }} />
+              <iframe src={withBasePath(it.url || '')} title={it.title} style={{ width: 'min(1100px, 92vw)', height: '58vh', border: '1px solid rgba(251,146,60,.3)', borderRadius: 14, background: '#fff' }} />
             </div>
           );
         }
         return (
           <div key={it.id} style={{ display: 'flex', flexDirection: 'column', ...align }}>
-            <a href={it.url || ''} target="_blank" rel="noreferrer" style={{ fontSize: 'clamp(18px,2.2vw,28px)', color: '#93c5fd', fontWeight: 700 }}>
+            <a href={withBasePath(it.url || '')} target="_blank" rel="noreferrer" style={{ fontSize: 'clamp(18px,2.2vw,28px)', color: '#93c5fd', fontWeight: 700 }}>
               {it.title || it.url}
             </a>
           </div>

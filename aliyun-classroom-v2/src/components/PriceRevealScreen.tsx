@@ -6,6 +6,7 @@
 // 本组件把 subState 转成 step 后 postMessage 给 iframe，老师无需在大屏上操作。
 // =========================================================
 import { useEffect, useRef } from 'react';
+import { withBasePath } from '@/lib/basePath';
 
 export default function PriceRevealScreen({ subState }: { subState: string | null }) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -35,7 +36,7 @@ export default function PriceRevealScreen({ subState }: { subState: string | nul
     <div style={{ position: 'absolute', inset: 0 }}>
       <iframe
         ref={iframeRef}
-        src="/price-reveal.html"
+        src={withBasePath('/price-reveal.html')}
         title="价格颁布"
         onLoad={() => {
           if (lastSent.current !== step) {

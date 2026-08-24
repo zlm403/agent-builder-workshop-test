@@ -6,6 +6,7 @@
 // 本组件把 subState 转成 step 后 postMessage 给 iframe，老师无需在大屏上操作。
 // =========================================================
 import { useEffect, useRef } from 'react';
+import { withBasePath } from '@/lib/basePath';
 
 export default function PainWallScreen({ subState }: { subState: string | null }) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -36,7 +37,7 @@ export default function PainWallScreen({ subState }: { subState: string | null }
     <div style={{ position: 'absolute', inset: 0 }}>
       <iframe
         ref={iframeRef}
-        src="/pain-wall.html"
+        src={withBasePath('/pain-wall.html')}
         title="痛点墙"
         onLoad={() => {
           if (lastSent.current !== step) {

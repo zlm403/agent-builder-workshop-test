@@ -8,6 +8,7 @@ import { useEffect, useState } from 'react';
 import { A2_STAGES } from '@/features/siteEntry/config';
 import ContentSlot from './ContentSlot';
 import { usePageOverrides, pageText } from '@/lib/usePageText';
+import { withBasePath } from '@/lib/basePath';
 
 interface A2Item {
   order: number;
@@ -68,7 +69,7 @@ export default function SiteEntryScreen({
             <div style={{ flex: 1, minHeight: 'calc(100vh - 80px)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 14 }}>
               {st.mediaUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={st.mediaUrl} alt={st.name} style={{ maxWidth: 'min(1500px, 96vw)', maxHeight: '82vh', objectFit: 'contain' }} />
+                <img src={withBasePath(st.mediaUrl)} alt={st.name} style={{ maxWidth: 'min(1500px, 96vw)', maxHeight: '82vh', objectFit: 'contain' }} />
               ) : (
                 <div style={{ color: 'var(--muted)', fontSize: 18 }}>图片位（等张老师给图）</div>
               )}
@@ -86,7 +87,7 @@ export default function SiteEntryScreen({
         if (st.media === 'embed' && st.mediaUrl) {
           return (
             <div style={{ flex: 1, minHeight: 'calc(100vh - 80px)', display: 'flex', alignItems: 'stretch', justifyContent: 'center' }}>
-              <iframe src={st.mediaUrl} title={st.name} style={{ width: 'min(1700px, 100%)', height: 'calc(100vh - 80px)', minHeight: '60vh', border: 'none', background: '#070b16', display: 'block', flex: '0 0 auto' }} />
+              <iframe src={withBasePath(st.mediaUrl)} title={st.name} style={{ width: 'min(1700px, 100%)', height: 'calc(100vh - 80px)', minHeight: '60vh', border: 'none', background: '#070b16', display: 'block', flex: '0 0 auto' }} />
             </div>
           );
         }

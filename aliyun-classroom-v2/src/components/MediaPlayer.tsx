@@ -5,6 +5,7 @@
 // =========================================================
 import { useEffect, useState } from 'react';
 import SmartVideo from '@/components/SmartVideo';
+import { withBasePath } from '@/lib/basePath';
 
 interface MediaItem {
   id: string;
@@ -57,7 +58,7 @@ export default function MediaPlayer({ slot, title }: { slot: string; title: stri
           return (
             <div key={it.id} style={{ maxWidth: 1100, maxHeight: '60vh' }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={it.url || ''} alt={it.title} style={{ maxWidth: '100%', maxHeight: '60vh', objectFit: 'contain', borderRadius: 14 }} />
+              <img src={withBasePath(it.url || '')} alt={it.title} style={{ maxWidth: '100%', maxHeight: '60vh', objectFit: 'contain', borderRadius: 14 }} />
             </div>
           );
         }
@@ -68,12 +69,12 @@ export default function MediaPlayer({ slot, title }: { slot: string; title: stri
         }
         if (it.kind === 'embed') {
           return (
-            <iframe key={it.id} src={it.url || ''} title={it.title} style={{ width: 'min(1200px, 94vw)', height: '66vh', border: '1px solid rgba(251,146,60,.3)', borderRadius: 16, background: '#fff' }} />
+            <iframe key={it.id} src={withBasePath(it.url || '')} title={it.title} style={{ width: 'min(1200px, 94vw)', height: '66vh', border: '1px solid rgba(251,146,60,.3)', borderRadius: 16, background: '#fff' }} />
           );
         }
         // link
         return (
-          <a key={it.id} href={it.url || ''} target="_blank" rel="noreferrer" style={{ fontSize: 'clamp(20px,2.4vw,32px)', color: '#93c5fd', fontWeight: 700 }}>
+          <a key={it.id} href={withBasePath(it.url || '')} target="_blank" rel="noreferrer" style={{ fontSize: 'clamp(20px,2.4vw,32px)', color: '#93c5fd', fontWeight: 700 }}>
             {it.title || it.url}
           </a>
         );

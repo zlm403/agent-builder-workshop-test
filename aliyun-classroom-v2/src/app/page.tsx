@@ -1,4 +1,6 @@
 export default function Home() {
+  const bp = process.env.NEXT_PUBLIC_BASE_PATH || '';
+  const pb = (p: string) => (bp && p.startsWith('/') ? `${bp}${p}` : p);
   return (
     <main className="home-page">
       <section className="home-hero" aria-labelledby="home-title">
@@ -22,9 +24,9 @@ export default function Home() {
       </section>
 
       <nav className="home-entries" aria-label="进入对应端">
-        <a href="/teacher"><span>01</span><strong>教师导演台</strong><b aria-hidden="true">→</b></a>
-        <a href="/student"><span>02</span><strong>学生互动端</strong><b aria-hidden="true">→</b></a>
-        <a href="/screen"><span>03</span><strong>课堂大屏</strong><b aria-hidden="true">→</b></a>
+        <a href={pb('/teacher')}><span>01</span><strong>教师导演台</strong><b aria-hidden="true">→</b></a>
+        <a href={pb('/student')}><span>02</span><strong>学生互动端</strong><b aria-hidden="true">→</b></a>
+        <a href={pb('/screen')}><span>03</span><strong>课堂大屏</strong><b aria-hidden="true">→</b></a>
       </nav>
 
       <p className="home-flow">
