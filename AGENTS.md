@@ -70,7 +70,7 @@
 > 2. `aliyun-classroom-v2` 是试听课方案，和正式课无关。
 > 3. `ai-dreamlab` 是不该存在的废弃原型，不维护。
 > 4. 顷悟系统三端已按**三项目**改造：学生/教师/大屏 tab = 项目一(接金币游戏, course 1) / 项目二(心情电量, course 2) / 项目三(内心戏, course 4)。预备课（教"把话说清楚"）已停用为独立 tab，`warmup/` 代码与数据保留，内容作为正式课开场集中讲。
-> 5. **《我的世界》（试听课 A3 环节，模块 `A3_WORLD`）**：目标系统是 `aliyun-classroom-v2`。文档在 `aliyun-classroom-v2/docs/my-world/`（01~05 + reference）。**表现规格引擎已落地（2026-08-25）**：`src/lib/world/spec.ts`（LifeSpec 类型+能力库枚举+merge/normalize/ruleSpec）、六块 extract（`api/a3/llm`，逐块对话生成规格片段）、学生端六块设计面板（`WorldStudent.tsx`）、大屏通用执行器（`WorldScreen.tsx` 的 runSpec，读 spec 调能力库播放）。**「生命在大屏无表现细节」根因已修（2026-08-25，commit `ba3cd45`）**：预设生命缺 spec + 学生创建丢 spec + 六块 merge 覆盖 bug 三处修复，见待办清单 A 节。
+> 5. **《我的世界》（试听课 A3 环节，模块 `A3_WORLD`）**：目标系统是 `aliyun-classroom-v2`。文档在 `aliyun-classroom-v2/docs/my-world/`（01~05 + reference）。**表现规格引擎已落地（2026-08-25）**：`src/lib/world/spec.ts`（LifeSpec 类型+能力库枚举+merge/normalize/ruleSpec）、六块 extract（`api/a3/llm`，逐块对话生成规格片段）。**⚠️ 三端实际渲染走 iframe 静态页（2026-08-26 确认）：大屏 = `public/a3/bigscreen.html`、学生端 = `public/a3/student.html`（现役实现，spec 表现引擎/Tips 弹窗都在 HTML 里）；React 组件 `WorldScreen.tsx`/`WorldStudent.tsx` 全仓无人 import，是僵尸副本，已标 @deprecated，勿再改它们**。教师端「发布 Tips」链路：POST `/api/world/popup` 存状态 → bigscreen.html 每 2 秒轮询弹遮罩卡片（2026-08-26 commit `e10f72c` 修复"点 Tips 大屏无反应"——此前弹窗逻辑只存在于僵尸组件里）。**「生命在大屏无表现细节」根因已修（2026-08-25，commit `ba3cd45`）**：预设生命缺 spec + 学生创建丢 spec + 六块 merge 覆盖 bug 三处修复，见待办清单 A 节。
 > 6. **试听课 `aliyun-classroom-v2` 模块现状（模板 A-v11）**：A0三问 → A1数字分身 → A2快速入门网站 → A3我的世界 → **CLOSING 收官**（环节机制：痛点墙 → 四翼展示 → 价格颁布，三个 HTML 大屏页存 `public/`，教师端页面序列点环节投屏，每环节有子控制条）→ A08 收尾。部署方式见 `项目交接-试听课.md`（打包→scp→`bash /root/classroom-v2/update.sh`）。
 
 ---
