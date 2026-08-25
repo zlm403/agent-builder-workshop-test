@@ -41,7 +41,7 @@ const BLOCK_FIELDS: Record<SpecBlockKey, string[]> = {
   social: ['onMeet(相遇时)', 'onWave(交流时)', 'mood(情绪→移动)'],
   react: ['onHit(受击/碰撞时)'],
   resource: ['onResource(吃到资源时)'],
-  trend: ['mood(心情→移动倾向:害羞→avoid / 好奇→approach / 爱热闹→approach / 怕生→avoid)'],
+  trend: ['mood(心情→移动倾向，格式 {"情绪词":"avoid或approach"}；害羞→avoid、好奇→approach、爱热闹→approach、怕生→avoid，情绪词用学员原话的中文词)'],
   grow: ['onGrow(长大/升级时)', 'onDeath(消失时)'],
 };
 
@@ -83,7 +83,10 @@ function normalizeBlockSpec(block: SpecBlockKey, raw: Record<string, unknown>): 
   const out: Record<string, unknown> = {};
   for (const key of allowed) {
     const field = key.split('(')[0].trim() as keyof LifeSpec;
-    if (raw[field] !== undefined) out[field] = raw[field];
+    if (raw[field] === undefined) continue;
+    // mood 为空对象时丢弃（避免覆盖其它块的 mood）
+    if (field === 'mood' && (!raw[field] || (typeof raw[field] === 'object' && Object.keys(raw[field] as object).length === 0))) continue;
+    out[field] = raw[field];
   }
   // 只有 create 块可以带 body；其余块若无字段返回空（前端会 merge 默认值）
   return normalizeSpec(out) as Partial<LifeSpec>;
