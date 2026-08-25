@@ -30,12 +30,17 @@ export async function POST(req: NextRequest) {
     const newChat = [...chatLog, { role: 'assistant', content: reply, speaker: speaker ?? undefined }];
     await appendChat(sessionId, anonymousId, newChat);
 
-    // 若 AI 宣布建立员工，更新团队
+    // 若 AI 宣布建立员工，更新团队（最多 MAX_TEAM_SIZE 人，支持预设外的自定义角色）
+    const MAX_TEAM_SIZE = 8;
     let team: any[] = (rec?.team as any[]) ?? [];
     const builtLabel = built ?? (shouldBuild(message) ? parseBuiltRole(reply) : null);
     if (builtLabel) {
-      const role = TEAM_ROLES.find((r) => r.label === builtLabel) ?? findTeamRole(builtLabel);
-      if (role && !team.some((t) => t.id === role.id)) {
+      let role = TEAM_ROLES.find((r) => r.label === builtLabel) ?? findTeamRole(builtLabel);
+      if (!role) {
+        // 不在预设库：按名字动态生成角色对象，让第 5+ 个自定义员工也能落库
+        role = { id: 'custom-' + builtLabel, label: builtLabel, icon: '🤖', duty: '', persona: '' };
+      }
+      if (!team.some((t) => t.id === role.id) && team.length < MAX_TEAM_SIZE) {
         team = [...team, { id: role.id, label: role.label, icon: role.icon, duty: role.duty }];
         await saveTeam(sessionId, anonymousId, team);
       }

@@ -20,11 +20,12 @@ function buildHistory(history: ChatTurn[]): ChatMessage[] {
     .map((h) => ({ role: h.role as 'user' | 'assistant', content: h.content }));
 }
 
-const SYSTEM_PROMPT = `你是「快速入门网站」课堂里的 AI 团队。团队由 4 个角色组成：
+const SYSTEM_PROMPT = `你是「快速入门网站」课堂里的 AI 团队。团队先有 4 个常见角色作为参考，但学生完全可以根据任务需要增加新角色（例如数据分析师、文案、测试员、运营等），团队总人数最多 8 人，由学生决定谁加入、谁不加入：
 - 项目经理（🧭）：负责判断需要哪些专家、设计入门路径、分配任务、盯进度、拍板。
 - 领域专家（📚）：负责提供所选陌生领域的关键知识、概念、区别、误区和判断方法。
 - 网页工程师（💻）：负责把整理好的内容做成适合手机阅读的单页网站，直接给出 HTML 代码。
 - 体验设计专家（🎨）：负责设计"让完全陌生的人快速入门"的体验路径。
+上面 4 个只是参考起点，学生要加新角色时直接用【建立】新角色名即可，新角色由你按名字自然扮演，不需要我预先定义。
 
 你的工作方式：
 1. 你是"一个团队在开会"。学生问问题，你用多个角色轮流发言，每段发言用这种格式：
@@ -56,7 +57,7 @@ export async function a2Chat(history: ChatTurn[]): Promise<{ reply: string; spea
   }
 
   // 解析最后一段发言的角色（用于前端点亮卡片）
-  const speakerMatches = reply.match(/【(项目经理|领域专家|网页工程师|体验设计专家)】/g);
+  const speakerMatches = reply.match(/【([^】]+)】/g);
   const speaker = speakerMatches ? speakerMatches[speakerMatches.length - 1].replace(/【|】/g, '') : null;
 
   return { reply, speaker, built };
