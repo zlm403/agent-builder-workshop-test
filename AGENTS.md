@@ -70,7 +70,7 @@
 > 2. `aliyun-classroom-v2` 是试听课方案，和正式课无关。
 > 3. `ai-dreamlab` 是不该存在的废弃原型，不维护。
 > 4. 顷悟系统三端已按**三项目**改造：学生/教师/大屏 tab = 项目一(接金币游戏, course 1) / 项目二(心情电量, course 2) / 项目三(内心戏, course 4)。预备课（教"把话说清楚"）已停用为独立 tab，`warmup/` 代码与数据保留，内容作为正式课开场集中讲。
-> 5. **《我的世界》规划中（试听课 A3 环节，模块 `A3_WORLD`）**：目标系统是 `aliyun-classroom-v2`（非 ar-class-monitor-demo）；文档与引擎待落地，见 `aliyun-classroom-v2/docs/my-world/`。
+> 5. **《我的世界》（试听课 A3 环节，模块 `A3_WORLD`）**：目标系统是 `aliyun-classroom-v2`。文档在 `aliyun-classroom-v2/docs/my-world/`（01~05 + reference）。**表现规格引擎已落地（2026-08-25）**：`src/lib/world/spec.ts`（LifeSpec 类型+能力库枚举+merge/normalize/ruleSpec）、六块 extract（`api/a3/llm`，逐块对话生成规格片段）、学生端六块设计面板（`WorldStudent.tsx`）、大屏通用执行器（`WorldScreen.tsx` 的 runSpec，读 spec 调能力库播放）。
 > 6. **试听课 `aliyun-classroom-v2` 模块现状（模板 A-v11）**：A0三问 → A1数字分身 → A2快速入门网站 → A3我的世界 → **CLOSING 收官**（环节机制：痛点墙 → 四翼展示 → 价格颁布，三个 HTML 大屏页存 `public/`，教师端页面序列点环节投屏，每环节有子控制条）→ A08 收尾。部署方式见 `项目交接-试听课.md`（打包→scp→`bash /root/classroom-v2/update.sh`）。
 
 ---
@@ -93,7 +93,7 @@
 | 项目三 · 内心戏 | `agent-team/` | AI 应用 | 能力与工具 | 系统棱镜 5 格 | 4 |
 | （预备课已停用） | `warmup/` | 轻量表达（表达梳理台） | 对象与目标 | 语言棱镜 10 格 | 0 |
 
-> 《我的世界》为试听课 `aliyun-classroom-v2` 规划中的 A3 环节（接在 A2 之后，模块 `A3_WORLD` 待建）：教师/大屏/学生三端共演公共世界，学生创造数字生命发布到大屏运行。**硬约束**：A3 只在教师端与代码配置出现，学生/大屏只显示《我的世界》；学生页面切换复用现有 `currentModuleId+moduleSubState`+SSE 机制，不新建推送协议；世界模拟由独立 TS 进程 `world-engine` 连同一 PostgreSQL 推进，Next.js 只读；AI 讨论复用 `llm.ts`（DeepSeek+规则回退）；A/B 关系反馈实验先实现 A 组、不调参美化。文档待落地 `aliyun-classroom-v2/docs/my-world/`。
+> 《我的世界》为试听课 `aliyun-classroom-v2` 的 A3 环节（接在 A2 之后，模块 `A3_WORLD`，已建成）：教师/大屏/学生三端共演公共世界，学生创造数字生命发布到大屏运行。**硬约束**：A3 只在教师端与代码配置出现，学生/大屏只显示《我的世界》；学生页面切换复用现有 `currentModuleId+moduleSubState`+SSE 机制，不新建推送协议；**实际数据链路**：JSON 文件存取（`data/world/world-*.json`，`store.ts` 原子写）+ 纯函数引擎惰性推进（`engine.ts`，`GET /api/world` 时按墙钟差补算 tick，提交即发布）；AI 讨论复用 `llm.ts`（DeepSeek+规则回退）；**表现规格引擎（2026-08-25 落地）**：`spec.ts` 定义 LifeSpec（onMeet/onHit/onResource/onWave/onGrow/onDeath/mood 六类事件→动作数组），`api/a3/llm` 六块 extract 逐块生成规格片段（能力库枚举+followup+规则回退），学生端六块设计面板 merge 后随 `shape+spec` 提交落库，引擎 tick 抛结构化事件（`KeyEvent.type`：enter/meet/help/resource/hit/sleep/wake），大屏 `runSpec` 读 spec 调能力库播放（emitSelf 草图粒子/lightLink/scale/dim/glow/jitter/bubble/cry/dance/fade/orbit/nuzzle，未知动作回退文字标签）。
 
 ### 数据链路（一核多表，三端共用同一算法）
 ```
