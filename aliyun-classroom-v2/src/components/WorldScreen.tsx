@@ -9,12 +9,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { findTip } from '@/lib/world/tips';
 import { api } from '@/lib/basePath';
+import type { LifeSpec, SpecAction } from '@/lib/world/spec';
 
 interface WorldLife {
   id: string;
   name: string;
   color: string;
   shape?: string;
+  spec?: LifeSpec;
   x: number;
   y: number;
   energy: number;
@@ -35,6 +37,8 @@ interface KeyEvent {
   t: number;
   text: string;
   lifeId?: string;
+  targetId?: string;
+  type?: string;
 }
 
 interface WorldData {
@@ -48,18 +52,34 @@ interface WorldData {
 
 // 事件光点（客户端瞬态，不上报、不进引擎）
 interface FxLight {
+  kind: 'light' | 'label' | 'spark' | 'link' | 'ring' | 'mini' | 'float' | 'orbit';
   x: number; // 0..1 世界坐标
   y: number;
+  tx?: number; // 目标世界坐标（link/ring/orbit 圆心）
+  ty?: number;
+  img?: HTMLImageElement | null; // emitSelf/miniSelf 草图粒子贴图
+  vx?: number; // 粒子方向（spark/mini/float）
+  vy?: number;
+  size?: number;
   label: string;
   color: string;
   born: number; // 出生时间戳
   life: number; // 存活 ms
 }
 
+// 生命持续状态效果（scale/dim/glow 等，随时间恢复）
+interface LifeFxState {
+  scale: number; // 当前缩放倍数
+  dimUntil: number; // 变暗截止 ms
+  glowUntil: number; // 发光截止 ms
+  flickerUntil: number; // 闪光截止 ms
+}
+
 // 生命大小范围（世界坐标归一化后的像素基准在 draw 里换算）
 const LIFE_SIZE_MIN = 14;
 const LIFE_SIZE_MAX = 26;
 const FX_LIFE = 1800; // 事件光点存活 1.8s
+const SPEC_FX_LIFE = 1600; // 表现规格效果的存活时长
 
 // 事件标签映射：从事件文本关键词 → 标签 + 颜色
 function fxForEvent(text: string): { label: string; color: string } | null {
@@ -90,7 +110,9 @@ export default function WorldScreen({ sessionId }: { sessionId: string }) {
   const dataRef = useRef<WorldData | null>(null);
   const posRef = useRef<Record<string, { x: number; y: number; hit: number }>>({});
   const fxRef = useRef<FxLight[]>([]);
+  const fxStateRef = useRef<Record<string, LifeFxState>>({});
   const seenRef = useRef<Set<string>>(new Set());
+  const lastHitFxRef = useRef<Record<string, number>>({});
   // 环境光斑整体速度/亮度系数（教师调节，渲染循环读 ref）
   const visualRef = useRef<{ speed: number; brightness: number }>({ speed: 1, brightness: 1 });
   // SVG 形状缓存（lifeId -> Image），只加载一次
@@ -215,6 +237,214 @@ export default function WorldScreen({ sessionId }: { sessionId: string }) {
       ro.observe(canvas);
     }
 
+    // ===================== 通用表现执行器（读 LifeSpec，调能力库） =====================
+
+    function fxState(id: string): LifeFxState {
+      let s = fxStateRef.current[id];
+      if (!s) {
+        s = { scale: 1, dimUntil: 0, glowUntil: 0, flickerUntil: 0 };
+        fxStateRef.current[id] = s;
+      }
+      return s;
+    }
+
+    function setFxState(id: string, patch: Partial<LifeFxState>, now: number): void {
+      const s = fxState(id);
+      if (patch.scale !== undefined) s.scale = patch.scale;
+      if (patch.dimUntil !== undefined) s.dimUntil = now + patch.dimUntil;
+      if (patch.glowUntil !== undefined) s.glowUntil = now + patch.glowUntil;
+      if (patch.flickerUntil !== undefined) s.flickerUntil = now + patch.flickerUntil;
+    }
+
+    // 事件 type → LifeSpec 字段
+    const SPEC_FIELD: Record<string, keyof LifeSpec> = {
+      meet: 'onMeet',
+      help: 'onWave',
+      resource: 'onResource',
+      hit: 'onHit',
+      grow: 'onGrow',
+      death: 'onDeath',
+    };
+
+    // 从生命的 shape（SVG）拿贴图；未加载好返回 null（调用方用颜色圆点兜底）
+    function sketchImg(life: WorldLife): HTMLImageElement | null {
+      if (!life.shape) return null;
+      let img = svgImgRef.current.get(life.id);
+      if (!img) {
+        const src = 'data:image/svg+xml;base64,' + toBase64(life.shape);
+        img = new Image();
+        img.onload = () => {};
+        img.src = src;
+        svgImgRef.current.set(life.id, img);
+      }
+      if (img.complete && img.naturalWidth > 0) return img;
+      return null;
+    }
+
+    // 发射学员草图的粒子（小星星）：从源位置飞向目标位置
+    function spawnSpark(life: WorldLife, px: number, py: number, tx: number, ty: number, n: number, now: number, mini: boolean): void {
+      const img = sketchImg(life);
+      for (let i = 0; i < n; i++) {
+        const ang = Math.atan2(ty - py, tx - px) + (Math.random() - 0.5) * 0.8;
+        const spd = 0.002 + Math.random() * 0.003;
+        fxRef.current.push({
+          kind: mini ? 'mini' : 'spark',
+          x: px,
+          y: py,
+          tx,
+          ty,
+          img,
+          vx: Math.cos(ang) * spd,
+          vy: Math.sin(ang) * spd,
+          size: mini ? 0.05 : 0.028 + Math.random() * 0.014,
+          label: '',
+          color: life.color,
+          born: now + i * 40,
+          life: 900 + Math.random() * 400,
+        });
+      }
+    }
+
+    // 光带连线：从 A 到 B 的光带，短暂存在
+    function spawnLink(x1: number, y1: number, x2: number, y2: number, color: string, now: number): void {
+      fxRef.current.push({
+        kind: 'link', x: x1, y: y1, tx: x2, ty: y2,
+        label: '', color, born: now, life: SPEC_FX_LIFE,
+      });
+    }
+
+    // 扩散圆环（抖动/转圈/靠近/躲开的通用视觉）
+    function spawnRing(x: number, y: number, color: string, now: number): void {
+      fxRef.current.push({
+        kind: 'ring', x, y, label: '', color, born: now, life: 900,
+      });
+    }
+
+    // 飞出一个缩小版自己（草图）
+    function spawnMini(life: WorldLife, px: number, py: number, tx: number, ty: number, now: number): void {
+      spawnSpark(life, px, py, tx, ty, 1, now, true);
+    }
+
+    // 冒泡（向上飘的小气泡）
+    function spawnFloatBubbles(x: number, y: number, color: string, now: number): void {
+      for (let i = 0; i < 4; i++) {
+        fxRef.current.push({
+          kind: 'float', x: x + (Math.random() - 0.5) * 0.06, y,
+          vx: (Math.random() - 0.5) * 0.001, vy: -0.0018 - Math.random() * 0.0006,
+          size: 0.02 + Math.random() * 0.016,
+          label: '', color: '#bfe8ff', born: now + i * 60, life: 900,
+        });
+      }
+    }
+
+    // 掉泪（小泪滴向下）
+    function spawnCry(x: number, y: number, color: string, now: number): void {
+      for (let i = 0; i < 3; i++) {
+        fxRef.current.push({
+          kind: 'float', x: x + (Math.random() - 0.5) * 0.04, y,
+          vx: 0, vy: 0.0016 + Math.random() * 0.0004,
+          size: 0.018, label: '', color: '#7dd3fc', born: now + i * 60, life: 900,
+        });
+      }
+    }
+
+    // 飘散（绕一圈淡出的光尘）
+    function spawnFade(x: number, y: number, color: string, now: number): void {
+      for (let i = 0; i < 8; i++) {
+        const ang = (i / 8) * Math.PI * 2;
+        fxRef.current.push({
+          kind: 'spark', x, y,
+          vx: Math.cos(ang) * 0.002, vy: Math.sin(ang) * 0.002,
+          size: 0.02, label: '', color, born: now, life: 1100,
+        });
+      }
+    }
+
+    // 绕行：围绕目标画一小段弧线光点
+    function spawnOrbit(px: number, py: number, tx: number, ty: number, color: string, now: number): void {
+      fxRef.current.push({
+        kind: 'orbit', x: tx, y: ty, tx: px, ty: py,
+        label: '', color, born: now, life: 1000,
+      });
+    }
+
+    // 播放单个动作
+    function playAction(life: WorldLife, target: WorldLife | undefined, act: SpecAction, now: number): void {
+      const src = posRef.current[life.id];
+      const px = src?.x ?? life.x;
+      const py = src?.y ?? life.y;
+      const color = life.color;
+      const tgt = target && posRef.current[target.id] ? posRef.current[target.id] : undefined;
+      const tX = tgt?.x ?? px;
+      const tY = tgt?.y ?? py;
+      const doName = (act as { do: string }).do;
+      switch (doName) {
+        case 'emitSelf': {
+          const n = (act as { n?: number }).n ?? 3;
+          const to = (act as { to?: string }).to;
+          spawnSpark(life, px, py, to === 'other' ? tX : px, to === 'other' ? tY : py, n, now, false);
+          break;
+        }
+        case 'lightLink':
+          spawnLink(px, py, tX, tY, color, now);
+          break;
+        case 'miniSelf':
+          spawnMini(life, px, py, tX, tY, now);
+          break;
+        case 'scale':
+          setFxState(life.id, { scale: (act as { value?: number }).value ?? 1.3 }, now);
+          break;
+        case 'dim':
+          setFxState(life.id, { dimUntil: SPEC_FX_LIFE }, now);
+          break;
+        case 'glow':
+          setFxState(life.id, { glowUntil: SPEC_FX_LIFE }, now);
+          break;
+        case 'flash':
+          setFxState(life.id, { flickerUntil: SPEC_FX_LIFE }, now);
+          break;
+        case 'jitter':
+          spawnRing(px, py, color, now);
+          break;
+        case 'bubble':
+          spawnFloatBubbles(px, py, color, now);
+          break;
+        case 'cry':
+          spawnCry(px, py, color, now);
+          break;
+        case 'dance':
+          spawnRing(px, py, color, now);
+          spawnRing(px, py, '#fbbf24', now + 120);
+          break;
+        case 'fade':
+          spawnFade(px, py, color, now);
+          break;
+        case 'orbit':
+          spawnOrbit(px, py, tX, tY, color, now);
+          break;
+        case 'nuzzle':
+          spawnLink(px, py, tX, tY, color, now);
+          spawnRing(tX, tY, '#ffffff', now);
+          break;
+        case 'approach':
+        case 'avoid':
+          spawnRing(px, py, doName === 'approach' ? '#38bdf8' : '#c77dff', now);
+          break;
+        default:
+          fxRef.current.push({ kind: 'label', x: px, y: py, label: doName, color, born: now, life: SPEC_FX_LIFE });
+      }
+    }
+
+    // 播放某生命某事件的完整规格；返回是否真的播放了（有动作）
+    function applyEventSpec(life: WorldLife, target: WorldLife | undefined, type: string, now: number): boolean {
+      const field = SPEC_FIELD[type];
+      const spec = life.spec;
+      const acts = field && spec ? (spec[field] as SpecAction[] | undefined) : undefined;
+      if (!acts || acts.length === 0) return false;
+      for (const a of acts) playAction(life, target, a, now);
+      return true;
+    }
+
     function draw(now: number) {
       try {
       const dt = Math.min(100, now - last);
@@ -308,22 +538,28 @@ export default function WorldScreen({ sessionId }: { sessionId: string }) {
       ctx!.globalCompositeOperation = 'source-over';
 
       if (d) {
-        // 收集新事件 → 生成光点
+        // 收集新事件 → 通用执行器（读 spec 播放）或兜底标签
         for (const e of d.keyEvents) {
           const key = `${e.t}-${e.text}`;
           if (seenRef.current.has(key)) continue;
           seenRef.current.add(key);
-          const fx = fxForEvent(e.text);
-          if (fx && e.lifeId) {
-            const src = d.lives.find((l) => l.id === e.lifeId);
-            fxRef.current.push({
-              x: src?.x ?? 0.5,
-              y: src?.y ?? 0.5,
-              label: fx.label,
-              color: fx.color,
-              born: now,
-              life: FX_LIFE,
-            });
+          const src = e.lifeId ? d.lives.find((l) => l.id === e.lifeId) : undefined;
+          const tgt = e.targetId ? d.lives.find((l) => l.id === e.targetId) : undefined;
+          const played = src && e.type ? applyEventSpec(src, tgt, e.type, now) : false;
+          if (!played) {
+            const fx = fxForEvent(e.text);
+            if (fx && e.lifeId) {
+              const srcL = d.lives.find((l) => l.id === e.lifeId);
+              fxRef.current.push({
+                kind: 'label',
+                x: srcL?.x ?? 0.5,
+                y: srcL?.y ?? 0.5,
+                label: fx.label,
+                color: fx.color,
+                born: now,
+                life: FX_LIFE,
+              });
+            }
           }
         }
 
@@ -357,7 +593,12 @@ export default function WorldScreen({ sessionId }: { sessionId: string }) {
             const dist = Math.sqrt(dx * dx + dy * dy);
             const lR = sizeOf(l.id) * (1 + (p.hit || 0) * 0.35) * px2u * 2.2;
             if (dist < aR + lR) {
-              p.hit = Math.min(1, (p.hit || 0) + 0.5);
+              const prev = p.hit || 0;
+              p.hit = Math.min(1, prev + 0.5);
+              if (prev < 0.3 && now - (lastHitFxRef.current[l.id] ?? 0) > 900) {
+                lastHitFxRef.current[l.id] = now;
+                applyEventSpec(l, undefined, 'hit', now);
+              }
             }
           }
         }
@@ -403,23 +644,34 @@ export default function WorldScreen({ sessionId }: { sessionId: string }) {
           if (!p) continue;
           const x = p.x * W;
           const y = p.y * H;
-          const size = sizeOf(l.id);
+          const st = fxState(l.id);
+          // 持续状态：缩放 / 变暗 / 发光 / 闪光（随时间恢复）
+          if (st.scale !== 1) {
+            st.scale = st.scale > 1 ? Math.max(1, st.scale - dt / 1600) : Math.min(1, st.scale + dt / 1600);
+          }
+          const dimNow = st.dimUntil > now;
+          const glowNow = st.glowUntil > now;
+          const flickerNow = st.flickerUntil > now;
+          const flickerDim = flickerNow && Math.floor(now / 90) % 2 === 0;
+          const size = sizeOf(l.id) * st.scale;
           const sleeping = l.state === 'sleeping';
           // 受击闪光：hit>0 时放大 + 变亮（碰撞反应）
           const hit = p.hit || 0;
           const hitScale = 1 + hit * 0.35;
-          const dim = (sleeping ? 0.3 : Math.max(0.45, Math.min(1, l.energy / 80))) * (1 + hit * 0.6);
+          const dim = (sleeping ? 0.3 : Math.max(0.45, Math.min(1, l.energy / 80))) * (1 + hit * 0.6)
+            * (dimNow || flickerDim ? 0.45 : 1);
+          const glowBoost = glowNow ? 1.6 : 1;
           const sEff = size * hitScale;
 
           ctx!.globalCompositeOperation = 'lighter';
-          // 光晕（更大更亮）
-          const glow = ctx!.createRadialGradient(x, y, 0, x, y, sEff * 3);
+          // 光晕（更大更亮；glow 状态加强）
+          const glow = ctx!.createRadialGradient(x, y, 0, x, y, sEff * 3 * glowBoost);
           glow.addColorStop(0, `${l.color}${Math.round(dim * 200).toString(16).padStart(2, '0')}`);
           glow.addColorStop(0.5, `${l.color}${Math.round(dim * 90).toString(16).padStart(2, '0')}`);
           glow.addColorStop(1, 'transparent');
           ctx!.fillStyle = glow;
           ctx!.beginPath();
-          ctx!.arc(x, y, sEff * 3, 0, Math.PI * 2);
+          ctx!.arc(x, y, sEff * 3 * glowBoost, 0, Math.PI * 2);
           ctx!.fill();
           ctx!.globalCompositeOperation = 'source-over';
 
@@ -464,30 +716,125 @@ export default function WorldScreen({ sessionId }: { sessionId: string }) {
           }
         }
 
-        // 事件光点（上浮 + 淡出）
+        // 事件 FX 渲染（按 kind 分发）
         const nowMs = now;
         fxRef.current = fxRef.current.filter((fx) => nowMs - fx.born < fx.life);
         for (const fx of fxRef.current) {
           const age = (nowMs - fx.born) / fx.life; // 0..1
-          const x = fx.x * W;
-          const y = fx.y * H - age * 60; // 上浮
           const alpha = 1 - age;
-          // 光点（大而亮）
+          const fadeIn = Math.min(1, age * 5);
+          const ox = fx.x * W;
+          const oy = fx.y * H;
+
+          if (fx.kind === 'spark' || fx.kind === 'mini') {
+            // 粒子：沿 vx/vy 方向飞，草图贴图或颜色圆点
+            const px = (fx.x + fx.vx! * (nowMs - fx.born) * 0.4) * W;
+            const py = (fx.y + fx.vy! * (nowMs - fx.born) * 0.4) * H;
+            const s = (fx.size ?? 0.03) * W * (0.6 + (1 - age) * 0.4);
+            ctx!.globalCompositeOperation = 'lighter';
+            if (fx.img) {
+              ctx!.globalAlpha = alpha;
+              ctx!.drawImage(fx.img, px - s / 2, py - s / 2, s, s);
+              ctx!.globalAlpha = 1;
+            } else {
+              const g = ctx!.createRadialGradient(px, py, 0, px, py, s);
+              g.addColorStop(0, `${fx.color}${Math.round(alpha * 230).toString(16).padStart(2, '0')}`);
+              g.addColorStop(1, 'transparent');
+              ctx!.fillStyle = g;
+              ctx!.beginPath();
+              ctx!.arc(px, py, s, 0, Math.PI * 2);
+              ctx!.fill();
+            }
+            ctx!.globalCompositeOperation = 'source-over';
+            continue;
+          }
+
+          if (fx.kind === 'link') {
+            // 光带连线：A→B 的发光渐变线，从中间脉冲散开
+            const ax = fx.x * W;
+            const ay = fx.y * H;
+            const bx = (fx.tx ?? fx.x) * W;
+            const by = (fx.ty ?? fx.y) * H;
+            const pulse = Math.sin(age * Math.PI);
+            const c = ctx!.createLinearGradient(ax, ay, bx, by);
+            c.addColorStop(0, `${fx.color}00`);
+            c.addColorStop(0.5, `${fx.color}${Math.round(alpha * 200).toString(16).padStart(2, '0')}`);
+            c.addColorStop(1, `${fx.color}00`);
+            ctx!.strokeStyle = c;
+            ctx!.lineWidth = 2.5 + pulse * 1.5;
+            ctx!.beginPath();
+            ctx!.moveTo(ax, ay);
+            // 微微弯曲的光带
+            const mx = (ax + bx) / 2 + (by - ay) * 0.18;
+            const my = (ay + by) / 2 - (bx - ax) * 0.18;
+            ctx!.quadraticCurveTo(mx, my, bx, by);
+            ctx!.stroke();
+            continue;
+          }
+
+          if (fx.kind === 'ring') {
+            // 扩散圆环
+            const r = (age * 60 + 6) * (W / 100);
+            ctx!.globalCompositeOperation = 'lighter';
+            ctx!.strokeStyle = `${fx.color}${Math.round(alpha * 180).toString(16).padStart(2, '0')}`;
+            ctx!.lineWidth = 2.5;
+            ctx!.beginPath();
+            ctx!.arc(ox, oy - age * 20, r, 0, Math.PI * 2);
+            ctx!.stroke();
+            ctx!.globalCompositeOperation = 'source-over';
+            continue;
+          }
+
+          if (fx.kind === 'float') {
+            // 上浮/下沉的小泡（bubble/cry）
+            const px = (fx.x + (fx.vx ?? 0) * (nowMs - fx.born) * 0.4) * W;
+            const py = (fx.y + (fx.vy ?? 0) * (nowMs - fx.born) * 0.4) * H;
+            const s = (fx.size ?? 0.02) * W;
+            ctx!.globalCompositeOperation = 'lighter';
+            ctx!.fillStyle = `${fx.color}${Math.round(alpha * 200).toString(16).padStart(2, '0')}`;
+            ctx!.beginPath();
+            ctx!.arc(px, py, s, 0, Math.PI * 2);
+            ctx!.fill();
+            ctx!.globalCompositeOperation = 'source-over';
+            continue;
+          }
+
+          if (fx.kind === 'orbit') {
+            // 绕目标转圈的光点
+            const cx = (fx.x) * W;
+            const cy = (fx.y) * H;
+            const ang = age * Math.PI * 2;
+            const r = (fx.size ?? 0.04) * W * (1 + age);
+            const px = cx + Math.cos(ang) * r;
+            const py = cy + Math.sin(ang) * r * 0.6;
+            ctx!.globalCompositeOperation = 'lighter';
+            ctx!.fillStyle = `${fx.color}${Math.round(alpha * 220).toString(16).padStart(2, '0')}`;
+            ctx!.beginPath();
+            ctx!.arc(px, py, 3.5, 0, Math.PI * 2);
+            ctx!.fill();
+            ctx!.globalCompositeOperation = 'source-over';
+            continue;
+          }
+
+          // label：光点 + 上浮标签（兜底）
+          const x = ox;
+          const y = oy - age * 60;
           ctx!.globalCompositeOperation = 'lighter';
           const g = ctx!.createRadialGradient(x, y, 0, x, y, 26);
-          g.addColorStop(0, `${fx.color}${Math.round(alpha * 240).toString(16).padStart(2, '0')}`);
-          g.addColorStop(0.5, `${fx.color}${Math.round(alpha * 120).toString(16).padStart(2, '0')}`);
+          g.addColorStop(0, `${fx.color}${Math.round(alpha * 240 * fadeIn).toString(16).padStart(2, '0')}`);
+          g.addColorStop(0.5, `${fx.color}${Math.round(alpha * 120 * fadeIn).toString(16).padStart(2, '0')}`);
           g.addColorStop(1, 'transparent');
           ctx!.fillStyle = g;
           ctx!.beginPath();
           ctx!.arc(x, y, 26, 0, Math.PI * 2);
           ctx!.fill();
           ctx!.globalCompositeOperation = 'source-over';
-          // 标签
-          ctx!.fillStyle = `rgba(255,255,255,${alpha})`;
-          ctx!.font = 'bold 15px sans-serif';
-          ctx!.textAlign = 'center';
-          ctx!.fillText(fx.label, x, y - 20);
+          if (fx.label) {
+            ctx!.fillStyle = `rgba(255,255,255,${alpha * fadeIn})`;
+            ctx!.font = 'bold 15px sans-serif';
+            ctx!.textAlign = 'center';
+            ctx!.fillText(fx.label, x, y - 20);
+          }
         }
       } else {
         ctx!.fillStyle = '#64748b';
