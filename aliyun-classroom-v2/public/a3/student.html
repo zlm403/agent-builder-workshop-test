@@ -324,9 +324,10 @@ async function chatGuide(block, userText){
   renderSkills();
 }
 function describeBlock(k){
+  const txt = (v) => typeof v==='string' ? v : (v && typeof v==='object') ? (v.text||v.value||v.label||JSON.stringify(v).slice(0,80)) : (v==null||v=='' ? '—' : String(v));
   const s = state.skill[k]; if(!s) return '';
   if (k==='创造') return `名字：${s.name||'—'} ｜ 形状：${s.shape}${s.sketch?'（已画草图）':''} ｜ 原话：${s.blurb||'—'}`;
-  if (k==='交流') return `亲近：${s.approach||'—'} ｜ 回避：${s.avoid||'—'} ｜ 相遇：${s.onMeet}`;
+  if (k==='交流') return `亲近：${txt(s.approach)} ｜ 回避：${txt(s.avoid)} ｜ 相遇：${txt(s.onMeet)}`;
   if (k==='反应') return `表现：${s.manifest} ｜ 优先扣：${(s.dropDims||[]).join('/')||'模糊兜底'}`;
   if (k==='资源') return `资源：${s.consume}`;
   if (k==='潮流') return `潮流：${s.mode}`;
@@ -567,6 +568,7 @@ async function lockBlock(){
   const filled = await summarizeBlock(k, convo);
   if (!filled){ addMsg('ai','这块我先确认清楚再定：上面我问你的，答完再点「✓ 定下来」。'); return; }
   Object.assign(state.skill[k], filled);
+  if (k==='交流'){ for (const f of ['approach','avoid','onMeet']){ const v=state.skill[k][f]; if (v && typeof v==='object') state.skill[k][f]=(v.text||v.value||v.label||JSON.stringify(v)); } }
   state.locked[k]=true;
   addMsg('ai','【'+k+'】已结晶 ✓：'+describeBlock(k));
   renderSkills(); renderDetail();
