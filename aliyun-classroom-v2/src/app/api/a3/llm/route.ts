@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { chatWithLLM } from '@/lib/llm';
-import { SPEC_BLOCKS, type SpecBlockKey, type LifeSpec, ruleSpec, sanitizeActions } from '@/lib/world/spec';
+import { SPEC_BLOCKS, type SpecBlockKey, type LifeSpec, ruleSpec, sanitizeActions, sanitizeSvg } from '@/lib/world/spec';
 
 // =========================================================
 // A3 《我的世界》 LLM 代理
@@ -98,6 +98,20 @@ function normalizeBlockSpec(block: SpecBlockKey, raw: Record<string, unknown>): 
   return out;
 }
 
+// 中文分支返回前清洗：visuals 里 {do:'svg'} 的 svg 过 sanitizeSvg（不合法置空，播放器会跳过）
+function sanitizeVisuals(fields: Record<string, unknown>): Record<string, unknown> {
+  const vs = fields.visuals;
+  if (Array.isArray(vs)) {
+    for (const v of vs) {
+      if (v && typeof v === 'object' && (v as { do?: string }).do === 'svg') {
+        const clean = sanitizeSvg((v as { svg?: unknown }).svg);
+        (v as { svg: string }).svg = clean;
+      }
+    }
+  }
+  return fields;
+}
+
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
 
@@ -112,19 +126,19 @@ export async function POST(req: NextRequest) {
     if (CN_BLOCK[blockRaw]) {
       const CN_SCHEMA: Record<string, string> = {
         创造: '提取 JSON：{name,shape,blurb}。shape 必须是「学员描述的形状」的 SVG 字符串（<svg viewBox="0 0 100 100" width="100" height="100">…</svg>，用纯色 path/polygon/circle 拼出形状轮廓，填白色 #fff，不用文字图片）；学员没提形状才用"光斑"两字。name 是生命名，blurb 是学员原话的一句话。',
-        交流: '提取 JSON：{approach,avoid,onMeet,visuals}。visuals 是表现原语数组，每项为对象 {action,color?,label?}：action 从 [lightLink 光带连线, emitSelf 撒自己的小星星, nuzzle 蹭一下, spit 吐个小东西, orbit 绕着转, avoid 躲开, dance 打招呼] 选；color 用学员说的颜色（如"红色"→red，"绿色的光"→#4ade80），没说就不填；label 是学员原话里这个表现的简短描述。',
-        反应: '提取 JSON：{manifest,dropDims,visuals}。dropDims 是优先扣的维度名数组；visuals 为对象数组 {action,color?}：action 从 [shrink 缩成一团, jitter 发抖, dim 变暗, bubble 冒泡泡, cry 哭泣, flash 闪光] 选；color 用学员说的颜色，没说则不填。',
-        资源: '提取 JSON：{consume,visuals}。visuals 为对象数组 {action,color?}：action 从 [grow 慢慢长大, devour 吃掉, glow 发光, dance 开心转圈] 选；color 用学员说的颜色，没说则不填。',
-        潮流: '提取 JSON：{mode,visuals}。visuals 为对象数组 {action,color?}：action 从 [follow 随波而行, resist 逆流而上, still 静静观看] 选；color 用学员说的颜色，没说则不填。',
-        成长: '提取 JSON：{grow,death,visuals}。visuals 为对象数组 {action,color?}：action 从 [grow 长大一圈, fade 缓缓飘散] 选；color 用学员说的颜色，没说则不填。',
+        交流: '提取 JSON：{approach,avoid,onMeet,visuals}。approach/avoid/onMeet 是文字。visuals 是表现动画数组，每项为 {do:"svg", svg:"<自包含SVG动画>"}：AI 根据学员这段描述，画一个自包含 SVG 动画表现他说的动作（如"用一道光连过去"→画一束光从生命伸向对方的光线动画；"丢鸡蛋"→画白色椭圆鸡蛋+抛物线飞过去的动画；"撒小星星"→星星四散动画）。SVG 规范：根元素 <svg viewBox="0 0 200 200" width="100%" height="100%">；用 SMIL <animate>/<animateTransform> 或内联 <style>@keyframes 做动画；禁止 <script>、on* 属性、外部 href、foreignObject、外部图片；颜色用学员说的（"红色"→#ef4444、"金色"→#fbbf24），没说用 #7dd3fc；动画≤1.6秒；不要文字。',
+        反应: '提取 JSON：{manifest,dropDims,visuals}。manifest 是表现文字；dropDims 是优先扣的维度名数组；visuals 为 {do:"svg", svg:"<自包含SVG动画>"} 数组，AI 按学员描述画表现动画（如"被揍就缩成一团发抖"→缩小+左右抖动动画；"冒泪珠哭泣"→泪珠下落动画）。SVG 规范同上（viewBox 200x200、SMIL/style 动画、禁 script/on*/外部资源、颜色用学员说的、动画≤1.6秒、不要文字）。',
+        资源: '提取 JSON：{consume,visuals}。consume 是资源处理文字；visuals 为 {do:"svg", svg:"<自包含SVG动画>"} 数组，AI 按学员描述画（如"用一束光连接资源"→光带从生命连向资源的动画；"丢鸡蛋"→鸡蛋抛物线丢向资源；"吃掉发光"→吞+光晕动画）。SVG 规范同上。',
+        潮流: '提取 JSON：{mode,visuals}。mode 是文字；visuals 为 {do:"svg", svg:"<自包含SVG动画>"} 数组（如"随波而行"→轻飘动画）。SVG 规范同上。',
+        成长: '提取 JSON：{grow,death,visuals}。grow/death 是文字；visuals 为 {do:"svg", svg:"<自包含SVG动画>"} 数组（长大→scale 放大动画；飘散→碎片四散淡出动画）。SVG 规范同上。',
       };
-      const sys = '你是共生缸共创助教。' + CN_SCHEMA[blockRaw] + ' 只输出 JSON，不要 markdown 代码块。';
+      const sys = '你是共生缸共创助教。' + CN_SCHEMA[blockRaw] + ' 只输出 JSON，不要 markdown 代码块。全局 SVG 规范：只画学员描述的表现动作本身（如光线/鸡蛋/星点/抖动/光晕），不画背景填充色块、不画任何文字、不画生命与资源本体（大屏已经画好），动画≤1.6秒。';
       const user = `学员在本块的对话：\n${convo || '（无对话）'}\n请输出 JSON。`;
       try {
         const content = await chatWithLLM([{ role: 'user', content: user }], sys, { json: true, temperature: 0.4, maxTokens: 900, timeoutMs: 20000 });
         const parsed = (() => { try { return JSON.parse(content); } catch { const m = content.match(/\{[\s\S]*\}/); if (m) { try { return JSON.parse(m[0]); } catch { return null; } } return null; } })();
         if (parsed && typeof parsed === 'object' && !parsed.followup) {
-          return NextResponse.json({ ok: true, block: blockRaw, fields: parsed });
+          return NextResponse.json({ ok: true, block: blockRaw, fields: sanitizeVisuals(parsed) });
         }
         if (parsed && parsed.followup) {
           return NextResponse.json({ ok: true, block: blockRaw, fields: { followup: String(parsed.followup) } });

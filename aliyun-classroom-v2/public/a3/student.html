@@ -192,11 +192,11 @@ const BLOCK_SYS = {
 const GENERAL_SYS = '你是共生缸共创助教。学员可能随便说，你接话追问，并判断他聊到哪个技能块（创造/交流/反应/资源/潮流/成长），引导他去点对应技能细聊。';
 const BLOCK_SCHEMA_SYS = {
   '创造':'从对话提取 JSON：{name,shape,blurb}。shape 必须是「学员描述的形状」的 SVG 字符串（<svg viewBox="0 0 100 100" ...>…</svg>，用纯色 path/polygon/circle 拼出形状轮廓，填白色 #fff，宽度 100 高度 100，不用文字不用图片）；学员没提形状才用默认光斑（"光斑"两字）。name 是生命名，blurb 是学员原话的一句话。',
-  '交流':'提取 JSON：{approach,avoid,onMeet,visuals}。visuals 是表现原语数组，每项为对象 {action,color?,label?}：action 从 [lightLink 光带连线, emitSelf 撒自己的小星星, nuzzle 蹭一下, spit 吐个小东西, orbit 绕着转, avoid 躲开, dance 打招呼] 选；color 用学员说的颜色（如 "红色"→red，"绿色的光"→#4ade80），学员没说颜色就不填；label 是学员原话里这个表现的简短描述。',
-  '反应':'提取 JSON：{manifest,dropDims,visuals}。dropDims 是优先扣的维度名数组；visuals 为对象数组 {action,color?}：action 从 [shrink 缩成一团, jitter 发抖, dim 变暗, bubble 冒泡泡, cry 哭泣, flash 闪光] 选；color 用学员说的颜色，没说则不填。',
-  '资源':'提取 JSON：{consume,visuals}。visuals 为对象数组 {action,color?}：action 从 [grow 慢慢长大, devour 吃掉, glow 发光, dance 开心转圈] 选；color 用学员说的颜色，没说则不填。',
-  '潮流':'提取 JSON：{mode,visuals}。visuals 为对象数组 {action,color?}：action 从 [follow 随波而行, resist 逆流而上, still 静静观看] 选；color 用学员说的颜色，没说则不填。',
-  '成长':'提取 JSON：{grow,death,visuals}。visuals 为对象数组 {action,color?}：action 从 [grow 长大一圈, fade 缓缓飘散] 选；color 用学员说的颜色，没说则不填。',
+  '交流':'提取 JSON：{approach,avoid,onMeet,visuals}。approach/avoid/onMeet 是文字。visuals 是表现动画数组，每项为 {do:"svg", svg:"<自包含SVG动画>"}：AI 根据学员这段描述，画一个自包含 SVG 动画表现他说的动作（如"用一道光连过去"→画一束光从生命伸向对方的光线动画；"丢鸡蛋"→画白色椭圆鸡蛋+抛物线飞过去的动画；"撒小星星"→星星四散动画）。SVG 规范：根元素 <svg viewBox="0 0 200 200" width="100%" height="100%">；用 SMIL <animate>/<animateTransform> 或内联 <style>@keyframes 做动画；禁止 <script>、on* 属性、外部 href、foreignObject、外部图片；颜色用学员说的（"红色"→#ef4444、"金色"→#fbbf24），没说用 #7dd3fc；动画≤1.6秒；不要文字。',
+  '反应':'提取 JSON：{manifest,dropDims,visuals}。manifest 是表现文字；dropDims 是优先扣的维度名数组；visuals 为 {do:"svg", svg:"<自包含SVG动画>"} 数组，AI 按学员描述画表现动画（如"被揍就缩成一团发抖"→缩小+左右抖动动画；"冒泪珠哭泣"→泪珠下落动画）。SVG 规范同上（viewBox 200x200、SMIL/style 动画、禁 script/on*/外部资源、颜色用学员说的、动画≤1.6秒、不要文字）。',
+  '资源':'提取 JSON：{consume,visuals}。consume 是资源处理文字；visuals 为 {do:"svg", svg:"<自包含SVG动画>"} 数组，AI 按学员描述画（如"用一束光连接资源"→光带从生命连向资源的动画；"丢鸡蛋"→鸡蛋抛物线丢向资源；"吃掉发光"→吞+光晕动画）。SVG 规范同上。',
+  '潮流':'提取 JSON：{mode,visuals}。mode 是文字；visuals 为 {do:"svg", svg:"<自包含SVG动画>"} 数组（如"随波而行"→轻飘动画）。SVG 规范同上。',
+  '成长':'提取 JSON：{grow,death,visuals}。grow/death 是文字；visuals 为 {do:"svg", svg:"<自包含SVG动画>"} 数组（长大→scale 放大动画；飘散→碎片四散淡出动画）。SVG 规范同上。',
 };
 async function callLLM(system, message, block){
   if (LLM_ENDPOINT){
@@ -293,7 +293,7 @@ function fallbackSummarize(block, convo){
   }
   if (block==='资源'){
     if (/长大|吃|拾|靠近/.test(t)) out.consume='靠近金色资源会慢慢长大';
-    const vs=[]; if(/吃/.test(t))vs.push('devour'); if(/长大/.test(t))vs.push('grow'); if(/发光/.test(t))vs.push('glow'); if(/转|开心/.test(t))vs.push('dance'); if(vs.length)out.visuals=vs;
+    const vs=[]; if(/连|线|射|照/.test(t))vs.push('lightLink'); if(/吃/.test(t))vs.push('devour'); if(/长大/.test(t))vs.push('grow'); if(/发光/.test(t))vs.push('glow'); if(/转|开心/.test(t))vs.push('dance'); if(vs.length)out.visuals=vs;
   }
   if (block==='潮流'){
     if (/逆/.test(t)) out.mode='逆着浪潮走'; else if (/随波|跟|随/.test(t)) out.mode='随波而行，浪潮来时更活跃';
@@ -335,13 +335,14 @@ function describeBlock(k){
 }
 
 /* ====================== 渲染 ====================== */
+const escHtml = (s) => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 const skillsBox = document.getElementById('skills');
 const detail = document.getElementById('detail');
 function renderSkills(){
   skillsBox.innerHTML = SKILLS.map(s=>{
     const st = state.locked[s.key] ? '● 已结晶' : (s.key==='创造' ? (state.skill.创造.name||state.skill.创造.blurb) : JSON.stringify(state.skill[s.key]).length>2 ? '草稿' : '');
     return `<div class="skill ${state.active===s.key?'active':''}" data-k="${s.key}">
-      <h3><span class="ic">${s.ic}</span>${s.key} ${st?'<span class="crystallized">'+st+'</span>':''}</h3>
+      <h3><span class="ic">${s.ic}</span>${s.key} ${st?'<span class="crystallized">'+escHtml(st)+'</span>':''}</h3>
       <p>${s.hint}</p></div>`;
   }).join('');
   [...skillsBox.children].forEach(el=>{
@@ -377,7 +378,7 @@ function renderDetail(){
         <div style="display:flex;gap:8px;margin-top:8px;align-items:center">
           <button class="btn-ghost" id="clearSketch" style="border-radius:8px;padding:6px 10px">清除</button>
           <button class="btn-ghost" id="doneSketch" style="border-radius:8px;padding:6px 10px">✓ 画好了</button>
-          <input id="shapeText" placeholder="或文字描述形状（如：金属圆盘/空间站）" value="${state.skill.创造.shape && state.skill.创造.shape!=='光斑'?state.skill.创造.shape:''}" style="flex:1;background:#0c1224;border:1px solid var(--line);color:var(--text);border-radius:8px;padding:6px 8px;font-size:13px">
+          <input id="shapeText" placeholder="或文字描述形状（如：金属圆盘/空间站）" value="${escHtml(state.skill.创造.shape && state.skill.创造.shape!=='光斑' ? state.skill.创造.shape : '')}" style="flex:1;background:#0c1224;border:1px solid var(--line);color:var(--text);border-radius:8px;padding:6px 8px;font-size:13px">
         </div>
         <div class="note" id="sketchHint" style="margin-top:6px">画完松手即自动保存；点「✓ 画好了」确认，然后点上方「✓ 定下来」把创造块定下来。</div>
       </div>`;
@@ -476,7 +477,7 @@ function injectVisuals(){
     const seen = {};
     const merged = [];
     for (const v of ai.concat(mapped)){
-      const key = (typeof v==='object' && v.action) ? v.action : String(v);
+      const key = (typeof v==='object') ? (v.do==='svg' ? 'svg:'+String(v.svg).slice(0,40) : (v.action||'[obj]')) : String(v);
       if (seen[key]) continue; seen[key] = true;
       merged.push(v);
     }

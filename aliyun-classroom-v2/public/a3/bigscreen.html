@@ -662,6 +662,43 @@ function resolveColor(l, spec){
   if (spec && spec.color && CN_COLOR[String(spec.color).trim()]) return CN_COLOR[String(spec.color).trim()];
   return null; // 无规定 → 用生命自己的色相（调用处兜底）
 }
+/* —— SVG 表现播放器（引擎）：AI 生成的自包含 SVG 动画，画到生命头顶 —— */
+function sanitizeSvg(input){
+  if (typeof input !== 'string') return '';
+  let s = input;
+  if (s.length > 20000) s = s.slice(0, 20000);
+  s = s.replace(/<script[\s\S]*?<\/script>/gi, '');
+  s = s.replace(/\son\w+\s*=\s*"[^"]*"/gi, '');
+  s = s.replace(/\son\w+\s*=\s*'[^']*'/gi, '');
+  s = s.replace(/<foreignObject[\s\S]*?<\/foreignObject>/gi, '');
+  s = s.replace(/\s(?:href|xlink:href)\s*=\s*["']https?:\/\/[^"']*["']/gi, '');
+  s = s.replace(/javascript:/gi, '');
+  if (!/<svg[\s>]/i.test(s)) return '';
+  if (!/\sxmlns\s*=/.test(s)) s = s.replace(/<svg/i, "<svg xmlns='http://www.w3.org/2000/svg'");
+  return s;
+}
+let _svgLayer = null;
+function svgLayer(){
+  if (!_svgLayer){
+    const host = cv.parentNode || document.body;
+    if (host !== document.body && getComputedStyle(host).position === 'static') host.style.position = 'relative';
+    _svgLayer = document.createElement('div');
+    _svgLayer.id = 'svg-fx-layer';
+    _svgLayer.style.cssText = 'position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;z-index:50;overflow:hidden;';
+    host.appendChild(_svgLayer);
+  }
+  return _svgLayer;
+}
+function playSvgFx(l, svgStr){
+  const clean = sanitizeSvg(svgStr);
+  if (!clean) return;
+  const wrap = document.createElement('div');
+  const size = 240;
+  wrap.style.cssText = `position:absolute;left:${l.x}px;top:${l.y}px;width:${size}px;height:${size}px;transform:translate(-50%,-50%);`;
+  wrap.innerHTML = clean;
+  svgLayer().appendChild(wrap);
+  setTimeout(() => { wrap.style.transition='opacity .5s'; wrap.style.opacity=0; setTimeout(()=>wrap.remove(), 550); }, 1500);
+}
 const SKILL_ACTIONS = {
   shrink: (l, sp)=>{ fxApply(l,{scale:0.62, dur:900}); floatText(l.x, l.y-20, '缩成一团', resolveColor(l,sp)||'#9fb0ff'); },
   jitter: (l, sp)=>{ fxApply(l,{jitter:1, dur:800}); floatText(l.x, l.y-20, '瑟瑟发抖', resolveColor(l,sp)||'#ffb0b0'); },
@@ -683,10 +720,14 @@ const SKILL_ACTIONS = {
   fade:   (l, sp)=>{ if(world.fx.length<FX_MAX*0.9) emit(l,'scatter',{count:24,hue:l.hue,color:resolveColor(l,sp)||`hsl(${l.hue},80%,65%)`,img:sketchOf(l)}); },
   lightLink: (l, sp, stim)=>{ l.lightLink = { x:(stim && stim.to)?stim.to.x:l.x, y:(stim && stim.to)?stim.to.y:l.y, until: now()+700, color: resolveColor(l,sp) || null }; floatText(l.x, l.y-20, '光带连线', resolveColor(l,sp)||'#fff7c0'); },
   emitSelf: (l, sp)=>{ const sk=sketchOf(l); if(world.fx.length<FX_MAX*0.9){ for(let i=0;i<8;i++){ const a=Math.random()*Math.PI*2; emit(l,'emo',{count:1,hue:l.hue,color:resolveColor(l,sp)||undefined,img:sk}); const last=world.fx[world.fx.length-1]; if(last){ last.vx=Math.cos(a)*1.6; last.vy=Math.sin(a)*1.6; } } } floatText(l.x, l.y-20, '撒出小星星', resolveColor(l,sp)||'#ffd8a8'); },
+  svg:    (l, sp)=>{ if (sp && sp.svg) playSvgFx(l, sp.svg); },
 };
 // visuals 项规范化：可能是字符串（旧："lightLink" / "lightLink=红色的光"）或对象（新：{action,color,...}）
 function normalizeVisualItem(v){
-  if (v && typeof v === 'object'){ const a = String(v.action||'').trim(); return { action: a, ...v, color: (v.color!=null)?v.color:(v.style?String(v.style):undefined) }; }
+  if (v && typeof v === 'object'){
+    if (v.do === 'svg' && v.svg){ return { action: 'svg', svg: v.svg, color: (v.color!=null)?v.color:undefined }; }
+    const a = String(v.action||'').trim(); return { action: a, ...v, color: (v.color!=null)?v.color:(v.style?String(v.style):undefined) };
+  }
   const s = String(v||'').trim(); if (!s) return null;
   const eq = s.split('=');
   return { action: (eq[0]||'').trim(), color: (eq[1]||'').trim() || undefined };
@@ -696,6 +737,13 @@ function playSkillPrimitive(life, kind, stim){
   const BLOCK = { meet:'交流', hit:'反应', resource:'资源', wave:'潮流' };
   const block = s[BLOCK[kind]];
   if (!block || !Array.isArray(block.visuals) || !block.visuals.length) return;
+  if (kind==='resource'){               // 资源块冷却：同位置资源 2.2s 内只播一次，避免每 tick 重播叠满
+    const r = stim && stim.to; if (!r) return;
+    life._cd = life._cd || {};
+    const key = 'res:' + Math.round(r.x) + '_' + Math.round(r.y);
+    if (now() - (life._cd[key] || 0) < 2200) return;
+    life._cd[key] = now();
+  }
   for (const v of block.visuals){
     const spec = normalizeVisualItem(v); if (!spec) continue;
     const name = spec.action;
@@ -712,8 +760,8 @@ function playGrowDeathPrimitive(life, kind){
   const s = life.skill; if (!s || !s.成长 || !Array.isArray(s.成长.visuals)) return;
   for (const v of s.成长.visuals){
     const spec = normalizeVisualItem(v); if (!spec) continue;
-    if (kind==='grow' && spec.action==='grow') SKILL_ACTIONS.grow(life, spec);
-    else if (kind==='death' && spec.action==='fade') SKILL_ACTIONS.fade(life, spec);
+    if (kind==='grow' && (spec.action==='grow' || spec.action==='svg')) SKILL_ACTIONS[spec.action](life, spec);
+    else if (kind==='death' && (spec.action==='fade' || spec.action==='svg')) SKILL_ACTIONS[spec.action](life, spec);
   }
 }
 
