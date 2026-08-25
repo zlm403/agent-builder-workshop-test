@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>创造我的生命 · 共生缸</title>
+<style>
+@import url('https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css');
+:root{
+  --bg1:#0A0E1A; --bg2:#121829; --cyan:#3FD0FF; --purple:#7C5CFF; --mint:#4FE0C0;
+  --gold:#FFD166; --pink:#FF6B8B; --text:#EAF2FF; --dim:#9FB2CC; --line:#243049;
+}
+*{ box-sizing:border-box; }
+body{ margin:0; font-family:"PingFang SC",system-ui,sans-serif; color:var(--text);
+  background:radial-gradient(1200px 800px at 20% -10%, #16213b 0%, var(--bg1) 55%), var(--bg1);
+  min-height:100vh; }
+.wrap{ max-width:480px; margin:0 auto; padding:16px 14px 40px; }
+.head{ display:flex; align-items:center; gap:10px; padding:14px 16px; border-radius:16px; margin-bottom:14px;
+  background:linear-gradient(135deg, rgba(63,208,255,.10), rgba(124,92,255,.10));
+  border:1px solid rgba(124,92,255,.25); box-shadow:0 0 30px rgba(63,208,255,.12) inset; }
+.head .dot{ width:10px;height:10px;border-radius:50%;background:var(--cyan); box-shadow:0 0 12px var(--cyan); }
+.head h1{ font-size:20px; margin:0; font-weight:600; letter-spacing:1px; }
+.head .sub{ color:var(--dim); font-size:12px; margin-top:2px; }
+
+/* 权限绑定 / 进入 */
+.gate{ display:flex; gap:8px; align-items:center; }
+.gate input{ background:#0c1224; border:1px solid var(--line); color:var(--text); border-radius:10px; padding:8px 10px; font-size:13px; }
+.gate .btn{ background:linear-gradient(135deg,var(--cyan),var(--purple)); color:#08101f; font-weight:600; border:0; border-radius:10px; padding:8px 14px; cursor:pointer; }
+.hidden{ display:none; }
+
+/* 聊天 */
+.chat{ height:300px; overflow:auto; padding:12px; border-radius:16px; margin-bottom:12px;
+  background:rgba(10,14,26,.6); border:1px solid var(--line); }
+.msg{ margin-bottom:10px; max-width:85%; }
+.msg.ai{ }
+.msg.me{ text-align:right; }
+.bubble{ display:inline-block; padding:9px 12px; border-radius:14px; font-size:14px; line-height:1.5; }
+.msg.ai .bubble{ background:rgba(63,208,255,.12); border:1px solid rgba(63,208,255,.3); }
+.msg.me .bubble{ background:linear-gradient(135deg,var(--purple),var(--cyan)); color:#08101f; }
+.chat-input{ display:flex; gap:8px; }
+.chat-input input{ flex:1; background:#0c1224; border:1px solid var(--line); color:var(--text); border-radius:12px; padding:10px 12px; font-size:14px; }
+.chat-input button{ background:linear-gradient(135deg,var(--cyan),var(--mint)); border:0; color:#08101f; font-weight:600; border-radius:12px; padding:0 16px; cursor:pointer; }
+
+/* 技能面板 */
+.skills{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:14px 0; }
+.skill{ background:rgba(18,24,41,.7); border:1px solid var(--line); border-radius:14px; padding:12px; cursor:pointer; transition:.2s; }
+.skill:hover{ border-color:var(--cyan); box-shadow:0 0 0 1px var(--cyan), 0 8px 24px rgba(63,208,255,.15); transform:translateY(-2px); }
+.skill.active{ border-color:var(--purple); box-shadow:0 0 0 1px var(--purple), 0 10px 30px rgba(124,92,255,.2); }
+.skill h3{ margin:0 0 4px; font-size:14px; display:flex; align-items:center; gap:8px; }
+.skill .ic{ width:26px;height:26px; display:grid; place-items:center; border-radius:8px; background:rgba(63,208,255,.14); font-size:14px; }
+.skill p{ margin:0; color:var(--dim); font-size:12px; line-height:1.5; }
+.skill .crystallized{ color:var(--mint); font-size:11px; }
+
+/* 维度预算 */
+.budget{ margin:14px 0; padding:12px; border-radius:14px; background:rgba(18, 24, 41, .7); border:1px solid var(--line); }
+.budget .bar{ height:14px; border-radius:8px; background:#0c1224; overflow:hidden; margin:8px 0; border:1px solid var(--line); }
+.budget .fill{ height:100%; background:linear-gradient(90deg,var(--cyan),var(--purple)); width:0; transition:width .4s; box-shadow:0 0 14px var(--cyan); }
+.budget .row{ display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+.chip{ background:#0c1224; border:1px solid var(--line); border-radius:999px; padding:5px 10px; font-size:12px; color:var(--dim); }
+.chip b{ color:var(--gold); }
+.dim-row{ display:flex; align-items:center; gap:8px; margin-bottom:6px; }
+.dim-row input.k{ background:#0c1224; border:1px solid var(--line); color:var(--text); border-radius:8px; padding:6px 8px; width:90px; font-size:13px; }
+.dim-row input.v{ width:64px; }
+.dim-row .del{ color:var(--pink); cursor:pointer; font-size:12px; }
+
+/* 提交操作 */
+.actions{ display:flex; gap:10px; margin-top:14px; }
+.actions .btn{ flex:1; border:0; border-radius:12px; padding:12px; font-weight:600; cursor:pointer; }
+.btn-go{ background:linear-gradient(135deg,var(--cyan),var(--purple)); color:#08101f; }
+.btn-ghost{ background:rgba(255,255,255,.06); color:var(--text); border:1px solid var(--line); }
+.card{ background:rgba(18,24,41,.7); border:1px solid var(--line); border-radius:14px; padding:12px; margin-top:12px; }
+.card h4{ margin:0 0 8px; font-size:13px; color:var(--mint); }
+.card label{ font-size:12px; color:var(--dim); display:block; margin:8px 0 4px; }
+.card input, .card select, .card textarea{ width:100%; background:#0c1224; border:1px solid var(--line); color:var(--text); border-radius:10px; padding:8px; font-size:13px; }
+.preview{ width:60px;height:60px;border-radius:50%; margin:6px auto; }
+.note{ color:var(--dim); font-size:11px; margin-top:8px; line-height:1.5; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="head">
+    <span class="dot"></span>
+    <div style="flex:1">
+      <h1>创造我的生命 ✦</h1>
+      <div class="sub" id="conn">共创 · 共生缸世界</div>
+    </div>
+    <div class="gate" id="gate">
+      <input id="code" placeholder="课程码" value="SYM-207" />
+      <button class="btn" id="enterBtn">进入课堂</button>
+    </div>
+  </div>
+
+  <div id="studio" class="hidden">
+    <div class="chat" id="chat"></div>
+    <div class="chat-input">
+      <input id="say" placeholder="说点什么…（混沌一点也没关系）" />
+      <button id="send">发送</button>
+    </div>
+
+    <div class="skills" id="skills"></div>
+
+    <div class="budget">
+      <div style="display:flex;justify-content:space-between;font-size:13px">
+        <span>维度预算（总和固定 100）</span>
+        <span id="budNum" style="color:var(--gold)">0 / 100</span>
+      </div>
+      <div class="bar"><div class="fill" id="budFill"></div></div>
+      <div class="row" id="dimList"></div>
+      <div class="dim-row">
+        <input class="k" id="newDim" placeholder="新维度名" />
+        <input class="v dim-row-input v" id="newVal" type="number" min="0" value="20" />
+        <button class="btn-ghost" id="addDim" style="border-radius:8px;padding:6px 10px">＋ 加维度</button>
+      </div>
+      <div class="note">想怎么命名就怎么命名，系统只管总和公平——你给某项多，别处自然就少。</div>
+    </div>
+
+    <div class="card" id="detail"></div>
+
+    <div class="actions">
+      <button class="btn-ghost" id="lock" style="opacity:.5">✓ 定下来</button>
+      <button class="btn-go" id="enter">进入世界</button>
+      <button class="btn-ghost hidden" id="recall">收回</button>
+      <button class="btn-ghost hidden" id="redo">重做</button>
+    </div>
+    <div class="note" id="status"></div>
+  </div>
+</div>
+
+<script>
+/* ====================== 系统身份接入（A3 融入 Classroom V2） ====================== */
+const __params = new URLSearchParams(location.search);
+const ANON = __params.get('anonymousId') || __params.get('studentId') || '';
+function apiPath(p){
+  const bp = __params.get('bp');
+  if (bp) return bp + p;
+  // 嗅探：a3 页面自身就在 basePath 子路径下（如 /lesson2/a3/student.html），取其前缀拼 API
+  const m = location.pathname.match(/^(\/[^/]*)\/a3\//);
+  return (m ? m[1] : '') + p;
+}
+/* ====================== 数据模型 ====================== */
+const SKILLS = [
+  { key:'创造', ic:'✦', hint:'我是谁、长什么样、一句话原话' },
+  { key:'交流', ic:'◌', hint:'我怎么和别人互动（自定义方式）' },
+  { key:'反应', ic:'◈', hint:'遇到事件/浪潮怎么表现、降分后怎样' },
+  { key:'资源', ic:'❉', hint:'我怎么对待世界资源' },
+  { key:'潮流', ic:'〜', hint:'我怎么跟随/响应浪潮' },
+  { key:'成长', ic:'✺', hint:'长大 / 死亡 / 可回收重做' },
+];
+const state = {
+  dims: { 机敏:20, 好奇:20, 害羞:15, 助人:25, 贪玩:20 },   // 初始草案，总和需=100
+  skill: {
+    创造:{ name:'', shape:'光斑', blurb:'', sketch:null },
+    交流:{ approach:'', avoid:'', onMeet:'靠近就轻轻蹭一下（自定义，不强制粒子）' },
+    反应:{ dropDims:[], manifest:'缩成一团、微微变暗' },
+    资源:{ consume:'靠近金色资源会慢慢长大' },
+    潮流:{ mode:'随波而行，浪潮来时更活跃' },
+    成长:{ grow:'经验满则长大一圈', death:'能量耗尽缓缓飘散' },
+  },
+  active:null,
+  locked:{ 创造:false, 交流:false, 资源:false, 反应:false, 潮流:false, 成长:false },
+  conv:{ 创造:[], 交流:[], 资源:[], 反应:[], 潮流:[], 成长:[] },
+  entered:false,
+  studentId: ANON || ('S-' + Math.random().toString(36).slice(2,7).toUpperCase()),
+};
+
+/* ====================== 技能块引导（路线A：LLM 引导 + 逐块定下来） ====================== */
+const chat = document.getElementById('chat');
+function addMsg(who, text){
+  const d = document.createElement('div'); d.className = 'msg ' + who;
+  const b = document.createElement('div'); b.className='bubble'; b.textContent = text;
+  d.appendChild(b); chat.appendChild(d); chat.scrollTop = chat.scrollHeight;
+}
+function keywordsToDims(t){
+  const map = { 怕生:['害羞',22], 害羞:['害羞',20], 胆怯:['害羞',22], 好奇:['好奇',25], 探索:['好奇',22],
+    帮:['助人',25], 助:['助人',22], 友好:['助人',20], 贪吃:['贪吃',22], 吃:['贪吃',18],
+    勇:['勇敢',22], 冲:['勇敢',18], 慢:['迟缓',20], 懒:['迟缓',18], 活力:['活力',22],
+    创意:['创意',22], 聪明:['机敏',22], 机敏:['机敏',20], 社交:['社交',20], 独:['独处',18] };
+  for (const [kw,[name,val]] of Object.entries(map)){
+    if (t.includes(kw)){ state.dims[name] = Math.max(state.dims[name]||0, val); }
+  }
+}
+// 系统统一 LLM 接口（教师端 key，整个系统在用）。接 ClassV2 时把 LLM_ENDPOINT 填上即可。
+const LLM_ENDPOINT = apiPath('/api/a3/llm');
+const BLOCK_SYS = {
+  '创造':'你是共生缸共创助教。引导学员定义他的生命：名字、形状描述、一句话原话。口语化，一次一个问题。',
+  '交流':'引导学员定义生命怎么和别人互动（自定义，不强制粒子）：亲近谁、回避谁、相遇发生什么。口语追问。',
+  '反应':'引导学员定义遇到事件/浪潮怎么表现，以及被砸后优先扣哪些维度、表现成什么。口语追问。',
+  '资源':'引导学员定义怎么对待世界资源（金色=稀有）。口语追问。',
+  '潮流':'引导学员定义怎么跟随/响应浪潮（随波或逆流）。口语追问。',
+  '成长':'引导学员定义长大/死亡/可回收重做。口语追问。',
+};
+const GENERAL_SYS = '你是共生缸共创助教。学员可能随便说，你接话追问，并判断他聊到哪个技能块（创造/交流/反应/资源/潮流/成长），引导他去点对应技能细聊。';
+const BLOCK_SCHEMA_SYS = {
+  '创造':'从对话提取 JSON：{name,shape,blurb}。',
+  '交流':'提取 JSON：{approach,avoid,onMeet,visuals}。visuals 是从视觉词表挑的数组（可选），nuzzle=蹭一下/spit=吐个小东西/orbit=绕着对方转/avoid=躲开/dance=打招呼/emitSelf=撒出几个自己的小星星（用他自己的样子）。',
+  '反应':'提取 JSON：{manifest,dropDims,visuals}。dropDims 是优先扣的维度名数组；visuals 从词表挑（可选）：shrink=缩成一团/jitter=发抖/dim=变暗/bubble=冒泡泡/cry=哭泣/flash=闪光。',
+  '资源':'提取 JSON：{consume,visuals}。visuals 从词表挑（可选）：grow=慢慢长大/devour=吃掉/glow=发光/dance=开心转圈。',
+  '潮流':'提取 JSON：{mode,visuals}。visuals 从词表挑（可选）：follow=随波而行/resist=逆流而上/still=静静观看。',
+  '成长':'提取 JSON：{grow,death,visuals}。visuals 从词表挑（可选）：grow=长大一圈/fade=缓缓飘散。',
+};
+async function callLLM(system, message, block){
+  if (LLM_ENDPOINT){
+    try{
+      const r = await fetch(LLM_ENDPOINT, {method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({system, message, block})});
+      if (r.ok){ const j = await r.json(); if (j && j.reply) return j.reply; }
+    }catch(_){}
+  }
+  return fallbackGuide(system, message, block);
+}
+async function summarizeBlock(block, convo){
+  if (LLM_ENDPOINT){
+    try{
+      const r = await fetch(LLM_ENDPOINT, {method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({system: BLOCK_SCHEMA_SYS[block], extract:true, convo, block, fields: state.skill[block]})});
+      if (r.ok){
+        const j = await r.json();
+        if (j && j.fields){
+          const f = j.fields;
+          // AI 觉得语义含糊 → 借聊天反问学员，不结晶，等答清再「定下来」
+          if (f.followup){
+            addMsg('ai', f.followup);
+            if (block) state.conv[block].push({role:'ai', text:f.followup});
+            return null;
+          }
+          delete f.followup;
+          return f;
+        }
+      }
+    }catch(_){}
+  }
+  return fallbackSummarize(block, convo);
+}
+function fallbackGuide(system, message, block){
+  if (!block){
+    if (/交流|互动|靠近|认识|朋友/.test(message)){ state.active='交流'; return '那它"怎么和别人互动"？靠近蹭一下、丢个东西、甚至什么都不做——你定义它的交流方式。点「交流」我们细聊。'; }
+    if (/倒霉|撞|受伤|怕|事件/.test(message)){ state.active='反应'; return '遇到倒霉事件世界会按大小扣分。你想扣哪些维度、表现成什么？点「反应」聊。'; }
+    if (/资源|吃|长大/.test(message)){ state.active='资源'; return '关于资源：靠近金色资源会怎样？点「资源」聊。'; }
+    if (/潮流|浪潮|风向/.test(message)){ state.active='潮流'; return '潮流来了它怎么反应？点「潮流」聊。'; }
+    if (/长大|死|重生/.test(message)){ state.active='成长'; return '成长：经验满长大，能量耗尽飘散，可回收重做。点「成长」聊。'; }
+    return '嗯，先随便说。想从哪块开始？点下面六个技能之一，我和你细聊——也可以直接描述"我想做个怕生但会帮人的小东西"。';
+  }
+  return '我在听。再多说两句，或者点「✓ 定下来」让我帮你把这段聊的内容总结成这块的设定。';
+}
+function fallbackSummarize(block, convo){
+  const t = convo || ''; const out = {};
+  if (block==='创造'){
+    const nm = t.match(/叫\s*([\u4e00-\u9fa5A-Za-z]{1,8})/); if (nm) out.name = nm[1];
+    if (/光斑|星星|圆球|方块|小蛇|小兔|光团|光点/.test(t)) out.shape = (t.match(/光斑|星星|圆球|方块|小蛇|小兔|光团|光点/)||[])[0];
+    const bl = t.match(/[""]([^""]+)[""]/); if (bl) out.blurb = bl[1];
+  }
+  if (block==='交流'){
+    if (/蹭/.test(t)) out.onMeet='靠近就轻轻蹭一下';
+    if (/丢|扔/.test(t)) out.onMeet = out.onMeet||'靠近丢个小东西';
+    if (/躲|避/.test(t)) out.avoid='会躲开不熟悉的';
+    const vs=[]; if(/蹭/.test(t))vs.push('nuzzle'); if(/丢|扔/.test(t))vs.push('spit'); if(/绕/.test(t))vs.push('orbit'); if(/躲|避/.test(t))vs.push('avoid'); if(/打招呼|握手|跳/.test(t))vs.push('dance'); if(vs.length)out.visuals=vs;
+  }
+  if (block==='反应'){
+    if (/缩|团|暗/.test(t)) out.manifest='缩成一团、微微变暗';
+    const dims = (t.match(/扣\s*([\u4e00-\u9fa5]{1,4})/g)||[]).map(s=>s.replace('扣',''));
+    if (dims.length) out.dropDims = dims;
+    const vs=[]; if(/缩|团/.test(t))vs.push('shrink'); if(/抖/.test(t))vs.push('jitter'); if(/暗/.test(t))vs.push('dim'); if(/泡/.test(t))vs.push('bubble'); if(/哭/.test(t))vs.push('cry'); if(/闪|亮/.test(t))vs.push('flash'); if(vs.length)out.visuals=vs;
+  }
+  if (block==='资源'){
+    if (/长大|吃|拾|靠近/.test(t)) out.consume='靠近金色资源会慢慢长大';
+    const vs=[]; if(/吃/.test(t))vs.push('devour'); if(/长大/.test(t))vs.push('grow'); if(/发光/.test(t))vs.push('glow'); if(/转|开心/.test(t))vs.push('dance'); if(vs.length)out.visuals=vs;
+  }
+  if (block==='潮流'){
+    if (/逆/.test(t)) out.mode='逆着浪潮走'; else if (/随波|跟|随/.test(t)) out.mode='随波而行，浪潮来时更活跃';
+    const vs=[]; if(/逆/.test(t))vs.push('resist'); else if(/随波|跟|随/.test(t))vs.push('follow'); if(/静|不动/.test(t))vs.push('still'); if(vs.length)out.visuals=vs;
+  }
+  if (block==='成长'){
+    if (/长大/.test(t)) out.grow='经验满则长大一圈'; if (/飘散|死|散/.test(t)) out.death='能量耗尽缓缓飘散';
+    const vs=[]; if(/长大/.test(t))vs.push('grow'); if(/飘散|死|散/.test(t))vs.push('fade'); if(vs.length)out.visuals=vs;
+  }
+  return out;
+}
+function blockIntro(block){
+  const intro = {
+    '创造':'好，我们从「创造」开始——它叫什么？长什么样？最想说的一句话是什么？聊完点「✓ 定下来」我帮你定型。',
+    '交流':'来聊「交流」：它怎么和别人互动？靠近蹭一下、丢个东西、还是什么都不做？自定义，世界只记录成事件。',
+    '反应':'聊「反应」：遇到倒霉事件它怎么表现？被砸了优先扣哪些维度？没想好就说，我帮你兜底。',
+    '资源':'说「资源」：它怎么对待世界里的资源？金色代表稀有哦。',
+    '潮流':'谈「潮流」：浪潮来了它跟不跟？随波还是逆流？',
+    '成长':'最后「成长」：经验满会长大，能量耗尽会飘散——而且你能随时收回重做。',
+  };
+  return intro[block] || '我们细聊这块吧。';
+}
+async function chatGuide(block, userText){
+  const sys = block ? BLOCK_SYS[block] : GENERAL_SYS;
+  const reply = await callLLM(sys, userText, block);
+  addMsg('ai', reply);
+  if (block) state.conv[block].push({role:'ai', text:reply});
+  renderSkills();
+}
+function describeBlock(k){
+  const s = state.skill[k]; if(!s) return '';
+  if (k==='创造') return `名字：${s.name||'—'} ｜ 形状：${s.shape}${s.sketch?'（已画草图）':''} ｜ 原话：${s.blurb||'—'}`;
+  if (k==='交流') return `亲近：${s.approach||'—'} ｜ 回避：${s.avoid||'—'} ｜ 相遇：${s.onMeet}`;
+  if (k==='反应') return `表现：${s.manifest} ｜ 优先扣：${(s.dropDims||[]).join('/')||'模糊兜底'}`;
+  if (k==='资源') return `资源：${s.consume}`;
+  if (k==='潮流') return `潮流：${s.mode}`;
+  if (k==='成长') return `长大：${s.grow} ｜ 死亡：${s.death}`;
+  return '';
+}
+
+/* ====================== 渲染 ====================== */
+const skillsBox = document.getElementById('skills');
+const detail = document.getElementById('detail');
+function renderSkills(){
+  skillsBox.innerHTML = SKILLS.map(s=>{
+    const st = state.locked[s.key] ? '● 已结晶' : (s.key==='创造' ? (state.skill.创造.name||state.skill.创造.blurb) : JSON.stringify(state.skill[s.key]).length>2 ? '草稿' : '');
+    return `<div class="skill ${state.active===s.key?'active':''}" data-k="${s.key}">
+      <h3><span class="ic">${s.ic}</span>${s.key} ${st?'<span class="crystallized">'+st+'</span>':''}</h3>
+      <p>${s.hint}</p></div>`;
+  }).join('');
+  [...skillsBox.children].forEach(el=>{
+    el.onclick=()=>{ const k=el.dataset.k; state.active=k;
+      if(state.conv[k].length===0){ const intro=blockIntro(k); addMsg('ai', intro); state.conv[k].push({role:'ai',text:intro}); }
+      renderSkills(); renderDetail();
+      const lb=document.getElementById('lock'); if(lb) lb.style.opacity=1;
+    };
+  });
+}
+function renderBudget(){
+  const sum = Object.values(state.dims).reduce((a,b)=>a+(+b||0),0);
+  document.getElementById('budNum').textContent = sum + ' / 100';
+  document.getElementById('budFill').style.width = Math.min(100, sum) + '%';
+  const list = document.getElementById('dimList');
+  list.innerHTML = Object.entries(state.dims).map(([k,v])=>`<span class="chip">${k} <b>${v}</b></span>`).join('');
+}
+function renderDetail(){
+  const k = state.active;
+  const lb = document.getElementById('lock');
+  if(!k){ if(lb) lb.style.opacity=0.5; detail.innerHTML='<div class="note">点上方任一技能，进入该块的引导聊天；聊清楚后点「✓ 定下来」自动填入并保存。</div>'; return; }
+  if(lb) lb.style.opacity=1;
+  const locked = state.locked[k];
+  let html = `<h4>${k} · ${locked?'已结晶 ✓':'草稿中'}</h4><div class="note">${describeBlock(k)}</div>`;
+  if (locked) html += '<div class="note" style="color:var(--mint)">已保存。点别的块继续，或点「重新聊」解除结晶再改。</div><button class="btn-ghost" id="unlock" style="margin-top:8px">重新聊这块</button>';
+  else {
+    html += '<div class="note">和助教聊清楚后，点「✓ 定下来」，我会把对话总结成这块的设定自动填入。</div>';
+    if (k==='创造'){
+      html += `<div class="card" style="margin-top:10px">
+        <h4>画一下它的形状</h4>
+        <div class="note" style="margin-top:0">AR 不一定画得出你的文字描述，你直接用手指/鼠标在框里画给我看。</div>
+        <canvas id="sketchCanvas" width="280" height="180" style="width:100%;height:auto;background:#0c1224;border:1px solid var(--line);border-radius:10px;touch-action:none;display:block;margin-top:8px"></canvas>
+        <div style="display:flex;gap:8px;margin-top:8px;align-items:center">
+          <button class="btn-ghost" id="clearSketch" style="border-radius:8px;padding:6px 10px">清除</button>
+          <button class="btn-ghost" id="doneSketch" style="border-radius:8px;padding:6px 10px">✓ 画好了</button>
+          <input id="shapeText" placeholder="或文字描述形状（如：金属圆盘/空间站）" value="${state.skill.创造.shape && state.skill.创造.shape!=='光斑'?state.skill.创造.shape:''}" style="flex:1;background:#0c1224;border:1px solid var(--line);color:var(--text);border-radius:8px;padding:6px 8px;font-size:13px">
+        </div>
+        <div class="note" id="sketchHint" style="margin-top:6px">画完松手即自动保存；点「✓ 画好了」确认，然后点上方「✓ 定下来」把创造块定下来。</div>
+      </div>`;
+    }
+  }
+  detail.innerHTML = html;
+  const ub=document.getElementById('unlock');
+  if(ub) ub.onclick=()=>{ state.locked[k]=false; addMsg('ai','已解除「'+k+'」结晶，重新聊吧。'); renderSkills(); renderDetail(); };
+  bindSketch();
+}
+function bindSketch(){
+  const cv=document.getElementById('sketchCanvas'); if(!cv) return;
+  const ctx=cv.getContext('2d'); ctx.strokeStyle='#7C5CFF'; ctx.lineWidth=3; ctx.lineCap='round'; ctx.lineJoin='round';
+  if(state.skill.创造.sketch){ const img=new Image(); img.onload=()=>ctx.drawImage(img,0,0,cv.width,cv.height); img.src=state.skill.创造.sketch; }
+  let drawing=false, last=null;
+  const pos=e=>{ const r=cv.getBoundingClientRect(); const t=e.touches?e.touches[0]:e; return {x:(t.clientX-r.left)/r.width*cv.width, y:(t.clientY-r.top)/r.height*cv.height}; };
+  const down=e=>{ e.preventDefault(); drawing=true; last=pos(e); };
+  const move=e=>{ if(!drawing) return; e.preventDefault(); const p=pos(e); ctx.beginPath(); ctx.moveTo(last.x,last.y); ctx.lineTo(p.x,p.y); ctx.stroke(); last=p; };
+  const up=()=>{ if(!drawing) return; drawing=false; state.skill.创造.sketch=cv.toDataURL(); };
+  cv.addEventListener('mousedown',down); cv.addEventListener('mousemove',move); cv.addEventListener('mouseup',up);
+  cv.addEventListener('touchstart',down,{passive:false}); cv.addEventListener('touchmove',move,{passive:false}); cv.addEventListener('touchend',up);
+  const clr=document.getElementById('clearSketch'); if(clr) clr.onclick=()=>{ ctx.clearRect(0,0,cv.width,cv.height); state.skill.创造.sketch=null; if(done){ cv.style.opacity=1; cv.style.pointerEvents='auto'; } };
+  const done=document.getElementById('doneSketch'); if(done) done.onclick=()=>{
+    if(!state.skill.创造.sketch){ document.getElementById('status').textContent='还没画哦——在框里画一下，或填旁边的形状描述。'; return; }
+    cv.style.opacity=.55; cv.style.pointerEvents='none';
+    document.getElementById('status').textContent='草图已保存 ✓ 现在点上方「✓ 定下来」把创造块定下来，再「进入世界」。';
+  };
+  const st=document.getElementById('shapeText'); if(st) st.oninput=()=>{ state.skill.创造.shape=st.value.trim()||'光斑'; renderSkills(); };
+}
+function hue(){ /* 由名字/第一维度简单取色 */ const ks=Object.keys(state.dims); let h=0; ks.forEach((k,i)=>h=(h+i*47+ (state.dims[k]||0))%360); return h; }
+function bindDetail(k){
+  const set=(id,fn)=>{ const e=document.getElementById(id); if(e) e.oninput=()=>{ fn(e.value); renderSkills(); }; };
+  if(k==='创造'){ set('f-name',v=>state.skill.创造.name=v); set('f-shape',v=>state.skill.创造.shape=v); set('f-blurb',v=>state.skill.创造.blurb=v); }
+  if(k==='交流'){ set('f-approach',v=>state.skill.交流.approach=v); set('f-avoid',v=>state.skill.交流.avoid=v); set('f-onMeet',v=>state.skill.交流.onMeet=v); }
+  if(k==='反应'){ set('f-manifest',v=>state.skill.反应.manifest=v); set('f-drop',v=>state.skill.反应.dropDims=v.split(/[,，]/).map(s=>s.trim()).filter(Boolean)); }
+  if(k==='资源'){ set('f-consume',v=>state.skill.资源.consume=v); }
+  if(k==='潮流'){ set('f-mode',v=>state.skill.潮流.mode=v); }
+  if(k==='成长'){ set('f-grow',v=>state.skill.成长.grow=v); set('f-death',v=>state.skill.成长.death=v); }
+}
+
+document.getElementById('addDim').onclick=()=>{
+  const k=document.getElementById('newDim').value.trim(), v=+document.getElementById('newVal').value||0;
+  if(!k) return; state.dims[k]=v; document.getElementById('newDim').value=''; renderBudget();
+};
+
+/* ====================== 提交 / 收回 ====================== */
+function send(){
+  const v=document.getElementById('say').value.trim(); if(!v) return;
+  addMsg('me',v); document.getElementById('say').value='';
+  const k=state.active;
+  if (k) state.conv[k].push({role:'user', text:v});
+  keywordsToDims(v); renderBudget();
+  chatGuide(k, v);
+}
+document.getElementById('send').onclick=send;
+document.getElementById('say').addEventListener('keydown',e=>{ if(e.key==='Enter') send(); });
+
+function normalizeDims(){
+  const sum=Object.values(state.dims).reduce((a,b)=>a+(+b||0),0);
+  if(sum<=0) return state.dims;
+  const out={}; for(const k in state.dims) out[k]=Math.round(state.dims[k]/sum*100); return out;
+}
+function textToVisuals(block, s){
+  const vs=[];
+  if(block==='交流'){ const t=(s.onMeet||'')+(s.approach||'')+(s.avoid||'');
+    if(/蹭/.test(t))vs.push('nuzzle'); if(/丢|吐|扔/.test(t))vs.push('spit'); if(/绕/.test(t))vs.push('orbit'); if(/躲|避/.test(t))vs.push('avoid'); if(/打招呼|握手|跳|招手/.test(t))vs.push('dance'); if(/星|亮晶晶|闪亮|发光的小/.test(t))vs.push('emitSelf'); }
+  else if(block==='反应'){ const t=(s.manifest||'')+(Array.isArray(s.dropDims)?s.dropDims.join(''):'');
+    if(/缩|团/.test(t))vs.push('shrink'); if(/抖/.test(t))vs.push('jitter'); if(/暗/.test(t))vs.push('dim'); if(/泡/.test(t))vs.push('bubble'); if(/哭/.test(t))vs.push('cry'); if(/闪|亮/.test(t))vs.push('flash'); }
+  else if(block==='资源'){ const t=s.consume||'';
+    if(/吃/.test(t))vs.push('devour'); if(/长大/.test(t))vs.push('grow'); if(/发光/.test(t))vs.push('glow'); if(/转|开心|圈/.test(t))vs.push('dance'); }
+  else if(block==='潮流'){ const t=s.mode||'';
+    if(/逆/.test(t))vs.push('resist'); else if(/随波|跟|随/.test(t))vs.push('follow'); if(/静|不动|观/.test(t))vs.push('still'); }
+  else if(block==='成长'){ const t=(s.grow||'')+(s.death||'');
+    if(/长大/.test(t))vs.push('grow'); if(/飘散|散|死/.test(t))vs.push('fade'); }
+  return vs;
+}
+// 把学员「直接填的文字行为」反查成视觉词表原语（无 AI 也生效；AI 已填的保留）
+function injectVisuals(){
+  ['交流','反应','资源','潮流','成长'].forEach(k=>{
+    const s=state.skill[k]; if(!s) return;
+    const ai = (s.visuals && Array.isArray(s.visuals)) ? s.visuals : [];
+    const mapped = textToVisuals(k, s);
+    s.visuals = Array.from(new Set(ai.concat(mapped)));
+  });
+}
+function payload(){
+  injectVisuals();
+  return { name: state.skill.创造.name || ('生命·'+state.studentId), hue: hue(),
+    dims: normalizeDims(), skill: state.skill, creator:'学员', studentId: state.studentId };
+}
+function submit(){
+  if(!state.locked['创造']){ document.getElementById('status').textContent='请先把「创造」块定下来（聊完点 ✓ 定下来），再进入世界。'; return; }
+  const p=payload();
+  const s=state.skill.创造;
+  addMsg('ai','已提交：'+(s.name||'未命名')+' ｜ 形状：'+s.shape+(s.sketch?'（带草图）':'')+' ｜ 维度：'+JSON.stringify(p.dims)+'。已进入共生缸世界…');
+  try{ window.__bc && window.__bc.postMessage({type:'sym-submit', payload:p}); }catch(_){}
+  // 生产可换：POST /api/world/life（anonymousId 由课堂码派生）
+  fetch(apiPath('/api/a3/world/life'),{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({ code:document.getElementById('code').value, ...p })}).catch(()=>{});
+  state.entered=true;
+  document.getElementById('enter').classList.add('hidden');
+  document.getElementById('recall').classList.remove('hidden');
+  document.getElementById('redo').classList.remove('hidden');
+  document.getElementById('status').textContent='已进入世界 ✓（若大屏没出现，确认大屏与学生端在同一浏览器窗口/标签页）。可随时收回/重做。';
+}
+document.getElementById('enter').onclick=submit;
+document.getElementById('recall').onclick=()=>{
+  try{ window.__bc && window.__bc.postMessage({type:'sym-recall', studentId:state.studentId}); }catch(_){}
+  fetch(apiPath('/api/a3/world/life'),{method:'DELETE',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({ code:document.getElementById('code').value, studentId:state.studentId })}).catch(()=>{});
+  state.entered=false;
+  document.getElementById('enter').classList.remove('hidden');
+  document.getElementById('recall').classList.add('hidden');
+  document.getElementById('redo').classList.add('hidden');
+  document.getElementById('status').textContent='已收回。可「重做」重新创作后再进入。';
+};
+document.getElementById('redo').onclick=()=>{ document.getElementById('status').textContent='已重置，重新填写后再次「进入世界」。'; };
+
+/* ====================== 入口 / 设备联动 ====================== */
+try{ window.__bc = new BroadcastChannel('sym-tank'); }catch(_){}
+document.getElementById('enterBtn').onclick=()=>{
+  document.getElementById('gate').classList.add('hidden');
+  document.getElementById('studio').classList.remove('hidden');
+  document.getElementById('conn').textContent='已连接共生缸 · '+document.getElementById('code').value;
+  addMsg('ai','嗨，我是你的共创助教。别想太清楚，先随便说一句你想创造的生命——比如「一只怕生但会偷偷帮人的小兔子」。也可以直接点下面六个技能，我们一块一块聊。');
+  renderSkills(); renderBudget(); renderDetail();
+};
+async function lockBlock(){
+  const k=state.active;
+  if(!k){ document.getElementById('status').textContent='先点一个技能，再点「定下来」。'; return; }
+  if(k==='创造'){ const st=document.getElementById('shapeText'); if(st && st.value.trim()) state.skill.创造.shape=st.value.trim(); }
+  const convo = state.conv[k].map(m=>(m.role==='user'?'学员:':'助教:')+m.text).join('\n');
+  addMsg('ai','正在把我们的聊天总结成「'+k+'」的设定…');
+  const filled = await summarizeBlock(k, convo);
+  if (!filled){ addMsg('ai','这块我先确认清楚再定：上面我问你的，答完再点「✓ 定下来」。'); return; }
+  Object.assign(state.skill[k], filled);
+  state.locked[k]=true;
+  addMsg('ai','【'+k+'】已结晶 ✓：'+describeBlock(k));
+  renderSkills(); renderDetail();
+  document.getElementById('status').textContent = (k==='创造'?'创造已定，可直接「进入世界」；':'')+'其余块想聊继续点，不想聊也能进了。';
+}
+document.getElementById('lock').onclick=lockBlock;
+
+renderSkills(); renderBudget(); renderDetail();
+
+/* —— A3 融入系统：若从 Classroom V2 课堂内以 iframe 打开且带了 anonymousId/code，自动进入，无需再输码 —— */
+(function autoEnterIfLinked(){
+  const linkedCode = __params.get('code');
+  if (ANON || linkedCode){
+    document.getElementById('gate').classList.add('hidden');
+    document.getElementById('studio').classList.remove('hidden');
+    if (linkedCode) document.getElementById('code').value = linkedCode;
+    document.getElementById('conn').textContent = ANON ? ('已连接共生缸 · ' + ANON) : '已连接共生缸';
+    addMsg('ai','嗨，我是你的共创助教。别想太清楚，先随便说一句你想创造的生命——比如「一只怕生但会偷偷帮人的小兔子」。也可以直接点下面六个技能，我们一块一块聊。');
+  }
+})();
+</script>
+</body>
+</html>
