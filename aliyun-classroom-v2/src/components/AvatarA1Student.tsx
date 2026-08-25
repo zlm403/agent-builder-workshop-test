@@ -1,13 +1,11 @@
 'use client';
 // =========================================================
-// A1 数字分身 · 学生端（2026-08-14 新结构 13 屏）
-// c1 发布任务 → c2 沟通准则① → c3 目标辨析 → c4 沟通准则② → c5 AI采访我
-// → c6 让分身开始工作（完整工作区）→ 作品墙 → c7/c8 梦想(看图) → c9/c10 现实(看视频) → c11 收束
-// 环节由教师控制推进（subState avatar:cN）
+// A1 数字分身 · 学生端（解耦环节版）
+// 学生端只保留聊天框：与 AI 自由聊如何形成分身 Skill、如何写朋友圈文案。
+// 环节推进由教师端控制（locked：锁→看→解锁→操作→上墙→再锁）；AI 对话不再绑定 subState/stage。
+// 生成分身：AI 采访得差不多后主动提议（回复带【生成分身】标记）→ 聊天框上方临时出现按钮 → 学生点击生成。
 // =========================================================
 import { useEffect, useRef, useState } from 'react';
-import { A1_STAGES } from '@/features/avatarLesson/config';
-import { usePageOverrides, pageText } from '@/lib/usePageText';
 import { api } from '@/lib/basePath';
 
 interface Bubble {
@@ -26,7 +24,6 @@ export default function AvatarA1Student({
   anonymousId,
   sessionId,
   locked,
-  subState,
 }: {
   anonymousId: string;
   sessionId: string;
@@ -36,24 +33,13 @@ export default function AvatarA1Student({
   const [bubbles, setBubbles] = useState<Bubble[]>([]);
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
-  const ov = usePageOverrides(subState);
   const [skill, setSkill] = useState<{ skill: string; profile: SkillCard } | null>(null);
   const [skillLoading, setSkillLoading] = useState(false);
-  const [task, setTask] = useState('');
+  const [lastDraft, setLastDraft] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [offerGenerate, setOfferGenerate] = useState(false);
   const logRef = useRef<HTMLDivElement>(null);
-
-  // 当前环节（avatar:cN → index）
-  const stageIdx = (() => {
-    const m = String(subState ?? '').match(/^avatar:(c\d+)$/);
-    return m ? A1_STAGES.findIndex((s) => s.key === m[1]) : -1;
-  })();
-  const inHook = String(subState ?? '') === 'avatar:hook' || stageIdx < 0;
-  const isWall = String(subState ?? '') === 'avatar:wall';
-  const stage = stageIdx >= 0 ? A1_STAGES[stageIdx] : null;
-  const isC6 = stage?.key === 'c6';
-  const isWatchOnly = !!stage && ['c7', 'c8', 'c9', 'c10', 'c11'].includes(stage.key);
 
   // 加载已保存状态
   useEffect(() => {
@@ -66,10 +52,10 @@ export default function AvatarA1Student({
           setBubbles(d.chatLog.filter((m: any) => m.role === 'ai' || m.role === 'user'));
         }
         if (d.skill) setSkill({ skill: d.skill, profile: d.profile });
-        if (d.task) { const tt = String(d.task); setTask(tt); }
+        if (d.task) setLastDraft(String(d.task));
         if (d.submittedAt) setSubmitted(true);
         if (!d.chatLog || d.chatLog.length === 0) {
-          setBubbles([{ role: 'ai', content: '你好！今天我们要一起创造一个了解你的 AI 分身。\n\n我们先说清楚：我们到底要做什么？你可以先想一下——然后我们再和 AI 确认这个目标。' }]);
+          setBubbles([{ role: 'ai', content: '你好！今天我们要一起创造一个了解你的 AI 分身。\n\n你可以随时和我聊——说说你想让它帮你做什么，我会一个问题一个问题地了解你，聊得差不多了就帮你生成一份属于你的「数字分身」.' }]);
         }
       } finally {
         setLoading(false);
@@ -83,7 +69,7 @@ export default function AvatarA1Student({
 
   async function send() {
     const text = input.trim();
-    if (!text || busy || locked || !stage) return;
+    if (!text || busy || locked) return;
     setBusy(true);
     setInput('');
     setBubbles((b) => [...b, { role: 'user', content: text }]);
@@ -91,35 +77,50 @@ export default function AvatarA1Student({
       const res = await fetch(api('/api/avatar/a1/chat'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ anonymousId, sessionId, stage: stage.key, message: text }),
+        body: JSON.stringify({ anonymousId, sessionId, stage: 'free', message: text }),
       });
       const d = await res.json();
       if (!res.ok || d.error) {
         setBubbles((b) => [...b, { role: 'ai', content: `[系统提示] ${d.error?.message || 'AI 服务暂时不可用'}` }]);
         return;
       }
-      const clean = (d.reply || '').replace(/^【进入下一步】/, '').trim();
-      if (clean) setBubbles((b) => [...b, { role: 'ai', content: clean }]);
-      // c5 AI采访完成 → 自动生成 Skill
-      if (stage.key === 'c5' && d.done) {
-        setSkillLoading(true);
-        const sres = await fetch(api('/api/avatar/a1/skill'), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ anonymousId, sessionId }),
-        });
-        const sd = await sres.json();
-        setSkillLoading(false);
-        if (sd.skill) setSkill({ skill: sd.skill, profile: sd.profile });
+      const raw = d.reply || '';
+      const offer = !!d.offerGenerate;
+      const clean = raw.replace(/^【生成分身】/, '').trim();
+      if (clean) {
+        setBubbles((b) => [...b, { role: 'ai', content: clean }]);
+        if (offer && !skill) setOfferGenerate(true);
       }
     } finally {
       setBusy(false);
     }
   }
 
-  // c6 让分身写朋友圈
+  // AI 提议后，学生点按钮生成分身 Skill（调既有接口）
+  async function genSkill() {
+    if (busy) return;
+    setBusy(true);
+    setSkillLoading(true);
+    try {
+      const sres = await fetch(api('/api/avatar/a1/skill'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ anonymousId, sessionId }),
+      });
+      const sd = await sres.json();
+      if (sd.skill) {
+        setSkill({ skill: sd.skill, profile: sd.profile });
+        setOfferGenerate(false);
+      }
+    } finally {
+      setBusy(false);
+      setSkillLoading(false);
+    }
+  }
+
+  // 让分身写一条朋友圈
   async function askDraft() {
-    if (busy || !stage) return;
+    if (busy) return;
     setBusy(true);
     try {
       const msg = '现在用我的分身 Skill，为最近一件真实的事写一条朋友圈。写完我来看看像不像我。';
@@ -127,18 +128,18 @@ export default function AvatarA1Student({
       const res = await fetch(api('/api/avatar/a1/chat'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ anonymousId, sessionId, stage: 'c6', message: msg }),
+        body: JSON.stringify({ anonymousId, sessionId, stage: 'free', message: msg }),
       });
       const d = await res.json();
-      if (d.reply) setBubbles((b) => [...b, { role: 'ai', content: d.reply }]);
+      if (d.reply) { setBubbles((b) => [...b, { role: 'ai', content: d.reply }]); setLastDraft(d.reply); }
     } finally {
       setBusy(false);
     }
   }
 
-  // c6 不满意 → 让分身改
+  // 不满意 → 让分身改
   async function askFix() {
-    if (busy || !stage) return;
+    if (busy) return;
     setBusy(true);
     try {
       const msg = '这一版还不太像我说的话，请你根据我的分身档案再改一版，改得更像我。';
@@ -146,84 +147,58 @@ export default function AvatarA1Student({
       const res = await fetch(api('/api/avatar/a1/chat'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ anonymousId, sessionId, stage: 'c6', message: msg }),
+        body: JSON.stringify({ anonymousId, sessionId, stage: 'free', message: msg }),
       });
       const d = await res.json();
-      if (d.reply) setBubbles((b) => [...b, { role: 'ai', content: d.reply }]);
+      if (d.reply) { setBubbles((b) => [...b, { role: 'ai', content: d.reply }]); setLastDraft(d.reply); }
     } finally {
       setBusy(false);
     }
   }
 
-  // c6 提交作品
+  // 提交作品上墙
   async function submitFinal() {
-    const text = input.trim();
-    if (!text || busy || !stage) return;
+    const lastAi = [...bubbles].reverse().find((b) => b.role === 'ai');
+    const text = (lastDraft || lastAi?.content || '').trim();
+    if (!text || busy) return;
     setBusy(true);
     try {
-      const res = await fetch(api('/api/avatar/a1/chat'), {
+      const res = await fetch(api('/api/avatar/a1/submit'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ anonymousId, sessionId, stage: 'c6', message: `我的最终朋友圈：${text}。请提交。` }),
+        body: JSON.stringify({ anonymousId, sessionId, finalText: text }),
       });
       const d = await res.json();
-      if (d.reply) setBubbles((b) => [...b, { role: 'user', content: text }, { role: 'ai', content: d.reply }]);
+      if (!res.ok || d.error) {
+        setBubbles((b) => [...b, { role: 'ai', content: `[系统提示] ${d.error?.message || '提交失败，请重试'}` }]);
+        return;
+      }
       setSubmitted(true);
-      onSubmitted?.();
+      setBubbles((b) => [...b, { role: 'ai', content: submitted ? '🔄 已重新提交，作品墙已更新。' : '🎉 已提交！你的朋友圈马上飞上大屏。' }]);
     } finally {
       setBusy(false);
     }
-  }
-
-  function onSubmitted() {
-    // 通知父级刷新状态（由页面注入，可选）
-    if (typeof (window as any).__a1SubmitHook === 'function') (window as any).__a1SubmitHook();
   }
 
   if (loading) {
     return <p className="note">正在加载你的分身…</p>;
   }
 
-  // 钩子/未进入：看大屏
-  if (inHook && !isWall) {
-    return (
-      <div className="module-card" style={{ textAlign: 'center', paddingTop: '6vh' }}>
-        <div style={{ fontSize: 34, fontWeight: 800, marginBottom: 10 }}>请看大屏</div>
-        <p className="note">今天我们要一起创造一个了解你的 AI 分身。听老师讲开场。</p>
-      </div>
-    );
-  }
-
-  if (isWall) {
-    return (
-      <div className="module-card" style={{ textAlign: 'center', paddingTop: '6vh' }}>
-        <div style={{ fontSize: 34, fontWeight: 800, marginBottom: 10 }}>请看大屏</div>
-        <p className="note">全班的数字分身和朋友圈已经上墙，看看大家的作品吧。</p>
-      </div>
-    );
-  }
-
-  // 看图/看视频/收束：学生端看大屏
-  if (isWatchOnly) {
-    return (
-      <div className="module-card" style={{ textAlign: 'center', paddingTop: '6vh' }}>
-        <div style={{ fontSize: 34, fontWeight: 800, marginBottom: 10 }}>请看大屏</div>
-        <p className="note">跟着老师看大屏，想一想。{stage?.studentTask || ''}</p>
-      </div>
-    );
-  }
-
   return (
     <div className="ai-workspace">
-      {/* 当前任务卡 */}
-      <div className="zone" style={{ borderLeft: '4px solid #c4b5fd' }}>
-        <h3 style={{ color: '#c4b5fd', margin: 0 }}>环节 {stageIdx + 1} · {stage?.name}</h3>
-        {pageText(ov, 'screenTitle', stage?.screenTitle ?? '') !== null && <p className="task-hint" style={{ color: '#fde047', fontWeight: 600, lineHeight: 1.6, margin: '8px 0 4px', whiteSpace: 'pre-wrap' }}>{pageText(ov, 'screenTitle', stage?.screenTitle ?? '')}</p>}
-        {pageText(ov, 'studentTask', stage?.studentTask ?? '') !== null && <p className="task-hint" style={{ color: '#cbd5e1', lineHeight: 1.6, margin: 0 }}>{pageText(ov, 'studentTask', stage?.studentTask ?? '')}</p>}
-      </div>
-
       <div className="zone ai-zone">
         <h3>和 AI 聊</h3>
+        {skill && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, padding: '8px 10px', borderRadius: 10, background: 'rgba(124,58,237,0.12)', border: '1px solid rgba(124,58,237,0.45)' }}>
+            <button className="primary" style={{ fontSize: 13 }} disabled={busy} onClick={askDraft}>🧠 我的分身</button>
+            <span style={{ fontSize: 11, color: '#c4b5fd' }}>点它，用你的分身写一条朋友圈</span>
+          </div>
+        )}
+        {offerGenerate && !skill && (
+          <button className="primary" style={{ marginTop: 6, marginBottom: 8 }} disabled={busy || skillLoading} onClick={genSkill}>
+            {skillLoading ? '正在生成…' : '✨ 生成我的数字分身'}
+          </button>
+        )}
         <div className="chat-log" ref={logRef} style={{ maxHeight: 240, overflowY: 'auto' }}>
           {bubbles.map((b, i) => (
             <div key={i} className={`bubble ${b.role}`}>
@@ -232,63 +207,30 @@ export default function AvatarA1Student({
             </div>
           ))}
           {skillLoading && <div style={{ textAlign: 'center', color: '#c4b5fd', padding: 8 }}>正在整理你的分身…</div>}
-
-          {/* 分身档案卡（c6 工作区） */}
-          {skill && isC6 && (
-            <div style={{ marginTop: 10, padding: 12, borderRadius: 12, background: 'rgba(124,58,237,0.10)', border: '1px solid rgba(124,58,237,0.45)' }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: '#c4b5fd', marginBottom: 8 }}>🧠 你的分身档案</div>
-              {skill.profile?.labels?.length ? (
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
-                  {skill.profile.labels.map((l, i2) => (
-                    <span key={i2} style={{ fontSize: 12, padding: '2px 10px', borderRadius: 999, background: 'rgba(124,58,237,0.2)', color: '#c4b5fd' }}>{l}</span>
-                  ))}
-                </div>
-              ) : null}
-              <pre style={{ whiteSpace: 'pre-wrap', fontSize: 12, lineHeight: 1.6, color: 'var(--text)', margin: 0 }}>{skill.skill}</pre>
-            </div>
-          )}
         </div>
 
-        {/* c6 完整工作区：让分身写朋友圈 + 修改 + 提交 */}
-        {isC6 && (
-          <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button className="primary" style={{ flex: 1 }} disabled={busy} onClick={askDraft}>
-                {busy ? '写朋友圈中…' : '✦ 让分身写一条朋友圈'}
-              </button>
-              <button className="secondary" style={{ flex: 1 }} disabled={busy} onClick={askFix}>
-                让它更像我
-              </button>
-            </div>
-            <textarea
-              placeholder="满意的话，把最终朋友圈粘到这里提交…"
-              value={input}
-              disabled={locked || busy}
-              onChange={(e) => setInput(e.target.value)}
-              style={{ fontSize: 13, minHeight: 60 }}
-            />
-            <button className="primary" disabled={submitted || busy || !input.trim()} onClick={submitFinal}>
-              {submitted ? '✅ 已提交' : '🚀 提交我的朋友圈'}
+        {skill && lastDraft && (
+          <div style={{ marginTop: 10, display: 'flex', gap: 8 }}>
+            <button className="secondary" style={{ flex: 1 }} disabled={busy} onClick={askFix}>让它更像我</button>
+            <button className="primary" style={{ flex: 1 }} disabled={busy || !lastDraft} onClick={submitFinal}>
+              {submitted ? '🔄 再次提交（覆盖）' : '🚀 提交上墙'}
             </button>
           </div>
         )}
       </div>
 
-      {/* 对话输入（c1~c5 用） */}
-      {!isC6 && !submitted && (
-        <div className="row" style={{ marginTop: 10 }}>
-          <textarea
-            placeholder={stage?.key === 'c5' ? '回答 AI 的采访，越真实越好…' : '跟 AI 说…'}
-            value={input}
-            disabled={locked || busy}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) send(); }}
-          />
-          <button className="secondary" disabled={busy || locked || !input.trim()} onClick={send}>
-            {busy ? '思考中…' : '发送'}
-          </button>
-        </div>
-      )}
+      <div className="row" style={{ marginTop: 10 }}>
+        <textarea
+          placeholder={locked ? '老师还没放开操作，先看看大屏～' : '跟 AI 说…'}
+          value={input}
+          disabled={locked || busy}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) send(); }}
+        />
+        <button className="secondary" disabled={busy || locked || !input.trim()} onClick={send}>
+          {busy ? '思考中…' : '发送'}
+        </button>
+      </div>
     </div>
   );
 }

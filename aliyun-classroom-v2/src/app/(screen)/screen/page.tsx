@@ -5,11 +5,10 @@ import VocabBrowser from '@/components/VocabBrowser';
 import { vocabText } from '@/lib/vocab';
 import { compareRounds } from '@/lib/analytics';
 import { KNOWLEDGE_DOCS, SKILL_BLOCKS } from '@/lib/courseConfig';
-import { withBasePath, api } from '@/lib/basePath';
+import { withBasePath, api, BASE_PATH } from '@/lib/basePath';
 import AvatarA0Screen from '@/components/AvatarA0Screen';
 import AvatarA1Screen from '@/components/AvatarA1Screen';
 import SiteEntryScreen from '@/components/SiteEntryScreen';
-import WorldScreen from '@/components/WorldScreen';
 import FourWingsScreen from '@/components/FourWingsScreen';
 import PainWallScreen from '@/components/PainWallScreen';
 import PriceRevealScreen from '@/components/PriceRevealScreen';
@@ -291,7 +290,12 @@ export default function ScreenPage() {
       ) : module.type === 'site_entry' ? (
         <SiteEntryScreen sessionId={sessionId} subState={summary?.moduleSubState ?? null} />
       ) : module.type === 'world' ? (
-        <WorldScreen sessionId={sessionId} />
+        <iframe
+          key="a3-world-screen"
+          src={withBasePath('/a3/bigscreen.html') + '?sessionId=' + encodeURIComponent(sessionId) + '&bp=' + encodeURIComponent(BASE_PATH)}
+          title="共生缸 · 我的世界"
+          style={{ width:'100%', height:'calc(100vh - 140px)', minHeight:'60vh', border:'none', background:'#0A0E1A', display:'block' }}
+        />
       ) : module.type === 'closing' ? (
         (() => {
           // 收官模块：按当前环节 subState 渲染对应屏

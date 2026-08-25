@@ -15,25 +15,9 @@ import { SPEC_BLOCKS, type SpecBlockKey, type LifeSpec, ruleSpec, sanitizeAction
 
 export const dynamic = 'force-dynamic';
 
-// 能力库枚举（大屏通用执行器已实现的动作；AI 只能从这里选）
-const CAPABILITY_LIST = [
-  'emitSelf 发射自己的小星星（学员草图像素）',
-  'lightLink 向对方发射一条光带连线',
-  'miniSelf 飞出一个缩小版自己（草图）去接触对方',
-  'scale 变大/变小（value 为倍数）',
-  'dim 变暗',
-  'glow 发光',
-  'jitter 抖动',
-  'flash 闪光',
-  'bubble 冒泡',
-  'cry 掉泪',
-  'dance 转圈跳舞',
-  'fade 飘散消失',
-  'orbit 绕对方转圈',
-  'nuzzle 蹭一蹭对方',
-  'approach 主动靠近',
-  'avoid 躲开',
-].join('\n');
+// 注：原「能力库枚举」已废弃——A3 表现改由 AI 直接生成自包含 SVG 动画（见下方 extract 模式）。
+// 6 块（创造/交流/反应/资源/潮流/成长）仍是引导学生设计生命的骨架，AI 在读懂学生「这一块」的描述后，
+// 把该块表现直接画成 SVG；词表仅作为规则回退（ruleSpec）兜底，不再约束 AI 输出。
 
 // 六块 → 该块可写入的 LifeSpec 字段
 const BLOCK_FIELDS: Record<SpecBlockKey, string[]> = {
@@ -154,11 +138,13 @@ export async function POST(req: NextRequest) {
 
     const sys = [
       '你是《我的世界》里帮学生把想法变成生命表现的共创助教。',
-      `当前技能块：${validBlock}（${SPEC_BLOCKS.find((b) => b.key === validBlock)?.title}）——${BLOCK_FIELDS[validBlock].join('、')}`,
-      `你可以组合的能力库（只能从这里选，不要发明新原语）：\n${CAPABILITY_LIST}`,
-      '要求：根据学员对话，为该块生成一个贴切的「表现规格」片段，只包含上面列出的字段。',
+      `当前技能块：${validBlock}（${SPEC_BLOCKS.find((b) => b.key === validBlock)?.title}）——这块要填的字段：${BLOCK_FIELDS[validBlock].join('、')}`,
+      '注意：6 块（创造/交流/反应/资源/潮流/成长）是引导学生设计生命的骨架，你要在「读懂学生这一块的描述」之后，再产出这一块的表现。',
+      '要求：根据该块学员对话，生成这一块的「表现规格」片段（JSON）。表现用「自包含 SVG 动画」画出来，不是从固定动作里选。',
       '规则：',
-      '- 每个列表字段是一个动作数组，每个动作形如 {"do":"emitSelf","n":3,"to":"other"}，可组合多个。',
+      "- 输出 JSON，只包含该块允许的字段。每个表现字段是一个数组，每项形如 {\"do\":\"svg\",\"svg\":\"<svg viewBox='0 0 200 200' width='100%' height='100%'>…</svg>\"}。",
+      "- SVG 规范：根元素 <svg viewBox='0 0 200 200' width='100%' height='100%'>；只用 SMIL <animate>/<animateTransform> 或内联 <style>@keyframes 做动画；禁止 <script>、on* 属性、外部 href、foreignObject、外部图片；颜色用学员说的（\"红色\"→#ef4444、\"金色\"→#fbbf24、\"光\"→#7dd3fc），没说用生命主色 #7dd3fc；动画≤1.6秒、循环或播一次；不要文字、不要外部资源。",
+      "- 表现要贴合该块描述：交流块学生说\"一道光锁定对方、光波传过去\"，就画一束光伸过去+扩散波；反应块说\"被揍就缩成一团发抖\"，就画缩小抖动；资源块说\"吃到就发光\"，就画光晕扩散；潮流块说\"随波而行\"，就画它顺着某个方向轻飘。",
       '- 若学员描述模糊、无法确定，输出额外字段 "followup"（一个追问学员的短问题），并给出最可能的猜测值。',
       '只输出 JSON（不要 markdown 代码块）。',
     ].join('\n');

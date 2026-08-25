@@ -485,24 +485,48 @@ function injectVisuals(){
 }
 function payload(){
   injectVisuals();
-  // 没画草图但有形状 → 用它当身体贴图（SVG 直接转 data URL；中文形状词先用规则生成 SVG）
-  const sk = state.skill.创造;
-  if (!sk.sketch && sk.shape){
-    let svg = null;
-    if (typeof sk.shape === 'string' && sk.shape.indexOf('<svg') === 0) svg = sk.shape;
-    else if (typeof sk.shape === 'string') svg = shapeSvg(sk.shape);
-    if (svg) sk.sketch = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg)));
-  }
   return { name: state.skill.创造.name || ('生命·'+state.studentId), hue: hue(),
     dims: normalizeDims(), skill: state.skill, creator:'学员', studentId: state.studentId };
 }
-function submit(){
+// 把「聊天/AI 生成的 SVG 形状」材质化为 sketch PNG（异步：等 Image 加载再画到 canvas 转 PNG）
+// 返回 true=成功有草图，false=没有（手画草图已存在也返回 true）
+function materializeShape(){
+  return new Promise((resolve) => {
+    const sk = state.skill.创造;
+    if (sk.sketch) return resolve(true);   // 已有草图（手画 or 之前已转好）
+    if (!sk.shape) return resolve(false);
+    let svg = null;
+    if (typeof sk.shape === 'string' && sk.shape.indexOf('<svg') === 0) svg = sk.shape;
+    else if (typeof sk.shape === 'string') svg = shapeSvg(sk.shape);
+    if (!svg) return resolve(false);
+    if (svg.indexOf('xmlns') === -1) svg = svg.replace(/<svg\s/, '<svg xmlns="http://www.w3.org/2000/svg" ');
+    let done = false;
+    const finish = (ok) => { if (done) return; done = true; resolve(ok); };
+    try {
+      const img = new Image();
+      img.onload = function(){
+        try {
+          const cv = document.createElement('canvas'); cv.width = 100; cv.height = 100;
+          const ctx = cv.getContext('2d');
+          ctx.fillStyle = '#0c1224'; ctx.fillRect(0, 0, 100, 100);   // 深色底，避免透明底在大屏上像黑球
+          ctx.drawImage(img, 0, 0, 100, 100);
+          sk.sketch = cv.toDataURL('image/png');
+          finish(true);
+        } catch(_) { finish(false); }
+      };
+      img.onerror = () => finish(false);
+      img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg)));
+      setTimeout(() => finish(false), 1500);   // 兜底：1.5s 没加载出来就当没草图
+    } catch(_) { finish(false); }
+  });
+}
+async function submit(){
   if(!state.locked['创造']){ document.getElementById('status').textContent='请先把「创造」块定下来（聊完点 ✓ 定下来），再进入世界。'; return; }
+  await materializeShape();   // 关键：等 SVG 形状转成 PNG 后再提交（否则异步 onload 赶不上）
   const p=payload();
   const s=state.skill.创造;
   addMsg('ai','已提交：'+(s.name||'未命名')+' ｜ 形状：'+s.shape+(s.sketch?'（带草图）':'')+' ｜ 维度：'+JSON.stringify(p.dims)+'。已进入共生缸世界…');
   try{ window.__bc && window.__bc.postMessage({type:'sym-submit', payload:p}); }catch(_){}
-  // 生产可换：POST /api/world/life（anonymousId 由课堂码派生）
   fetch(apiPath('/api/a3/world/life'),{method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({ code:document.getElementById('code').value, ...p })}).catch(()=>{});
   state.entered=true;

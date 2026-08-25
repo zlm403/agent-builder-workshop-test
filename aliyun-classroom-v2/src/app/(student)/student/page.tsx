@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { getStyleProfile } from '@/lib/styleProfiles';
-import { api } from '@/lib/basePath';
+import { api, withBasePath, BASE_PATH } from '@/lib/basePath';
 import { A1_REVIEW } from '@/lib/a1Review';
 import StudentWaitingRoom from '@/components/StudentWaitingRoom';
 import VocabBrowser from '@/components/VocabBrowser';
@@ -10,7 +10,6 @@ import L2StudentFlow from './L2StudentFlow';
 import AvatarA0Student from '@/components/AvatarA0Student';
 import AvatarA1Student from '@/components/AvatarA1Student';
 import SiteEntryStudent from '@/components/SiteEntryStudent';
-import WorldStudent from '@/components/WorldStudent';
 
 interface ModuleDef {
   id: string;
@@ -592,7 +591,7 @@ export default function StudentPage() {
         <StudentWaitingRoom anonymousId={anonymousId} sessionId={sessionId} />
       ) : current.type === 'hr_screening' && typeof subState === 'string' && subState.startsWith('story') ? (
         <StudentStoryWait />
-      ) : typeof subState === 'string' && subState.startsWith('page:') ? (
+      ) : typeof subState === 'string' && subState.startsWith('page:') && current.type !== 'avatar_flow' ? (
         <div className="module-card" style={{ textAlign: 'center', paddingTop: '6vh' }}>
           <div style={{ fontSize: 34, fontWeight: 800, marginBottom: 10 }}>请看大屏</div>
           <p className="note">老师正在展示这一页，跟着大屏一起看。</p>
@@ -712,7 +711,12 @@ export default function StudentPage() {
             )}
 
             {current.type === 'world' && (
-              <WorldStudent anonymousId={anonymousId} sessionId={sessionId} locked={locked} />
+              <iframe
+                key="a3-world-student"
+                src={withBasePath('/a3/student.html') + '?anonymousId=' + encodeURIComponent(anonymousId) + '&sessionId=' + encodeURIComponent(sessionId) + '&bp=' + encodeURIComponent(BASE_PATH)}
+                title="创造我的生命 · 共生缸"
+                style={{ width:'100%', height:'calc(100vh - 170px)', minHeight:'60vh', border:'none', background:'#0A0E1A', display:'block' }}
+              />
             )}
 
             {current.type === 'grow_game' && (

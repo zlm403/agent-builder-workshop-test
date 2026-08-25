@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { STYLE_PROFILES, STYLE_ORDER } from '@/lib/styleProfiles';
-import { LIFE_PRESETS } from '@/lib/world/presets';
 import AvatarTeacher from '@/components/AvatarTeacher';
 import MediaManager from '@/components/MediaManager';
 import ContentPageEditor from '@/components/ContentPageEditor';
@@ -1084,7 +1083,7 @@ export default function TeacherPage() {
                     <WorldVisualBar />
                   )}
                   {currentModuleId === 'A3_WORLD' && (
-                    <WorldPresetBar />
+                    <WorldControlBar inviteCode={inviteCode} online={summary?.totalStudents ?? 0} />
                   )}
                   {currentModuleId === 'A3_WORLD' && (
                     <WorldTipsBar />
@@ -1423,9 +1422,54 @@ export default function TeacherPage() {
 }
 
 // 《我的世界》大屏环境光斑整体速度/亮度调节（教师调整体，不是单个）
+// 教师端 → 大屏 的同源 BroadcastChannel 直连（与手机创造端同一通道）
+function postTank(msg: any) {
+  try {
+    const w = window as any;
+    w.__tankBC || (w.__tankBC = new BroadcastChannel('sym-tank'));
+    w.__tankBC.postMessage(msg);
+  } catch { /* noop */ }
+}
+
+// 《我的世界》教师端操作栏：状态栏 + 释放/收回/暂停/重新充满（经 BroadcastChannel 遥控大屏）
+function WorldControlBar({ inviteCode, online }: { inviteCode?: string; online?: number }) {
+  const [hud, setHud] = useState<{ lives: number; speed: number; brightness: number; density: number }>({ lives: 0, speed: 1, brightness: 1, density: 1 });
+  useEffect(() => {
+    let bc: BroadcastChannel | null = null;
+    try {
+      bc = new BroadcastChannel('sym-tank');
+      bc.onmessage = (e) => { const m = e.data || {}; if (m.type === 'sym-hud') setHud(m.payload || hud); };
+    } catch { /* noop */ }
+    return () => { try { bc?.close(); } catch { /* noop */ } };
+  }, []);
+  const btn = (label: string, onClick: () => void, warn = false) => (
+    <button className="secondary" style={{ fontSize: 12, padding: '6px 12px', color: warn ? 'var(--red)' : 'var(--green)' }} onClick={onClick}>{label}</button>
+  );
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', fontSize: 12, color: 'var(--muted)' }}>
+        <span className="pill">课堂码 <b style={{ color: 'var(--text)' }}>{inviteCode || '—'}</b></span>
+        <span className="pill">在线 <b style={{ color: 'var(--text)' }}>{online ?? 0}</b></span>
+        <span className="pill">生命 <b style={{ color: 'var(--text)' }}>{hud.lives}</b></span>
+        <span className="pill">光斑 <b style={{ color: 'var(--text)' }}>{hud.speed.toFixed(1)}×</b></span>
+        <span className="pill">亮度 <b style={{ color: 'var(--text)' }}>{hud.brightness.toFixed(1)}×</b></span>
+        <span className="pill">密度 <b style={{ color: 'var(--text)' }}>{hud.density.toFixed(1)}×</b></span>
+      </div>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        {btn('释放 1', () => postTank({ type: 'sym-release', n: 1 }))}
+        {btn('释放多个', () => postTank({ type: 'sym-release', n: 3 }))}
+        {btn('收回全部', () => postTank({ type: 'sym-recall-all' }), true)}
+        {btn('暂停/继续', () => postTank({ type: 'sym-pause' }))}
+        {btn('重新充满', () => postTank({ type: 'sym-refill' }))}
+      </div>
+    </div>
+  );
+}
+
 function WorldVisualBar() {
   const [speed, setSpeed] = useState(1);
   const [brightness, setBrightness] = useState(1);
+  const [density, setDensity] = useState(1);
   const [busy, setBusy] = useState(false);
 
   async function load() {
@@ -1439,9 +1483,9 @@ function WorldVisualBar() {
 
   useEffect(() => { load(); }, []);
 
-  async function apply(s: number, b: number) {
-    setSpeed(s);
-    setBrightness(b);
+  async function apply(s: number, b: number, dn: number) {
+    setSpeed(s); setBrightness(b); setDensity(dn);
+    postTank({ type: 'sym-visual', speed: s, brightness: b, density: dn });
     if (busy) return;
     setBusy(true);
     try {
@@ -1450,9 +1494,8 @@ function WorldVisualBar() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ speed: s, brightness: b }),
       });
-    } finally {
-      setTimeout(() => setBusy(false), 300);
-    }
+    } catch { /* noop */ }
+    finally { setTimeout(() => setBusy(false), 300); }
   }
 
   return (
@@ -1460,69 +1503,24 @@ function WorldVisualBar() {
       <span style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 700 }}>环境光斑（整体）</span>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         <span style={{ fontSize: 11, color: 'var(--muted)', width: 34, flexShrink: 0 }}>速度</span>
-        <input type="range" min={0.3} max={3} step={0.1} value={speed} onChange={(e) => apply(Number(e.target.value), brightness)} style={{ flex: 1 }} />
+        <input type="range" min={0.3} max={3} step={0.1} value={speed} onChange={(e) => apply(Number(e.target.value), brightness, density)} style={{ flex: 1 }} />
         <span style={{ fontSize: 11, width: 36, textAlign: 'right' }}>{speed.toFixed(1)}×</span>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         <span style={{ fontSize: 11, color: 'var(--muted)', width: 34, flexShrink: 0 }}>亮度</span>
-        <input type="range" min={0.3} max={3} step={0.1} value={brightness} onChange={(e) => apply(speed, Number(e.target.value))} style={{ flex: 1 }} />
+        <input type="range" min={0.3} max={3} step={0.1} value={brightness} onChange={(e) => apply(speed, Number(e.target.value), density)} style={{ flex: 1 }} />
         <span style={{ fontSize: 11, width: 36, textAlign: 'right' }}>{brightness.toFixed(1)}×</span>
       </div>
-    </div>
-  );
-}
-
-// 《我的世界》预置生命：教师端一键添加演示生命进世界（多卡片，点哪个注入哪个）
-function WorldPresetBar() {
-  const [busy, setBusy] = useState<string | null>(null);
-  const [added, setAdded] = useState<Record<string, number>>({});
-
-  async function addPreset(id: string) {
-    if (busy) return;
-    setBusy(id);
-    try {
-      const res = await fetch(api('/api/world/preset'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ presetId: id }),
-      });
-      const d = await res.json();
-      if (res.ok && d.life) {
-        setAdded((a) => ({ ...a, [id]: (a[id] || 0) + 1 }));
-      } else {
-        alert('添加失败：' + (d.error?.message || res.statusText));
-      }
-    } finally {
-      setTimeout(() => setBusy(null), 300);
-    }
-  }
-
-  return (
-    <div style={{ border: '1px solid rgba(124,58,237,0.4)', borderRadius: 10, padding: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
-      <div style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 700 }}>预置生命（点一下注入世界做例子）</div>
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-        {LIFE_PRESETS.map((p) => (
-          <div
-            key={p.id}
-            style={{ border: '1px solid rgba(255,255,255,0.12)', borderRadius: 10, padding: 8, width: 150, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}
-          >
-            {p.shape ? (
-              <img src={`data:image/svg+xml;charset=utf-8,${encodeURIComponent(p.shape)}`} width={56} height={56} alt={p.name} />
-            ) : (
-              <div style={{ width: 56, height: 56, borderRadius: '50%', background: p.color, opacity: 0.6 }} />
-            )}
-            <div style={{ fontSize: 13, fontWeight: 700 }}>{p.name}</div>
-            {p.desc ? <div style={{ fontSize: 10, color: 'var(--muted)', textAlign: 'center', lineHeight: 1.3 }}>{p.desc}</div> : null}
-            <button className="secondary" style={{ fontSize: 11, padding: '4px 10px', color: 'var(--green)' }} disabled={busy === p.id} onClick={() => addPreset(p.id)}>
-              {busy === p.id ? '注入中…' : '➕ 注入'}
-            </button>
-            {added[p.id] ? <span className="pill green" style={{ fontSize: 10 }}>已注入 {added[p.id]} 个</span> : null}
-          </div>
-        ))}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <span style={{ fontSize: 11, color: 'var(--muted)', width: 34, flexShrink: 0 }}>密度</span>
+        <input type="range" min={0.3} max={3} step={0.1} value={density} onChange={(e) => apply(speed, brightness, Number(e.target.value))} style={{ flex: 1 }} />
+        <span style={{ fontSize: 11, width: 36, textAlign: 'right' }}>{density.toFixed(1)}×</span>
       </div>
     </div>
   );
 }
+
+
 
 // 《我的世界》Tips 发布控件：8 条课堂任务，老师按序/按需点哪条，大屏就弹哪条
 function WorldTipsBar() {

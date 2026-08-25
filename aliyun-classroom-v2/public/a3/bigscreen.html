@@ -1594,7 +1594,7 @@ function drawEntity(e){
     const tn = now();
     const flashI = (e.flash && tn < e.flash) ? (e.flash - tn) / 300 : 0;
     const light = 52 + Math.min(28, (e.pulse||0) * 28) + flashI * 15;
-    const sketched = e.isStudent || (e.sketchImg && e.sketchImg.complete && e.sketchImg.naturalWidth);
+    const sketched = !!(e.sketchImg && e.sketchImg.complete && e.sketchImg.naturalWidth);
     if (!sketched){   // 粒子身体仅用于「没画草图的样板生命」；学员自绘生命不裹粒子云
       ctx.globalCompositeOperation = 'lighter';
       for (const p of e.particles){

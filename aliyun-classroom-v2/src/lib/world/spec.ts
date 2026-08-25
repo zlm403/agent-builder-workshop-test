@@ -23,6 +23,8 @@ export type SpecAction =
   | { do: 'nuzzle' }
   | { do: 'approach' }
   | { do: 'avoid' }
+  // AI 直接生成的「自包含 SVG 动画」表现（不查词表，想什么画什么）
+  | { do: 'svg'; svg: string }
   // 未知原语兜底（AI 命名了新词但能力库未实现 → 大屏回退文字标签）
   | { do: string; [k: string]: unknown };
 
@@ -84,7 +86,7 @@ export function mergeSpec(parts: Partial<LifeSpec>[]): LifeSpec {
 // 规范动作列表：过滤非法动作、兜底默认动作
 const KNOWN_DO = new Set([
   'emitSelf', 'lightLink', 'scale', 'dim', 'glow', 'jitter', 'flash',
-  'bubble', 'cry', 'dance', 'fade', 'miniSelf', 'orbit', 'nuzzle', 'approach', 'avoid',
+  'bubble', 'cry', 'dance', 'fade', 'miniSelf', 'orbit', 'nuzzle', 'approach', 'avoid', 'svg',
 ]);
 
 export function sanitizeActions(acts: unknown): SpecAction[] {
@@ -96,6 +98,11 @@ export function sanitizeActions(acts: unknown): SpecAction[] {
     const doName = String(rec.do ?? '').trim();
     if (!doName) continue;
     if (!KNOWN_DO.has(doName)) continue; // 未实现原语不进规格（避免执行器兜底噪音）
+    if (doName === 'svg') {
+      const clean = sanitizeSvg(rec.svg);
+      if (clean) out.push({ do: 'svg', svg: clean });
+      continue;
+    }
     if (doName === 'emitSelf') {
       out.push({
         do: 'emitSelf',
@@ -153,4 +160,23 @@ export function ruleSpec(text: string): LifeSpec {
   if (/闪光|亮|发光|星星|闪耀/.test(text)) spec.onResource = [{ do: 'flash' }, { do: 'emitSelf', n: 2, to: 'self' }];
   if (/跳舞|转圈|开心|高兴/.test(text)) spec.onGrow = [{ do: 'dance' }, { do: 'scale', value: 1.3 }];
   return spec;
+}
+
+// 安全过滤 AI 生成的 SVG：砍 <script>/on* 事件/外部 href/foreignObject，限制长度，
+// 保证可安全注入 DOM（大屏匿名展示、不依赖外部资源）。不合法的返回 ''
+export function sanitizeSvg(input: unknown): string {
+  if (typeof input !== 'string') return '';
+  let s = input;
+  if (s.length > 20000) s = s.slice(0, 20000);
+  s = s.replace(/<script[\s\S]*?<\/script>/gi, '');
+  s = s.replace(/\son\w+\s*=\s*"[^"]*"/gi, '');
+  s = s.replace(/\son\w+\s*=\s*'[^']*'/gi, '');
+  s = s.replace(/<foreignObject[\s\S]*?<\/foreignObject>/gi, '');
+  s = s.replace(/\s(?:href|xlink:href)\s*=\s*["']https?:\/\/[^"']*["']/gi, '');
+  s = s.replace(/javascript:/gi, '');
+  if (!/<svg[\s>]/i.test(s)) return '';
+  if (!/\sxmlns\s*=/.test(s)) {
+    s = s.replace(/<svg/i, "<svg xmlns='http://www.w3.org/2000/svg'");
+  }
+  return s;
 }

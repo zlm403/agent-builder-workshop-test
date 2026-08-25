@@ -10,6 +10,7 @@ import { useEffect, useRef, useState } from 'react';
 import { findTip } from '@/lib/world/tips';
 import { api } from '@/lib/basePath';
 import type { LifeSpec, SpecAction } from '@/lib/world/spec';
+import { sanitizeSvg } from '@/lib/world/spec';
 
 interface WorldLife {
   id: string;
@@ -117,6 +118,15 @@ export default function WorldScreen({ sessionId }: { sessionId: string }) {
   const visualRef = useRef<{ speed: number; brightness: number }>({ speed: 1, brightness: 1 });
   // SVG 形状缓存（lifeId -> Image），只加载一次
   const svgImgRef = useRef<Map<string, HTMLImageElement>>(new Map());
+  // AI 生成的自包含 SVG 表现动画（DOM overlay，覆盖在 canvas 上播放一次）
+  const [svgOverlays, setSvgOverlays] = useState<{ id: string; x: number; y: number; svg: string }[]>([]);
+  // 把 AI 生成的 SVG 表现放到生命所在坐标播放（再过滤一次防 XSS）
+  function playSvgFx(life: WorldLife, svg: string): void {
+    const clean = sanitizeSvg(svg);
+    if (!clean) return;
+    const id = `${life.id}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    setSvgOverlays((prev) => [...prev, { id, x: life.x, y: life.y, svg: clean }]);
+  }
   // 环境光点（鱼缸 Light 风格：慢、亮、大、带拖尾与标签，纯视觉）
   const ambRef = useRef<{
     x: number; y: number; dirx: number; diry: number;
@@ -429,6 +439,10 @@ export default function WorldScreen({ sessionId }: { sessionId: string }) {
         case 'approach':
         case 'avoid':
           spawnRing(px, py, doName === 'approach' ? '#38bdf8' : '#c77dff', now);
+          break;
+        case 'svg':
+          // AI 直接生成的「自包含 SVG 动画」表现：想什么画什么，通用渲染器播放
+          playSvgFx(life, (act as { svg?: string }).svg || '');
           break;
         default:
           fxRef.current.push({ kind: 'label', x: px, y: py, label: doName, color, born: now, life: SPEC_FX_LIFE });
@@ -905,6 +919,15 @@ export default function WorldScreen({ sessionId }: { sessionId: string }) {
       {/* 中：Canvas 世界 */}
       <div style={{ position: 'relative', borderRadius: 14, overflow: 'hidden', border: '1px solid rgba(120,200,230,0.18)', minHeight: 300 }}>
         <canvas ref={canvasRef} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', display: 'block' }} />
+        {svgOverlays.map((o) => (
+          <SvgFx
+            key={o.id}
+            x={o.x}
+            y={o.y}
+            svg={o.svg}
+            onEnd={() => setSvgOverlays((prev) => prev.filter((p) => p.id !== o.id))}
+          />
+        ))}
         <PopupOverlay show={popup.show} content={popup.content} />
       </div>
 
@@ -1019,5 +1042,28 @@ function PopupOverlay({ show, content }: { show: boolean; content: string | null
         </div>
       </div>
     </div>
+  );
+}
+
+// AI 生成的 SVG 表现动画：定位到生命世界坐标，播放一次后由父组件移除
+function SvgFx({ x, y, svg, onEnd }: { x: number; y: number; svg: string; onEnd: () => void }) {
+  useEffect(() => {
+    const t = setTimeout(onEnd, 1700);
+    return () => clearTimeout(t);
+  }, [onEnd]);
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        left: `${x * 100}%`,
+        top: `${y * 100}%`,
+        width: 180,
+        height: 180,
+        transform: 'translate(-50%, -50%)',
+        pointerEvents: 'none',
+        zIndex: 6,
+      }}
+      dangerouslySetInnerHTML={{ __html: svg }}
+    />
   );
 }
