@@ -7,7 +7,7 @@
 // 表现：tick 抛结构化事件 {lifeId,targetId,type}，大屏执行器读 spec 播放。
 // =========================================================
 
-import type { LifeSpec } from './spec';
+import { ruleSpec, type LifeSpec } from './spec';
 
 // ---------- 数据定义 ----------
 
@@ -219,7 +219,9 @@ export function createInitialState(
       social: v.social,
       helpful: v.helpful,
       cautious: v.cautious,
-      spec: v.spec,
+      // 关键兜底：保证世界里每个生命都带 spec，大屏表现执行器才不会空转。
+      // 旧数据/修复前创建的生命若没有 spec，用学员原文 text 规则回退生成。
+      spec: v.spec || ruleSpec(v.text ?? ''),
     };
   });
 
@@ -256,7 +258,7 @@ export function syncLivesIntoWorld(state: WorldState, lives: LifeRecord[], confi
         name: rec.name,
         color: rec.color,
         shape: v.shape,
-        spec: v.spec,
+        spec: v.spec || ruleSpec(v.text ?? ''),
         x: p.x,
         y: p.y,
         energy: ENERGY_START,
@@ -274,7 +276,7 @@ export function syncLivesIntoWorld(state: WorldState, lives: LifeRecord[], confi
       ex.name = rec.name;
       ex.color = rec.color;
       ex.shape = v.shape;
-      ex.spec = v.spec;
+      ex.spec = v.spec || ruleSpec(v.text ?? '');
       ex.social = v.social;
       ex.helpful = v.helpful;
       ex.cautious = v.cautious;
