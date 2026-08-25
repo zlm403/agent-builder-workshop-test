@@ -192,11 +192,11 @@ const BLOCK_SYS = {
 const GENERAL_SYS = '你是共生缸共创助教。学员可能随便说，你接话追问，并判断他聊到哪个技能块（创造/交流/反应/资源/潮流/成长），引导他去点对应技能细聊。';
 const BLOCK_SCHEMA_SYS = {
   '创造':'从对话提取 JSON：{name,shape,blurb}。',
-  '交流':'提取 JSON：{approach,avoid,onMeet,visuals}。visuals 是从视觉词表挑的数组（可选），nuzzle=蹭一下/spit=吐个小东西/orbit=绕着对方转/avoid=躲开/dance=打招呼/emitSelf=撒出几个自己的小星星（用他自己的样子）。',
-  '反应':'提取 JSON：{manifest,dropDims,visuals}。dropDims 是优先扣的维度名数组；visuals 从词表挑（可选）：shrink=缩成一团/jitter=发抖/dim=变暗/bubble=冒泡泡/cry=哭泣/flash=闪光。',
-  '资源':'提取 JSON：{consume,visuals}。visuals 从词表挑（可选）：grow=慢慢长大/devour=吃掉/glow=发光/dance=开心转圈。',
-  '潮流':'提取 JSON：{mode,visuals}。visuals 从词表挑（可选）：follow=随波而行/resist=逆流而上/still=静静观看。',
-  '成长':'提取 JSON：{grow,death,visuals}。visuals 从词表挑（可选）：grow=长大一圈/fade=缓缓飘散。',
+  '交流':'提取 JSON：{approach,avoid,onMeet,visuals}。visuals 是表现原语数组，每项为对象 {action,color?,label?}：action 从 [lightLink 光带连线, emitSelf 撒自己的小星星, nuzzle 蹭一下, spit 吐个小东西, orbit 绕着转, avoid 躲开, dance 打招呼] 选；color 用学员说的颜色（如 "红色"→red，"绿色的光"→#4ade80），学员没说颜色就不填；label 是学员原话里这个表现的简短描述。',
+  '反应':'提取 JSON：{manifest,dropDims,visuals}。dropDims 是优先扣的维度名数组；visuals 为对象数组 {action,color?}：action 从 [shrink 缩成一团, jitter 发抖, dim 变暗, bubble 冒泡泡, cry 哭泣, flash 闪光] 选；color 用学员说的颜色，没说则不填。',
+  '资源':'提取 JSON：{consume,visuals}。visuals 为对象数组 {action,color?}：action 从 [grow 慢慢长大, devour 吃掉, glow 发光, dance 开心转圈] 选；color 用学员说的颜色，没说则不填。',
+  '潮流':'提取 JSON：{mode,visuals}。visuals 为对象数组 {action,color?}：action 从 [follow 随波而行, resist 逆流而上, still 静静观看] 选；color 用学员说的颜色，没说则不填。',
+  '成长':'提取 JSON：{grow,death,visuals}。visuals 为对象数组 {action,color?}：action 从 [grow 长大一圈, fade 缓缓飘散] 选；color 用学员说的颜色，没说则不填。',
 };
 async function callLLM(system, message, block){
   if (LLM_ENDPOINT){
@@ -410,27 +410,47 @@ function normalizeDims(){
   if(sum<=0) return state.dims;
   const out={}; for(const k in state.dims) out[k]=Math.round(state.dims[k]/sum*100); return out;
 }
+// 从一句话里挑出颜色词（学员说"红色的光"→ red）；没有返回 undefined
+const COLOR_WORDS = ['红色','橙','黄色','绿色','青色','蓝色','紫色','粉色','白色','黑色','金色','银色','红','绿','蓝','黄','紫','粉'];
+function pickColor(t){
+  for (const c of COLOR_WORDS){ if (t.indexOf(c) >= 0) return c; }
+  return undefined;
+}
 function textToVisuals(block, s){
   const vs=[];
   if(block==='交流'){ const t=(s.onMeet||'')+(s.approach||'')+(s.avoid||'');
-    if(/蹭/.test(t))vs.push('nuzzle'); if(/丢|吐|扔/.test(t))vs.push('spit'); if(/绕/.test(t))vs.push('orbit'); if(/躲|避/.test(t))vs.push('avoid'); if(/打招呼|握手|跳|招手/.test(t))vs.push('dance'); if(/星|亮晶晶|闪亮|发光的小/.test(t))vs.push('emitSelf'); }
+    if(/光|连|联/.test(t)) vs.push({action:'lightLink', color:pickColor(t)});
+    if(/星|亮晶晶|闪亮/.test(t)) vs.push({action:'emitSelf', color:pickColor(t)});
+    if(/蹭/.test(t)) vs.push({action:'nuzzle', color:pickColor(t)});
+    if(/丢|吐|扔/.test(t)) vs.push({action:'spit', color:pickColor(t)});
+    if(/绕/.test(t)) vs.push({action:'orbit', color:pickColor(t)});
+    if(/躲|避/.test(t)) vs.push({action:'avoid', color:pickColor(t)});
+    if(/打招呼|握手|跳|招手/.test(t)) vs.push({action:'dance', color:pickColor(t)}); }
   else if(block==='反应'){ const t=(s.manifest||'')+(Array.isArray(s.dropDims)?s.dropDims.join(''):'');
-    if(/缩|团/.test(t))vs.push('shrink'); if(/抖/.test(t))vs.push('jitter'); if(/暗/.test(t))vs.push('dim'); if(/泡/.test(t))vs.push('bubble'); if(/哭/.test(t))vs.push('cry'); if(/闪|亮/.test(t))vs.push('flash'); }
+    if(/缩|团/.test(t)) vs.push({action:'shrink', color:pickColor(t)}); if(/抖/.test(t)) vs.push({action:'jitter', color:pickColor(t)}); if(/暗/.test(t)) vs.push({action:'dim', color:pickColor(t)}); if(/泡/.test(t)) vs.push({action:'bubble', color:pickColor(t)}); if(/哭/.test(t)) vs.push({action:'cry', color:pickColor(t)}); if(/闪|亮/.test(t)) vs.push({action:'flash', color:pickColor(t)}); }
   else if(block==='资源'){ const t=s.consume||'';
-    if(/吃/.test(t))vs.push('devour'); if(/长大/.test(t))vs.push('grow'); if(/发光/.test(t))vs.push('glow'); if(/转|开心|圈/.test(t))vs.push('dance'); }
+    if(/吃/.test(t)) vs.push({action:'devour', color:pickColor(t)}); if(/长大/.test(t)) vs.push({action:'grow', color:pickColor(t)}); if(/发光/.test(t)) vs.push({action:'glow', color:pickColor(t)}); if(/转|开心|圈/.test(t)) vs.push({action:'dance', color:pickColor(t)}); }
   else if(block==='潮流'){ const t=s.mode||'';
-    if(/逆/.test(t))vs.push('resist'); else if(/随波|跟|随/.test(t))vs.push('follow'); if(/静|不动|观/.test(t))vs.push('still'); }
+    if(/逆/.test(t)) vs.push({action:'resist', color:pickColor(t)}); else if(/随波|跟|随/.test(t)) vs.push({action:'follow', color:pickColor(t)}); if(/静|不动|观/.test(t)) vs.push({action:'still', color:pickColor(t)}); }
   else if(block==='成长'){ const t=(s.grow||'')+(s.death||'');
-    if(/长大/.test(t))vs.push('grow'); if(/飘散|散|死/.test(t))vs.push('fade'); }
-  return vs;
+    if(/长大/.test(t)) vs.push({action:'grow', color:pickColor(t)}); if(/飘散|散|死/.test(t)) vs.push({action:'fade', color:pickColor(t)}); }
+  // 去掉无意义空 color 字段
+  return vs.map(v => v.color ? v : {action:v.action});
 }
-// 把学员「直接填的文字行为」反查成视觉词表原语（无 AI 也生效；AI 已填的保留）
+// 把学员「直接填的文字行为」反查成视觉原语（无 AI 也生效；AI 已填的保留）；按 action 去重，AI 的优先
 function injectVisuals(){
   ['交流','反应','资源','潮流','成长'].forEach(k=>{
     const s=state.skill[k]; if(!s) return;
-    const ai = (s.visuals && Array.isArray(s.visuals)) ? s.visuals : [];
+    const ai = (s.visuals && Array.isArray(s.visuals)) ? s.visuals.map(v => (typeof v==='object') ? v : (v.split('=')[0] ? {action:v.split('=')[0].trim()} : v)) : [];
     const mapped = textToVisuals(k, s);
-    s.visuals = Array.from(new Set(ai.concat(mapped)));
+    const seen = {};
+    const merged = [];
+    for (const v of ai.concat(mapped)){
+      const key = (typeof v==='object' && v.action) ? v.action : String(v);
+      if (seen[key]) continue; seen[key] = true;
+      merged.push(v);
+    }
+    s.visuals = merged;
   });
 }
 function payload(){

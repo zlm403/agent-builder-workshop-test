@@ -644,40 +644,66 @@ function fxApply(l, f){
 function sketchOf(l){
   return (l && l.sketchImg && l.sketchImg.complete && l.sketchImg.naturalWidth) ? l.sketchImg : null;
 }
+// 学员规定的颜色：spec.color（自由色值，如 "#ff4444" 或 "red" 或 "红色"），没有则用生命自己的色相
+function colorOf(l, spec){
+  if (!spec || !spec.color) return null;
+  const c = String(spec.color).trim();
+  if (/^(#[0-9a-fA-F]{3,8}|rgba?\(|hsla?\(|[a-zA-Z]+)$/.test(c)) return c;
+  return null;
+}
+// 中英文颜色词 → 色值（学员口语说"红色的光"，AI 也可能直接给色值，这里兜底中文颜色词）
+const CN_COLOR = { 红:'#ff5566', 红色:'#ff5566', 橙:'#ff9f43', 橙色:'#ff9f43', 黄:'#ffd166', 黄色:'#ffd166',
+  绿:'#4ade80', 绿色:'#4ade80', 青:'#22d3ee', 青色:'#22d3ee', 蓝:'#60a5fa', 蓝色:'#60a5fa',
+  紫:'#a78bfa', 紫色:'#a78bfa', 粉:'#f472b6', 粉色:'#f472b6', 白:'#ffffff', 白色:'#ffffff',
+  黑:'#222222', 黑色:'#222222', 金:'#ffd700', 金色:'#ffd700', 银:'#c0c0c0', 银色:'#c0c0c0' };
+function resolveColor(l, spec){
+  const c = colorOf(l, spec);
+  if (c) return c;
+  if (spec && spec.color && CN_COLOR[String(spec.color).trim()]) return CN_COLOR[String(spec.color).trim()];
+  return null; // 无规定 → 用生命自己的色相（调用处兜底）
+}
 const SKILL_ACTIONS = {
-  shrink: (l)=>{ fxApply(l,{scale:0.62, dur:900}); floatText(l.x, l.y-20, '缩成一团', '#9fb0ff'); },
-  jitter: (l)=>{ fxApply(l,{jitter:1, dur:800}); floatText(l.x, l.y-20, '瑟瑟发抖', '#ffb0b0'); },
-  dim:    (l)=>{ fxApply(l,{dim:0.75, dur:1100}); floatText(l.x, l.y-20, '变暗了', '#8a9bb5'); },
-  bubble: (l)=>{ const sk=sketchOf(l); if(world.fx.length<FX_MAX*0.9) emit(l,'emo',{count:8,hue:l.hue,color:'#8fd8ff',img:sk}); floatText(l.x, l.y-20, '咕噜咕噜…', '#8fd8ff'); },
-  cry:    (l)=>{ setEmotion(l,'cry',1300); if(world.fx.length<FX_MAX*0.9) emit(l,'drip',{count:6,hue:l.hue,img:sketchOf(l)}); },
-  flash:  (l)=>{ l.flash = now()+450; l.flashColor='#ffffff'; },
-  grow:   (l)=>{ fxApply(l,{scale:1.35, dur:1100}); if(world.fx.length<FX_MAX*0.9) emit(l,'emo',{count:14,hue:l.hue,color:`hsl(${l.hue},90%,72%)`,img:sketchOf(l)}); floatText(l.x, l.y-20, '慢慢长大', '#7CFFB0'); },
-  devour: (l)=>{ setEmotion(l,'happy',1400); if(world.fx.length<FX_MAX*0.9) emit(l,'emo',{count:10,hue:l.hue,img:sketchOf(l)}); floatText(l.x, l.y-20, '吃掉它！', '#ffd25b'); },
-  glow:   (l)=>{ l.flash=now()+500; l.flashColor='#fff7c0'; if(world.fx.length<FX_MAX*0.9) emit(l,'coin',{count:10,hue:l.hue,img:sketchOf(l)}); floatText(l.x, l.y-20, '发光了', '#ffe28a'); },
-  dance:  (l)=>{ setEmotion(l,'dance',1500); if(world.fx.length<FX_MAX*0.9) emit(l,'emo',{count:12,hue:l.hue,img:sketchOf(l)}); },
-  nuzzle: (l, stim)=>{ setEmotion(l,'happy',1200); if(stim && stim.to && world.fx.length<FX_MAX*0.9) emit(l,'share',{to:stim.to,count:6,hue:l.hue,img:sketchOf(l)}); floatText(l.x, l.y-20, '蹭蹭你', '#ff9ecb'); },
-  spit:   (l, stim)=>{ const a = (stim && stim.to) ? Math.atan2(stim.to.y-l.y, stim.to.x-l.x) : Math.random()*Math.PI*2; if(world.fx.length<FX_MAX*0.9) emit(l,'dart',{count:6,hue:l.hue,angle:a,img:sketchOf(l)}); floatText(l.x, l.y-20, '吐个小东西', '#b5ff9e'); },
-  orbit:  (l)=>{ l.rotSpeed = (l.rotSpeed||0) + 0.02; floatText(l.x, l.y-20, '绕着转', '#c9b3ff'); },
-  avoid:  (l)=>{ const a = Math.random()*Math.PI*2; l.vx=Math.cos(a)*2.2; l.vy=Math.sin(a)*2.2; floatText(l.x, l.y-20, '躲开', '#ff9e9e'); },
-  follow: (l)=>{ floatText(l.x, l.y-20, '随波而行', '#8fd8ff'); },
-  resist: (l)=>{ floatText(l.x, l.y-20, '逆流而上', '#ffcf5b'); },
-  still:  (l)=>{ l.vx=0; l.vy=0; floatText(l.x, l.y-20, '静静观看', '#b5c4d8'); },
-  fade:   (l)=>{ if(world.fx.length<FX_MAX*0.9) emit(l,'scatter',{count:24,hue:l.hue,color:`hsl(${l.hue},80%,65%)`,img:sketchOf(l)}); },
-  lightLink: (l, stim)=>{ l.lightLink = { x:(stim && stim.to)?stim.to.x:l.x, y:(stim && stim.to)?stim.to.y:l.y, until: now()+700 }; floatText(l.x, l.y-20, '光带连线', '#fff7c0'); },
-  emitSelf: (l, stim)=>{ const sk=sketchOf(l); if(world.fx.length<FX_MAX*0.9){ for(let i=0;i<8;i++){ const a=Math.random()*Math.PI*2; emit(l,'emo',{count:1,hue:l.hue,img:sk}); const last=world.fx[world.fx.length-1]; if(last){ last.vx=Math.cos(a)*1.6; last.vy=Math.sin(a)*1.6; } } } floatText(l.x, l.y-20, '撒出小星星', '#ffd8a8'); },
+  shrink: (l, sp)=>{ fxApply(l,{scale:0.62, dur:900}); floatText(l.x, l.y-20, '缩成一团', resolveColor(l,sp)||'#9fb0ff'); },
+  jitter: (l, sp)=>{ fxApply(l,{jitter:1, dur:800}); floatText(l.x, l.y-20, '瑟瑟发抖', resolveColor(l,sp)||'#ffb0b0'); },
+  dim:    (l, sp)=>{ fxApply(l,{dim:0.75, dur:1100}); floatText(l.x, l.y-20, '变暗了', '#8a9bb5'); },
+  bubble: (l, sp)=>{ const sk=sketchOf(l); if(world.fx.length<FX_MAX*0.9) emit(l,'emo',{count:8,hue:l.hue,color:resolveColor(l,sp)||'#8fd8ff',img:sk}); floatText(l.x, l.y-20, '咕噜咕噜…', resolveColor(l,sp)||'#8fd8ff'); },
+  cry:    (l, sp)=>{ setEmotion(l,'cry',1300); if(world.fx.length<FX_MAX*0.9) emit(l,'drip',{count:6,hue:l.hue,color:resolveColor(l,sp)||undefined,img:sketchOf(l)}); },
+  flash:  (l, sp)=>{ l.flash = now()+450; l.flashColor = resolveColor(l,sp)||'#ffffff'; },
+  grow:   (l, sp)=>{ fxApply(l,{scale:1.35, dur:1100}); if(world.fx.length<FX_MAX*0.9) emit(l,'emo',{count:14,hue:l.hue,color:resolveColor(l,sp)||`hsl(${l.hue},90%,72%)`,img:sketchOf(l)}); floatText(l.x, l.y-20, '慢慢长大', resolveColor(l,sp)||'#7CFFB0'); },
+  devour: (l, sp)=>{ setEmotion(l,'happy',1400); if(world.fx.length<FX_MAX*0.9) emit(l,'emo',{count:10,hue:l.hue,color:resolveColor(l,sp)||undefined,img:sketchOf(l)}); floatText(l.x, l.y-20, '吃掉它！', resolveColor(l,sp)||'#ffd25b'); },
+  glow:   (l, sp)=>{ l.flash=now()+500; l.flashColor = resolveColor(l,sp)||'#fff7c0'; if(world.fx.length<FX_MAX*0.9) emit(l,'coin',{count:10,hue:l.hue,color:resolveColor(l,sp)||'#ffe28a',img:sketchOf(l)}); floatText(l.x, l.y-20, '发光了', resolveColor(l,sp)||'#ffe28a'); },
+  dance:  (l, sp)=>{ setEmotion(l,'dance',1500); if(world.fx.length<FX_MAX*0.9) emit(l,'emo',{count:12,hue:l.hue,color:resolveColor(l,sp)||undefined,img:sketchOf(l)}); },
+  nuzzle: (l, sp, stim)=>{ setEmotion(l,'happy',1200); if(stim && stim.to && world.fx.length<FX_MAX*0.9) emit(l,'share',{to:stim.to,count:6,hue:l.hue,color:resolveColor(l,sp)||undefined,img:sketchOf(l)}); floatText(l.x, l.y-20, '蹭蹭你', resolveColor(l,sp)||'#ff9ecb'); },
+  spit:   (l, sp, stim)=>{ const a = (stim && stim.to) ? Math.atan2(stim.to.y-l.y, stim.to.x-l.x) : Math.random()*Math.PI*2; if(world.fx.length<FX_MAX*0.9) emit(l,'dart',{count:6,hue:l.hue,color:resolveColor(l,sp)||undefined,angle:a,img:sketchOf(l)}); floatText(l.x, l.y-20, '吐个小东西', resolveColor(l,sp)||'#b5ff9e'); },
+  orbit:  (l, sp)=>{ l.rotSpeed = (l.rotSpeed||0) + 0.02; floatText(l.x, l.y-20, '绕着转', resolveColor(l,sp)||'#c9b3ff'); },
+  avoid:  (l, sp)=>{ const a = Math.random()*Math.PI*2; l.vx=Math.cos(a)*2.2; l.vy=Math.sin(a)*2.2; floatText(l.x, l.y-20, '躲开', '#ff9e9e'); },
+  follow: (l, sp)=>{ floatText(l.x, l.y-20, '随波而行', resolveColor(l,sp)||'#8fd8ff'); },
+  resist: (l, sp)=>{ floatText(l.x, l.y-20, '逆流而上', resolveColor(l,sp)||'#ffcf5b'); },
+  still:  (l, sp)=>{ l.vx=0; l.vy=0; floatText(l.x, l.y-20, '静静观看', '#b5c4d8'); },
+  fade:   (l, sp)=>{ if(world.fx.length<FX_MAX*0.9) emit(l,'scatter',{count:24,hue:l.hue,color:resolveColor(l,sp)||`hsl(${l.hue},80%,65%)`,img:sketchOf(l)}); },
+  lightLink: (l, sp, stim)=>{ l.lightLink = { x:(stim && stim.to)?stim.to.x:l.x, y:(stim && stim.to)?stim.to.y:l.y, until: now()+700, color: resolveColor(l,sp) || null }; floatText(l.x, l.y-20, '光带连线', resolveColor(l,sp)||'#fff7c0'); },
+  emitSelf: (l, sp)=>{ const sk=sketchOf(l); if(world.fx.length<FX_MAX*0.9){ for(let i=0;i<8;i++){ const a=Math.random()*Math.PI*2; emit(l,'emo',{count:1,hue:l.hue,color:resolveColor(l,sp)||undefined,img:sk}); const last=world.fx[world.fx.length-1]; if(last){ last.vx=Math.cos(a)*1.6; last.vy=Math.sin(a)*1.6; } } } floatText(l.x, l.y-20, '撒出小星星', resolveColor(l,sp)||'#ffd8a8'); },
 };
+// visuals 项规范化：可能是字符串（旧："lightLink" / "lightLink=红色的光"）或对象（新：{action,color,...}）
+function normalizeVisualItem(v){
+  if (v && typeof v === 'object'){ const a = String(v.action||'').trim(); return { action: a, ...v, color: (v.color!=null)?v.color:(v.style?String(v.style):undefined) }; }
+  const s = String(v||'').trim(); if (!s) return null;
+  const eq = s.split('=');
+  return { action: (eq[0]||'').trim(), color: (eq[1]||'').trim() || undefined };
+}
 function playSkillPrimitive(life, kind, stim){
   const s = life.skill; if (!s) return;
   const BLOCK = { meet:'交流', hit:'反应', resource:'资源', wave:'潮流' };
   const block = s[BLOCK[kind]];
   if (!block || !Array.isArray(block.visuals) || !block.visuals.length) return;
   for (const v of block.visuals){
-    const name = (typeof v==='string') ? v.split('=')[0].trim() : v;
-    if (SKILL_ACTIONS[name]) SKILL_ACTIONS[name](life, stim);
-    else {   // 兜底：AI 自由命名的未知原语也给可见反应（通用闪光 + 原语中文文字）
-      const cn = (typeof v==='string') ? (v.split('=')[1] || name) : name;
-      if (world.fx.length < FX_MAX*0.9) emit(life,'emo',{count:6,hue:life.hue});
-      floatText(life.x, life.y-20, '表现：'+cn, '#9fd8ff');
+    const spec = normalizeVisualItem(v); if (!spec) continue;
+    const name = spec.action;
+    if (SKILL_ACTIONS[name]) SKILL_ACTIONS[name](life, spec, stim);
+    else {   // 兜底：AI 自由命名的未知原语也给可见反应（通用闪光 + 原语中文文字 + 规定颜色）
+      const cn = (typeof v==='string') ? (v.split('=')[1] || name) : (spec.label || name);
+      if (world.fx.length < FX_MAX*0.9) emit(life,'emo',{count:6,hue:life.hue,color:resolveColor(life,spec)||undefined});
+      floatText(life.x, life.y-20, '表现：'+cn, resolveColor(life,spec)||'#9fd8ff');
     }
   }
 }
@@ -685,8 +711,9 @@ function playSkillPrimitive(life, kind, stim){
 function playGrowDeathPrimitive(life, kind){
   const s = life.skill; if (!s || !s.成长 || !Array.isArray(s.成长.visuals)) return;
   for (const v of s.成长.visuals){
-    if (kind==='grow' && v==='grow') SKILL_ACTIONS.grow(life);
-    else if (kind==='death' && v==='fade') SKILL_ACTIONS.fade(life);
+    const spec = normalizeVisualItem(v); if (!spec) continue;
+    if (kind==='grow' && spec.action==='grow') SKILL_ACTIONS.grow(life, spec);
+    else if (kind==='death' && spec.action==='fade') SKILL_ACTIONS.fade(life, spec);
   }
 }
 
@@ -1607,10 +1634,12 @@ function drawEntity(e){
       ctx.strokeStyle = 'rgba(255,255,255,.35)'; ctx.lineWidth = 1;
       ctx.beginPath(); ctx.arc(e.x, e.y, Rv, 0, 7); ctx.stroke();
     }
-    if (e.lightLink && tn < e.lightLink.until){   // 光带连线（AI 原语 lightLink）
+    if (e.lightLink && tn < e.lightLink.until){   // 光带连线（AI 原语 lightLink，颜色=学员规定或生命色相）
       const k = 1 - (e.lightLink.until - tn)/700;
       ctx.save(); ctx.globalCompositeOperation = 'lighter';
-      ctx.strokeStyle = `hsla(${e.hue},80%,70%,${0.55*(1-k)})`; ctx.lineWidth = 3;
+      ctx.globalAlpha = 0.55*(1-k);
+      ctx.strokeStyle = e.lightLink.color || `hsla(${e.hue},80%,70%,1)`;
+      ctx.lineWidth = 3;
       ctx.beginPath(); ctx.moveTo(e.x, e.y); ctx.lineTo(e.lightLink.x, e.lightLink.y); ctx.stroke();
       ctx.restore();
     }
