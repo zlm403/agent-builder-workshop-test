@@ -2163,6 +2163,127 @@ function syncLivesFromServer(){
 }
 try { syncLivesFromServer(); setInterval(syncLivesFromServer, 3000); } catch(_) {}
 
+/* —— Tips 弹窗：教师端「发布 Tips」→ POST /api/world/popup → 本页轮询弹遮罩卡片 —— */
+/* 文案与 src/lib/world/tips.ts 保持一致（usage/method 与 WorldScreen.PopupOverlay 一致） */
+var TIP_DEFS = {
+  usage: { title: '手机怎么玩 · 三步', lines: [
+    '① 连：你已经扫码进来了，手机跟着大屏走就行',
+    '② 造：给它起名、选颜色，写一段「生命定义」——也可以用一句话告诉 AI，让 AI 帮你写',
+    '③ 看：提交后它进入世界，看它怎么动；点「和 AI 聊聊」，把看到的告诉 AI，让它帮你分析'
+  ]},
+  method: { title: 'AI 创作方法 · 想法是你的，AI 帮你做', lines: [
+    '先想：想清楚你的生命是什么性格，用大白话说出来',
+    '再问：把想法发给 AI，让 AI 帮你把它写成「生命定义」',
+    '后看：放进世界观察——它靠近谁、帮谁、躲谁',
+    '再改：看到不对劲，把现象告诉 AI，让它帮你分析，再改一句话，下一轮看变化'
+  ]},
+  tip01: { title: 'Tips 01｜先造一个生命', lines: [
+    '任务一：造一个生命。',
+    '不用想太多，用一句话告诉 AI："我想创造一个……"',
+    '说完以后，让它真的进入我们的世界。'
+  ]},
+  tip02: { title: 'Tips 02｜给它一点"你自己的感觉"', lines: [
+    '任务二：让它变得有点像你。',
+    '你可以改变它的一个地方。',
+    '可以是颜色、形状、速度，也可以是它喜欢做什么。',
+    '只改一个地方，然后再看看。'
+  ]},
+  tip03: { title: 'Tips 03｜让 AI 帮你实现一个想法', lines: [
+    '任务三：说一个你想让它做到的事情。',
+    '不知道怎么实现没关系，直接告诉 AI。',
+    '让 AI 帮你把这个想法变成它真的可以做的事情。',
+    '刚才这个事情，你可以试试工具箱里的「帮我实现」。'
+  ]},
+  tip04: { title: 'Tips 04｜把它放进我们的世界', lines: [
+    '任务四：观察你的生命。',
+    '不要修改它。',
+    '先看一分钟：它遇到了什么？做了什么？影响了谁？'
+  ]},
+  tip05: { title: 'Tips 05｜发现一个问题', lines: [
+    '任务五：找一个你没想到的结果。',
+    '它有没有做出你原来没想到的事情？',
+    '有没有什么地方和你想的不一样？'
+  ]},
+  tip06: { title: 'Tips 06｜让 AI 帮你看看', lines: [
+    '任务六：让 AI 当一次观察员。',
+    '把你刚才发现的事情交给 AI，看看它能不能帮你找到原因。',
+    '刚才这个事情，你可以试试工具箱里的「帮我看看」。'
+  ]},
+  tip07: { title: 'Tips 07｜只改一个地方', lines: [
+    '任务七：只改一个地方，再跑一次。',
+    '不要全部推翻。',
+    '你只改变一个规则，然后看看整个世界有什么变化。'
+  ]},
+  tip08: { title: 'Tips 08｜最后一个挑战：你能改变这个世界吗？', lines: [
+    '现在没有任务了。',
+    '你可以继续修改自己的生命，也可以重新创造一个生命，',
+    '也可以想办法让你的生命影响别人。',
+    '看看你能不能让这个世界，因为你的想法发生一点变化。'
+  ]}
+};
+var __popupBox = null;
+var __popupLast = null;
+function ensurePopupBox(){
+  if (__popupBox) return __popupBox;
+  const ov = document.createElement('div');
+  ov.id = 'tip-overlay';
+  ov.style.cssText = 'position:fixed;inset:0;z-index:9999;display:none;align-items:center;justify-content:center;background:rgba(4,17,26,0.72);backdrop-filter:blur(4px)';
+  const card = document.createElement('div');
+  card.style.cssText = 'max-width:720px;width:86%;padding:34px 40px;background:linear-gradient(180deg,#0e2940,#081a2b);border:1px solid rgba(120,200,230,0.3);border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,0.5)';
+  const title = document.createElement('div');
+  title.id = 'tip-overlay-title';
+  title.style.cssText = 'font-size:30px;font-weight:800;color:#39d6ff;margin-bottom:18px;letter-spacing:1px';
+  const listBox = document.createElement('div');
+  listBox.id = 'tip-overlay-lines';
+  listBox.style.cssText = 'display:flex;flex-direction:column;gap:14px';
+  const foot = document.createElement('div');
+  foot.style.cssText = 'margin-top:26px;font-size:14px;color:#7fa6b8;text-align:center';
+  foot.textContent = '讲完后由老师收起本窗，游戏继续';
+  card.appendChild(title); card.appendChild(listBox); card.appendChild(foot);
+  ov.appendChild(card);
+  document.body.appendChild(ov);
+  __popupBox = ov;
+  return ov;
+}
+function renderPopup(content){
+  const def = TIP_DEFS[content] || TIP_DEFS.usage;
+  ensurePopupBox();
+  document.getElementById('tip-overlay-title').textContent = def.title;
+  const listBox = document.getElementById('tip-overlay-lines');
+  listBox.innerHTML = '';
+  def.lines.forEach(line => {
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;gap:12px;align-items:flex-start';
+    const dot = document.createElement('span');
+    dot.style.cssText = 'color:#ffd27a;font-size:18px;font-weight:800;line-height:1.5';
+    dot.textContent = '·';
+    const txt = document.createElement('span');
+    txt.style.cssText = 'font-size:21px;line-height:1.5;color:#cfeaf6;text-align:left';
+    txt.textContent = line;
+    row.appendChild(dot); row.appendChild(txt);
+    listBox.appendChild(row);
+  });
+  __popupBox.style.display = 'flex';
+}
+function hidePopup(){
+  if (__popupBox) __popupBox.style.display = 'none';
+}
+function pollPopup(){
+  fetch(apiPath('/api/world/popup'), { cache: 'no-store' })
+    .then(r => r.json())
+    .then(j => {
+      const show = !!(j && j.show);
+      const content = (j && j.content) || null;
+      const key = show + '|' + content;
+      if (key === __popupLast) return; // 状态没变不动 DOM，防闪烁
+      __popupLast = key;
+      if (show) renderPopup(content);
+      else hidePopup();
+    })
+    .catch(() => {});
+}
+try { pollPopup(); setInterval(pollPopup, 2000); } catch(_) {}
+
 /* —— 老师端按钮 —— */
 document.getElementById('relBtn').addEventListener('click', () => releaseTeacher(1));
 document.getElementById('relBtn2').addEventListener('click', () => releaseTeacher(3));
