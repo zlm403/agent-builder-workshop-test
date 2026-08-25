@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { chatWithLLM } from '@/lib/llm';
-import { SPEC_BLOCKS, type SpecBlockKey, type LifeSpec, normalizeSpec, ruleSpec } from '@/lib/world/spec';
+import { SPEC_BLOCKS, type SpecBlockKey, type LifeSpec, ruleSpec, sanitizeActions } from '@/lib/world/spec';
 
 // =========================================================
 // A3 《我的世界》 LLM 代理
@@ -77,19 +77,41 @@ function ruleSpecForBlock(block: SpecBlockKey, text: string): Partial<LifeSpec> 
   }
 }
 
-// 规范化 AI 输出的片段：只保留该块允许的字段，且动作必须来自能力库
+// 规范化 AI 输出的片段：只保留该块允许的字段。
+// 注意：返回「只含本块字段」的部分规格，不做全量兜底——否则 merge 时
+// 后面的块会带上完整默认 spec 把前面块的设计全覆盖成默认值（历史 bug）。
+// 每个字段内部做动作/字段清洗，缺失字段不补默认。
 function normalizeBlockSpec(block: SpecBlockKey, raw: Record<string, unknown>): Partial<LifeSpec> {
-  const allowed = new Set(BLOCK_FIELDS[block]);
-  const out: Record<string, unknown> = {};
-  for (const key of allowed) {
-    const field = key.split('(')[0].trim() as keyof LifeSpec;
+  // 该块可写的字段（键名）
+  const fieldKeys: Partial<Record<SpecBlockKey, (keyof LifeSpec)[]>> = {
+    create: ['body'],
+    social: ['onMeet', 'onWave', 'mood'],
+    react: ['onHit'],
+    resource: ['onResource'],
+    trend: ['mood'],
+    grow: ['onGrow', 'onDeath'],
+  };
+  const keys = fieldKeys[block] ?? [];
+  const out: Partial<LifeSpec> = {};
+  for (const field of keys) {
     if (raw[field] === undefined) continue;
-    // mood 为空对象时丢弃（避免覆盖其它块的 mood）
-    if (field === 'mood' && (!raw[field] || (typeof raw[field] === 'object' && Object.keys(raw[field] as object).length === 0))) continue;
-    out[field] = raw[field];
+    if (field === 'mood') {
+      // mood 为空对象时丢弃（避免覆盖其它块的 mood）
+      if (!raw[field] || (typeof raw[field] === 'object' && Object.keys(raw[field] as object).length === 0)) continue;
+      const m: Record<string, string> = {};
+      for (const [k, v] of Object.entries(raw[field] as Record<string, unknown>)) {
+        if (typeof v === 'string') m[k] = v;
+      }
+      if (Object.keys(m).length) out.mood = m;
+    } else if (field === 'body') {
+      if (typeof raw[field] === 'string' && raw[field]) out.body = String(raw[field]);
+    } else {
+      // 动作数组 → 清洗（sanitizeActions 只保留能力库动作，svg 走 sanitizeSvg）
+      const acts = sanitizeActions(raw[field]);
+      if (acts.length) (out as Record<string, unknown>)[field] = acts;
+    }
   }
-  // 只有 create 块可以带 body；其余块若无字段返回空（前端会 merge 默认值）
-  return normalizeSpec(out) as Partial<LifeSpec>;
+  return out;
 }
 
 export async function POST(req: NextRequest) {

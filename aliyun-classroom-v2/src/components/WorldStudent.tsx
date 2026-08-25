@@ -60,6 +60,7 @@ export default function WorldStudent({
   const [aiName, setAiName] = useState('');
   const [aiColor, setAiColor] = useState('#36CFC9');
   const [aiShape, setAiShape] = useState('');
+  const [aiSpec, setAiSpec] = useState<LifeSpec | undefined>(undefined);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState('');
 
@@ -126,6 +127,7 @@ export default function WorldStudent({
         setAiName(d.name);
         if (d.color) setAiColor(d.color);
         if (d.shape) setAiShape(d.shape);
+        setAiSpec(d.spec || undefined);
         setCreateStep('preview');
         setMsg('');
       } else {
@@ -276,7 +278,7 @@ export default function WorldStudent({
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
                 <button className="secondary" onClick={() => setCreateStep('idle')}>重来</button>
-                <button className="primary" disabled={busy || locked} onClick={() => enterWorld(undefined)}>
+                <button className="primary" disabled={busy || locked} onClick={() => enterWorld(aiSpec)}>
                   {busy ? '…' : '✨ 确认创造，进入世界'}
                 </button>
               </div>

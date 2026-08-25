@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { upsertLife } from '@/lib/world/store';
 import { LIFE_PRESETS } from '@/lib/world/presets';
 import { textToTraits } from '@/lib/world/traits';
+import { ruleSpec } from '@/lib/world/spec';
 
 // 教师端一键添加预置生命（如张老师鱼缸例子）进世界
 export async function POST(req: NextRequest) {
@@ -21,6 +22,7 @@ export async function POST(req: NextRequest) {
     version: 1,
     text: preset.text,
     shape: preset.shape,
+    spec: ruleSpec(preset.text),
     social: traits.social,
     helpful: traits.helpful,
     cautious: traits.cautious,

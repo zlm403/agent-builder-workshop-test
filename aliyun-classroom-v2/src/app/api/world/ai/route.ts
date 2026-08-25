@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { chatWithLLM } from '@/lib/llm';
 import { readLives, readState } from '@/lib/world/store';
 import { ruleTraits } from '@/lib/world/traits';
+import { ruleSpec, type LifeSpec } from '@/lib/world/spec';
 
 function extractJson(text: string): Record<string, unknown> | null {
   try {
@@ -46,6 +47,7 @@ async function createLifeText(message: string): Promise<{
   name?: string;
   color?: string;
   shape?: string;
+  spec?: LifeSpec;
 }> {
   const sys =
     '你是《我的世界》里帮学生把想法变成生命的助手。学生用一句话描述他希望的生命。' +
@@ -67,6 +69,7 @@ async function createLifeText(message: string): Promise<{
           name,
           color,
           shape: svg,
+          spec: ruleSpec(def),
         };
       }
     }
@@ -96,6 +99,7 @@ function fallbackLifeText(message: string): {
   name: string;
   color: string;
   shape: string;
+  spec: LifeSpec;
 } {
   const t = ruleTraits(message);
   const parts: string[] = [];
@@ -114,6 +118,7 @@ function fallbackLifeText(message: string): {
     name: '小灵',
     color,
     shape,
+    spec: ruleSpec(draft),
   };
 }
 
