@@ -6,6 +6,7 @@
 import fs from 'fs';
 import path from 'path';
 import type { WorldControl, WorldLives, WorldState, WorldStatus } from './engine';
+import type { LifeSpec } from './spec';
 
 const DATA_DIR = path.resolve(process.cwd(), 'data', 'world');
 const CONTROL_FILE = path.join(DATA_DIR, 'world-control.json');
@@ -98,6 +99,7 @@ export function upsertLife(
     version: number;
     text?: string;
     shape?: string;
+    spec?: LifeSpec;
     social: number;
     helpful: number;
     cautious: number;
@@ -110,6 +112,7 @@ export function upsertLife(
     version: input.version,
     text: input.text || '',
     shape: input.shape || undefined,
+    spec: input.spec || undefined,
     social: input.social,
     helpful: input.helpful,
     cautious: input.cautious,

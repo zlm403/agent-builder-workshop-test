@@ -4,7 +4,10 @@
 // 惰性推进：由调用方按墙钟时间差调用 advance() 补算 tick。
 // 设计目标：30 分钟课堂里稳定、看得懂——生命会靠近/帮助/回避/找资源，
 //           关系值真实累积并影响下一次靠近与帮助。
+// 表现：tick 抛结构化事件 {lifeId,targetId,type}，大屏执行器读 spec 播放。
 // =========================================================
+
+import type { LifeSpec } from './spec';
 
 // ---------- 数据定义 ----------
 
@@ -21,6 +24,7 @@ export interface LifeVersion {
   version: number;
   text?: string; // 学生用文字描述的生命定义（"它喜欢……"）
   shape?: string; // AI 生成的 SVG 图形（前端渲染，只限大小不定义形状）
+  spec?: LifeSpec; // 表现规格（学员专属，大屏执行器读取）
   social: number; // 0..1 亲近倾向
   helpful: number; // 0..1 帮助倾向
   cautious: number; // 0..1 谨慎倾向
@@ -44,6 +48,7 @@ export interface StateLife {
   name: string;
   color: string;
   shape?: string; // AI 生成的 SVG 图形（大屏渲染用）
+  spec?: LifeSpec; // 表现规格（大屏执行器读取，随最新提交版本同步）
   x: number;
   y: number;
   energy: number;
@@ -67,6 +72,8 @@ export interface KeyEvent {
   t: number;
   text: string;
   lifeId?: string; // 事件发生在哪个生命（大屏据此生成光点）
+  targetId?: string; // 事件的另一个生命（相遇/帮助/受击对象）
+  type?: 'enter' | 'meet' | 'help' | 'resource' | 'hit' | 'sleep' | 'wake' | 'grow' | 'death'; // 结构化事件类型（大屏执行器读 spec 播放）
 }
 
 export interface WorldState {
@@ -167,6 +174,17 @@ function addRel(a: StateLife, b: StateLife, delta: number): void {
   b.relations[a.id] = clamp(relWith(b, a.id) + delta, 0, 100);
 }
 
+// 结构化事件发射器：非每 tick 刷屏（相邻同类事件间隔 >= minGapTicks 才发）
+const lastEmit: Record<string, number> = {};
+
+function emitEvent(state: WorldState, ev: KeyEvent, minGapTicks = 10): void {
+  const key = `${ev.lifeId}:${ev.targetId ?? ''}:${ev.type ?? ev.text}`;
+  const last = lastEmit[key] ?? -Infinity;
+  if (state.simulationTime - last < minGapTicks) return;
+  lastEmit[key] = state.simulationTime;
+  state.keyEvents.push(ev);
+}
+
 // ---------- 世界初始化 ----------
 
 function latestSubmitted(rec: LifeRecord, round: number): LifeVersion {
@@ -201,6 +219,7 @@ export function createInitialState(
       social: v.social,
       helpful: v.helpful,
       cautious: v.cautious,
+      spec: v.spec,
     };
   });
 
@@ -237,6 +256,7 @@ export function syncLivesIntoWorld(state: WorldState, lives: LifeRecord[], confi
         name: rec.name,
         color: rec.color,
         shape: v.shape,
+        spec: v.spec,
         x: p.x,
         y: p.y,
         energy: ENERGY_START,
@@ -249,11 +269,12 @@ export function syncLivesIntoWorld(state: WorldState, lives: LifeRecord[], confi
         helpful: v.helpful,
         cautious: v.cautious,
       });
-      state.keyEvents.push({ t: state.simulationTime, text: `${rec.name} 进入了世界`, lifeId: rec.id });
+      state.keyEvents.push({ t: state.simulationTime, text: `${rec.name} 进入了世界`, lifeId: rec.id, type: 'enter' });
     } else {
       ex.name = rec.name;
       ex.color = rec.color;
       ex.shape = v.shape;
+      ex.spec = v.spec;
       ex.social = v.social;
       ex.helpful = v.helpful;
       ex.cautious = v.cautious;
@@ -286,6 +307,7 @@ function tick(state: WorldState, config: EngineConfig, rng: Rng): void {
       const b = activeLives[j];
       if (distance(a, b) < SENSE_RADIUS) {
         addRel(a, b, REL_ENCOUNTER_GAIN);
+        emitEvent(state, { t: state.simulationTime, text: `${a.name} 遇到了 ${b.name}`, lifeId: a.id, targetId: b.id, type: 'meet' });
       }
     }
   }
@@ -298,7 +320,7 @@ function tick(state: WorldState, config: EngineConfig, rng: Rng): void {
         life.state = 'active';
         life.action = 'wander';
         life.reason = '恢复了能量，重新活动';
-        state.keyEvents.push({ t: state.simulationTime, text: `${life.name} 苏醒了`, lifeId: life.id });
+        emitEvent(state, { t: state.simulationTime, text: `${life.name} 苏醒了`, lifeId: life.id, type: 'wake' });
       } else {
         life.action = 'sleeping';
         life.reason = '能量耗尽，正在休眠恢复';
@@ -312,7 +334,7 @@ function tick(state: WorldState, config: EngineConfig, rng: Rng): void {
       life.state = 'sleeping';
       life.action = 'sleeping';
       life.reason = '能量耗尽，进入休眠';
-      state.keyEvents.push({ t: state.simulationTime, text: `${life.name} 能量耗尽，休眠了`, lifeId: life.id });
+      emitEvent(state, { t: state.simulationTime, text: `${life.name} 能量耗尽，休眠了`, lifeId: life.id, type: 'sleep' });
       continue;
     }
 
@@ -333,6 +355,7 @@ function tick(state: WorldState, config: EngineConfig, rng: Rng): void {
           life.energy = clamp(life.energy + ENERGY_RESOURCE_GAIN, 0, ENERGY_START);
           life.action = 'find_resource';
           life.reason = '能量偏低，找到资源并补充了能量';
+          emitEvent(state, { t: state.simulationTime, text: `${life.name} 找到了资源`, lifeId: life.id, type: 'resource' }, 30);
           continue;
         }
         moveToward(life, bestRes.x, bestRes.y, MAX_SPEED);
@@ -361,7 +384,7 @@ function tick(state: WorldState, config: EngineConfig, rng: Rng): void {
         addRel(life, helpTarget, REL_HELP_GAIN);
         life.action = 'help';
         life.reason = `${helpTarget.name} 能量不足，选择了帮助`;
-        state.keyEvents.push({ t: state.simulationTime, text: `${life.name} 帮助了 ${helpTarget.name}`, lifeId: life.id });
+        emitEvent(state, { t: state.simulationTime, text: `${life.name} 帮助了 ${helpTarget.name}`, lifeId: life.id, targetId: helpTarget.id, type: 'help' }, 30);
         continue;
       }
       // 有意帮助但没到距离：朝它靠近

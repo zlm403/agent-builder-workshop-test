@@ -16,6 +16,7 @@ function publicLife(l: WorldState['lives'][number]) {
     name: l.name,
     color: l.color,
     shape: l.shape,
+    spec: l.spec,
     x: l.x,
     y: l.y,
     energy: l.energy,

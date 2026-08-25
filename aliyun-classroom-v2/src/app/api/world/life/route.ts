@@ -2,9 +2,11 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { upsertLife, readControl } from '@/lib/world/store';
 import { textToTraits } from '@/lib/world/traits';
+import { normalizeSpec, ruleSpec } from '@/lib/world/spec';
 
 // 学生提交生命：用一段文字描述生命定义，后端翻译成三个内部倾向值。
-// V1 按文字驱动：学生写"它喜欢……"，AI/规则转成引擎能用的数值。
+// V2 同时接收"表现规格" spec：学生端六块 extract 合并后的数据；
+// 未提供 spec 时按文字规则回退生成默认规格（AI 失败也能进世界）。
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
   const sid = String(body.anonymousId || '');
@@ -14,6 +16,8 @@ export async function POST(req: NextRequest) {
   // 文字是生命定义的唯一输入；留空时用默认中性倾向
   const text = String(body.text || '').trim();
   const shape = body.shape ? String(body.shape) : undefined;
+  // 表现规格：学生端已合并的完整规格；缺失时按文字规则回退
+  const spec = body.spec && typeof body.spec === 'object' ? normalizeSpec(body.spec) : (text ? ruleSpec(text) : undefined);
 
   if (!sid || !name) {
     return NextResponse.json({ error: { code: 'BAD_REQUEST', message: 'anonymousId and name required' } }, { status: 400 });
@@ -30,6 +34,7 @@ export async function POST(req: NextRequest) {
     version,
     text: text || '',
     shape,
+    spec,
     social: traits.social,
     helpful: traits.helpful,
     cautious: traits.cautious,
