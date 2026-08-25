@@ -1,0 +1,2116 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<title>共生缸 · 创造道场</title>
+<style>
+  :root{ --bg:#06080f; --panel:#0c1020cc; --line:#1c2440; --txt:#dfe6ff; --dim:#8a93b8; --gold:#ffcf5b; }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; height:100%; background:var(--bg); color:var(--txt);
+    font-family:system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif; overflow:hidden; }
+  #app{ display:flex; height:100vh; width:100vw; }
+  #stage{ position:relative; flex:1; min-width:0; }
+  #tank{ display:block; width:100%; height:100%; background:radial-gradient(120% 120% at 30% 20%, #0a0f1f 0%, #05070e 70%); }
+  #topbar{ position:absolute; top:12px; left:12px; right:12px; display:flex; gap:10px; align-items:center;
+    pointer-events:none; flex-wrap:wrap; }
+  #topbar > *{ pointer-events:auto; }
+  .pill{ background:var(--panel); border:1px solid var(--line); border-radius:999px; padding:6px 12px;
+    font-size:12px; color:var(--dim); backdrop-filter:blur(6px); }
+  .pill b{ color:var(--txt); }
+  .btn{ background:var(--panel); border:1px solid var(--line); color:var(--txt); border-radius:999px;
+    padding:7px 14px; font-size:13px; cursor:pointer; backdrop-filter:blur(6px); }
+  .btn:hover{ border-color:var(--gold); color:var(--gold); }
+  .btn.primary{ background:linear-gradient(180deg,#ffd96b,#f0a93a); color:#1a1205; border:none; font-weight:700; }
+  .slider{ display:flex; align-items:center; gap:6px; font-size:12px; color:var(--dim); }
+  #toast{ position:absolute; bottom:18px; left:50%; transform:translateX(-50%); background:#11182e;
+    border:1px solid var(--gold); color:var(--gold); padding:8px 16px; border-radius:10px; font-size:13px;
+    opacity:0; transition:opacity .25s; pointer-events:none; z-index:5; }
+  #tooltip{ position:fixed; pointer-events:none; background:#0b1022ee; border:1px solid var(--line);
+    border-radius:8px; padding:6px 9px; font-size:12px; color:var(--txt); display:none; z-index:9; max-width:220px; }
+  #tip-name{ color:var(--gold); font-weight:600; }
+  #tip-sub{ color:var(--dim); }
+
+  #panel{ width:360px; flex:none; background:linear-gradient(180deg,#0a0e1c,#070a14);
+    border-left:1px solid var(--line); display:flex; flex-direction:column; }
+  .sec{ padding:14px 16px; border-bottom:1px solid var(--line); }
+  .sec h3{ margin:0 0 10px; font-size:13px; letter-spacing:.04em; color:var(--gold); }
+  textarea{ width:100%; height:62px; resize:none; background:#070b16; color:var(--txt);
+    border:1px solid var(--line); border-radius:10px; padding:9px 10px; font-size:13px; line-height:1.5; }
+  textarea:focus{ outline:none; border-color:var(--gold); }
+  .row{ display:flex; gap:8px; margin-top:9px; }
+  .chips{ display:flex; flex-wrap:wrap; gap:6px; margin-top:9px; }
+  .chip{ font-size:11px; color:var(--dim); border:1px dashed var(--line); border-radius:999px;
+    padding:4px 9px; cursor:pointer; }
+  .chip:hover{ color:var(--gold); border-color:var(--gold); }
+  .list{ overflow:auto; }
+  #creations .item, #traces .item{ background:#070b16; border:1px solid var(--line); border-radius:9px;
+    padding:8px 10px; margin-bottom:8px; font-size:12px; }
+  #creations .item .t{ color:var(--gold); font-weight:600; }
+  #creations .item .d{ color:var(--dim); margin-top:3px; line-height:1.45; }
+  #creations .item .s{ color:#7be08a; font-size:11px; margin-top:4px; }
+  #creations .item .warn{ color:#ff9b6b; font-size:11px; margin-top:4px; }
+  #traces .item .ts{ color:var(--dim); font-size:10px; }
+  #traces .item .msg{ margin-top:2px; line-height:1.45; }
+  .scroll{ flex:1; overflow:auto; }
+  .empty{ color:var(--dim); font-size:12px; padding:4px 2px; }
+  .legend{ display:flex; flex-wrap:wrap; gap:10px; font-size:11px; color:var(--dim); }
+  .dot{ display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:4px; vertical-align:middle; }
+
+  /* 窄屏：纵向堆叠，确保鱼缸不被面板遮挡、可操作 */
+  @media (max-width: 760px){
+    #app{ flex-direction:column; }
+    #stage{ flex:1 1 55%; min-height:0; }
+    #panel{ width:100%; flex:1 1 45%; border-left:none; border-top:1px solid var(--line); }
+    .sec{ padding:10px 12px; }
+    textarea{ height:48px; }
+  }
+</style>
+<style>
+#mk-name,#mk-emo{ background:#0c1224; color:#dfe6ff; border:1px solid #243049; border-radius:8px; padding:5px 8px; }
+#makeSec label{ display:inline-block; width:34px; color:#8a93b8; font-size:11px; }
+#makeSec input[type=range]{ flex:1; }
+#mk-tags .chip.active{ background:#5b8cff; color:#fff; border-color:#5b8cff; }
+.tbar{ display:inline-flex; gap:6px; align-items:center; padding-left:10px; border-left:1px solid var(--line); }
+.t-btn{ padding:5px 10px; font-size:12px; }
+.t-btn.warn{ color:#ff8a8a; border-color:#ff8a8a; }
+.t-btn:hover{ color:var(--gold); border-color:var(--gold); }
+.hint{ margin-top:10px; font-size:11px; color:var(--dim); line-height:1.5; }
+.item{ background:#070b16; border:1px solid var(--line); border-radius:9px; padding:8px 10px; margin-bottom:8px; font-size:12px; }
+.item .dot{ margin-right:6px; }
+.item .nm{ color:var(--gold); font-weight:600; }
+.item .sub{ color:var(--dim); margin-left:8px; font-size:11px; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="stage">
+    <canvas id="tank"></canvas>
+    <div id="topbar">
+      <span class="pill">课堂码 <b>SYM-207</b></span>
+      <span class="pill">在线 <b id="h-online">12</b></span>
+      <span class="pill">生命 <b id="h-life">0</b></span>
+      <span class="pill">资源 <b id="h-res">0</b></span>
+      <span class="pill">事件 <b id="h-evt">0</b></span>
+      <span class="pill">创造 <b id="h-cre">0</b></span>
+      <span class="pill">物体 <b id="h-obj">0</b></span>
+      <span class="slider">事件密度 <input id="density" type="range" min="0.3" max="3" step="0.1" value="1" /></span>
+      <button class="btn" id="pauseBtn">暂停</button>
+      <button class="btn" id="refillBtn">重新充满</button>
+      <span class="tbar" title="老师端 · 释放 / 收回">
+        <button class="btn t-btn" id="relBtn">释放 1</button>
+        <button class="btn t-btn" id="relBtn2">释放多个</button>
+        <button class="btn t-btn warn" id="recallBtn">收回全部</button>
+      </span>
+    </div>
+    <div id="toast"></div>
+    <div id="tooltip"><div id="tip-name"></div><div id="tip-sub"></div></div>
+  </div>
+
+  <aside id="  panel">
+    <div class="sec">
+      <h3>生命名单 · 谁在世界里</h3>
+      <div id="roster" class="list"><div class="empty">还没有生命。老师释放或学生进入后，这里会列出名字。</div></div>
+    </div>
+    <div class="sec">
+      <h3>当前潮流 · 浪潮</h3>
+      <div id="trends" class="list"><div class="empty">暂无浪潮。</div></div>
+    </div>
+    <div class="sec scroll">
+      <h3>世界痕迹 · WorldTrace</h3>
+      <div id="traces" class="list"><div class="empty">世界还安静着。</div></div>
+    </div>
+    <div class="sec">
+      <div class="legend">
+        <span><i class="dot" style="background:#5b8cff"></i>生命体</span>
+        <span><i class="dot" style="background:#39d0c8"></i>资源</span>
+        <span><i class="dot" style="background:#ffcf5b"></i>稀有资源</span>
+        <span><i class="dot" style="background:#ff4d4d"></i>倒霉事件</span>
+        <span><i class="dot" style="background:#9fb0c8"></i>基础事件</span>
+        <span><i class="dot" style="background:#3a7bff"></i>浪潮/专属事件</span>
+        <span><i class="dot" style="background:#ffcf5b"></i>创造物</span>
+      </div>
+      <div class="hint">老师在顶栏释放/收回演示生命；学员在手机创作端进入自己的生命。</div>
+    </div>
+  </aside>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* ============================ 基础工具 ============================ */
+const cv = document.getElementById('tank');
+const ctx = cv.getContext('2d');
+let W = 0, H = 0, DPR = 1;
+function resize(){
+  DPR = Math.min(window.devicePixelRatio || 1, 2);
+  W = cv.clientWidth; H = cv.clientHeight;
+  // 兜底：画布尚未布局（刷新/隐藏标签/窄屏）时退回到窗口尺寸
+  if (W < 2){ const pw = (document.getElementById('panel') || {}).offsetWidth || 360; W = Math.max(2, window.innerWidth - pw); }
+  if (H < 2){ H = Math.max(2, window.innerHeight); }
+  cv.width = Math.max(1, W * DPR); cv.height = Math.max(1, H * DPR);
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+}
+window.addEventListener('resize', resize);
+
+const rand = (a,b)=> a + Math.random()*(b-a);
+const pick = a => a[Math.floor(Math.random()*a.length)];
+const clamp = (v,a,b)=> Math.max(a, Math.min(b, v));
+function parseColor(s){
+  if (s && s[0] === '#'){ const h = s.slice(1); return [parseInt(h.slice(0,2),16), parseInt(h.slice(2,4),16), parseInt(h.slice(4,6),16)]; }
+  const m = (s || '').match(/\d+/g); return m ? [+m[0], +m[1], +m[2]] : [255,255,255];
+}
+function blend(h1, h2, t){
+  const a = parseColor(h1), b = parseColor(h2), c = a.map((v,i)=> Math.round(v + (b[i]-v)*t));
+  return `rgb(${c[0]},${c[1]},${c[2]})`;
+}
+function hexA(c, a){ const p = parseColor(c); return `rgba(${p[0]},${p[1]},${p[2]},${a})`; }
+const dist = (p,q)=> Math.hypot(p.x - q.x, p.y - q.y);
+const now = ()=> performance.now();
+let _uid = 0;
+const uid = ()=> 'u' + (++_uid).toString(36) + Math.floor(Math.random()*1e4).toString(36);
+
+/* ============================ 世界状态 ============================ */
+const world = {
+  lives: [], resources: [], events: [], creations: [], targets: [], objects: [],
+  traces: [], recognitions: [], floats: [], waves: [], fx: []   // fx：行为粒子流（太阳风/火焰）有界池
+};
+// 固定属性池：保证“一方面强，另一方面必弱”的公平约束（固定7项总和恒为 TOTAL_ATTR）
+// 创造者/生命体还可在 def.custom 里定义附加特质（如 calm/wonder/tenacity 等），
+// 这些自定义维度不参与固定公平池，仅作角色个性补充，可被反应/规则读取。
+const ATTR_KEYS = ['brave','power','agility','perception','caution','social','luck'];
+const TOTAL_ATTR = 100;
+world.climate = { era:'neutral', color:null }; // 气候/底色（浪潮系统接入后生效）
+world.tempo = 1; world.tempoTarget = 1;        // 世界节奏：快慢（浪潮会临时改变）
+let paused = false;
+let eventDensity = 1;
+let brightness = 1;        // 大屏整体亮度（教师端 postMessage 控制）
+
+/* ============================ 实体工厂 ============================ */
+function base(x,y,vx,vy,r,color){
+  return { x, y, vx, vy, r, color, trail:[], born: now(), blowUntil: 0 };
+}
+
+const LIFE_DEFS = [
+  { name:'小蓝', tags:['cautious'],          color:'#5b8cff',
+    attrs:{ brave:3, power:5, agility:16, perception:22, caution:34, social:7, luck:13 }, custom:{ calm:20 } },
+  { name:'小红', tags:['curious'],           color:'#ffd25b',
+    attrs:{ brave:13, power:3, agility:14, perception:34, caution:3, social:18, luck:15 }, custom:{ wonder:24 } },
+  { name:'小绿', tags:['stubborn'],          color:'#7be08a',
+    attrs:{ brave:20, power:34, agility:13, perception:13, caution:3, social:4, luck:13 }, custom:{ tenacity:28 } },
+  { name:'小黄', tags:['social'],            color:'#ffc24b',
+    attrs:{ brave:6, power:3, agility:14, perception:17, caution:13, social:34, luck:13 }, custom:{ warmth:26 } },
+  { name:'小紫', tags:['cautious','social'], color:'#b06bff',
+    attrs:{ brave:3, power:3, agility:14, perception:17, caution:25, social:25, luck:13 }, custom:{ guard:22 } },
+  { name:'小青', tags:['curious','social'],  color:'#5be0d0',
+    attrs:{ brave:12, power:3, agility:14, perception:31, caution:3, social:24, luck:13 }, custom:{ spark:25 } },
+];
+function hexToHue(hex){
+  const m = (hex||'#ffffff').replace('#','');
+  const r = parseInt(m.substr(0,2),16)/255, g = parseInt(m.substr(2,2),16)/255, b = parseInt(m.substr(4,2),16)/255;
+  const max = Math.max(r,g,b), min = Math.min(r,g,b), d = max-min; let h = 0;
+  if (d){ if (max===r) h = ((g-b)/d)%6; else if (max===g) h = (b-r)/d+2; else h = (r-g)/d+4; h *= 60; if (h<0) h += 360; }
+  return h;
+}
+
+function makeLife(def){
+  const x = rand(60, W-60), y = rand(60, H-60), a = rand(0, Math.PI*2), s = rand(.4, 1), R = rand(9,13);
+  // 固定7项必须满足公平约束（总和=TOTAL_ATTR）；自定义特质(def.custom)附加其上，不参与公平池
+  const fixed = Object.assign({}, def.attrs);
+  const sum = ATTR_KEYS.reduce((s,k)=> s + (fixed[k]||0), 0);
+  if (sum !== TOTAL_ATTR) console.warn(`[共生缸] ${def.name} 固定属性总和=${sum}，应为 ${TOTAL_ATTR}，不公平`);
+  return Object.assign(base(x,y, Math.cos(a)*s, Math.sin(a)*s, R, def.color), {
+    type:'life', id:'life_'+uid(), name:def.name, tags:def.tags,
+    attrs: Object.assign(fixed, def.custom || {}),
+    energy:100, state:'wandering', currentInterest:null, memories:[], relationships:[],
+    reactUntil:0, lastCol:{}, hitCount:0, sense:150,
+    flash:0, flashColor:'#fff', pulse:0, alert:0, tint:null, tintAmt:0,
+    waveAlert:0, waveAlertColor:null, waveThreat:null, waveFront:null, lastWaveReact:0,
+    hue: hexToHue(def.color),
+    rot: Math.random()*Math.PI*2, rotSpeed:(Math.random()-.5)*0.004, scale:1,
+    // 粒子团：照搬“正式课鱼缸”的做法——生命体是一团小粒子，绕中心按角度/半径分布
+    particles: (()=>{ const n = Math.round(45 + (def.attrs.power||0)*1.3), arr = [];
+      for (let i=0;i<n;i++){ const pa = Math.random()*Math.PI*2, pr = R*1.4 + Math.random()*R*4;
+        arr.push({ a:pa, r:pr, x:x+Math.cos(pa)*pr, y:y+Math.sin(pa)*pr, vx:0, vy:0 }); }
+      return arr; })(),
+    // 行为状态（全部用“成串流动粒子”显形，绝不单粒子微调）
+    level:1, exp:0, belly:0, evoT:0,
+    emotion:'idle', emoUntil:0, fxT:0, dead:false, deathT:0, _spring:0, emoPref:'dance',
+    // 新范式：自由维度（学生自定义命名，总和 100）→ 评分账本；skill=6 个技能定义（学生可覆盖共生缸默认）
+    dims: def.dims || Object.assign({}, fixed),
+    skill: def.skill || null,
+    creator: def.creator || '缸',          // '缸'=共生缸演示生命；否则学员名/学员编码
+    studentId: def.studentId || null,
+    bornAt: now()
+  });
+}
+
+/* ============================ 评分经济：降分 + 模糊兜底 ============================ */
+// 世界只对生命产生“分数层面”影响；扣哪些维度、表现成啥由学生 skill.反应 定义，
+// 没写清就走模糊兜底：优先扣指定维度，其余从最大维度分摊，凑满 N。
+function lifeScore(l){
+  let s = 0; for (const k in (l.dims||{})) s += (l.dims[k]||0); return s;
+}
+function applyScoreDrop(l, n){
+  const dims = l.dims || (l.dims = {});
+  const keys = Object.keys(dims);
+  if (!keys.length){ l.energy = Math.max(0, Math.min(100, (l.energy||100) - n)); return; }
+  const react = (l.skill && l.skill.反应) ? l.skill.反应 : null;
+  let left = n;
+  // 1) 学生明确指定优先扣的维度
+  if (react && react.dropDims && react.dropDims.length){
+    for (const k of react.dropDims){
+      if (left <= 0) break;
+      const take = Math.min(left, dims[k] || 0);
+      dims[k] = Math.max(0, (dims[k]||0) - take);
+      left -= take;
+    }
+  }
+  // 2) 模糊兜底：从当前最大维度依次扣（就近/分摊），凑满 n
+  while (left > 0.01){
+    let mk = null, mv = -1;
+    for (const k of keys){ const v = dims[k]||0; if (v > mv){ mv = v; mk = k; } }
+    if (mk == null || mv <= 0) break;
+    const take = Math.min(left, mv);
+    dims[mk] = Math.max(0, dims[mk] - take);
+    left -= take;
+  }
+  l.energy = lifeScore(l);
+}
+
+const RES_DEFS = [
+  { name:'空闲时间', tags:['time'] },
+  { name:'公共空地', tags:['space'] },
+  { name:'闲置技能', tags:['skill'] },
+  { name:'旧物库存', tags:['material'] },
+  { name:'善意余量', tags:['kindness'] },
+];
+function makeResource(def){
+  const x = rand(50, W-50), y = rand(50, H-50), a = rand(0, Math.PI*2), s = rand(.3, .8);
+  return Object.assign(base(x,y, Math.cos(a)*s, Math.sin(a)*s, rand(8,11), pick(['#39d0c8','#7fe0a0','#ffd98a'])), {
+    type:'resource', id:'res_'+uid(), name:def.name, tags:def.tags,
+    amount:100, status:'available', createdAt:now()
+  });
+}
+
+const EVENT_DEFS = [
+  { type:'drifting_object',    name:'漂流物',   color:'#9fb0c8' },
+  { type:'sudden_speed',       name:'骤速',     color:'#ffb347' },
+  { type:'light_change',       name:'光变',     color:'#c9a0ff' },
+  { type:'weather_change',     name:'天气变',   color:'#8ec5ff' },
+  { type:'unexpected_arrival', name:'意外来客', color:'#ff9bd0' },
+  { type:'resource_appeared',  name:'资源浮现', color:'#7fe0a0' },
+];
+function makeEvent(def, opts){
+  opts = opts || {};
+  const bad = !!opts.bad;
+  const x = rand(60, W-60), y = rand(60, H-60), a = rand(0, Math.PI*2);
+  const s = bad ? rand(1.4, 2.4) : rand(0.3, 1.8);          // 速度有快有慢
+  const r = bad ? rand(22, 32) : rand(12, 26);              // 大小有大有小，至少与生命体相当
+  return Object.assign(base(x,y, Math.cos(a)*s, Math.sin(a)*s, r, bad?'#ff4d4d':def.color), {
+    type:'event', id:'evt_'+uid(),
+    eventType: bad ? 'bad_luck' : def.type,
+    name: bad ? '倒霉事件' : def.name,
+    tags: bad ? ['bad','fast'] : (def.tags || []),
+    createdAt: now(),
+    durationMs: bad ? Infinity : rand(8000, 16000),
+    status:'active',
+    radius: r * 0.9                                    // 碰撞范围随显示大小
+  });
+}
+
+/* ============================ 面事件 / 浪潮（不可躲避的“潮水事件”） ============================ */
+// 浪潮是覆盖全缸的世界事实：从某一边整体翻滚扫过，谁都躲不掉，分三轮累积底色。
+// 它改变的是“环境本身”——气候、资源表、点事件形态；生命体只能感知并反应，不能阻止。
+// 浪潮档案：每种浪潮 ⇄ 专属「事件 + 资源 + 世界节奏」。
+// 这就是“什么样的浪潮，对应什么样的事件和资源”：
+//   event     : 浪潮来时一起出现的专属大事件
+//   resNames  : 浪潮扫过后在空间里留下的资源名字池
+//   deposit   : 资源在空间的形态 —— rareChance 稀有度 / count 疏密 / rRange 大小
+//   world     : 世界节奏 —— speed 快慢 / size 大小（让整个世界有快有慢、有大有小）
+const WAVE_DEFS = [
+  { type:'ai_wave',       name:'AI浪潮',     color:'#4b7bec',
+    event:{ name:'算力爆发', color:'#7fa6ff' },
+    resNames:['算力','数据','模型','语料'],
+    deposit:{ count:9, rareChance:0.30, rRange:[8,16] },
+    world:{ speed:1.30, size:1.18 } },
+  { type:'internet_wave', name:'互联网浪潮', color:'#2ecc71',
+    event:{ name:'流量洪峰', color:'#7be8a0' },
+    resNames:['流量','连接','内容','节点'],
+    deposit:{ count:11, rareChance:0.20, rRange:[7,14] },
+    world:{ speed:1.15, size:1.05 } },
+  { type:'reform_wave',   name:'改革浪潮',   color:'#e67e22',
+    event:{ name:'红利释放', color:'#ffb86b' },
+    resNames:['机会','开放','制度','红利'],
+    deposit:{ count:7, rareChance:0.35, rRange:[9,18] },
+    world:{ speed:0.85, size:1.22 } },
+  { type:'creative_wave', name:'创意浪潮',   color:'#b06bff',
+    event:{ name:'灵感迸发', color:'#d3a0ff' },
+    resNames:['灵感','点子','审美','好奇心'],
+    deposit:{ count:8, rareChance:0.45, rRange:[6,15] },
+    world:{ speed:1.05, size:1.00 } },
+  { type:'quiet_wave',    name:'极简浪潮',   color:'#6fcfd8',
+    event:{ name:'静默时刻', color:'#a8eef2' },
+    resNames:['空白','留白','专注','呼吸'],
+    deposit:{ count:5, rareChance:0.15, rRange:[5,11] },
+    world:{ speed:0.70, size:0.90 } },
+];
+function makeWave(def){
+  const dir = pick(['L','R','T','B']);
+  const span = (dir==='L'||dir==='R') ? W : H;
+  const baseSpeed = pick([0.0028, 0.004, 0.0055]);
+  // 估算整波（三轮）总时长，用来把“疏密”翻译成播种间隔
+  const totalMs = (1 / (baseSpeed * 0.4)) * 16.67 * 3;
+  return {
+    type:'wave', id:'wave_'+uid(), waveType:def.type, name:def.name, color:def.color,
+    eraRes:def.resNames, def, dir, progress:0, pass:1, maxPass:3,
+    speed: baseSpeed,                                 // 基础速度（update 里整体降为 10%）
+    touched:{}, status:'sweeping', startedAt:now(), settleAt:0,
+    wallThick: span * rand(0.10, 0.14),               // 基础波带宽度（按轮次再放大）
+    curThick: 0,
+    lastSeed: now(), seedGap: Math.max(900, totalMs / (def.deposit.count * def.world.speed)),
+    seeded: 0, totalDeposit: def.deposit.count
+  };
+}
+// 浪潮专属事件：与浪潮一起出现的大事件（大小/颜色由这股浪潮决定）
+function makeWaveEvent(w){
+  const d = w.def.event;
+  const dir = w.dir;
+  const startAt = dir==='L' ? -20 : dir==='R' ? W+20 : (dir==='T' ? -20 : H+20);
+  const vx = dir==='L' ?  rand(.8,1.4) : dir==='R' ? -rand(.8,1.4) : rand(-.4,.4);
+  const vy = dir==='T' ?  rand(.8,1.4) : dir==='B' ? -rand(.8,1.4) : rand(-.4,.4);
+  const x = (dir==='L'||dir==='R') ? startAt : rand(60, W-60);
+  const y = (dir==='T'||dir==='B') ? startAt : rand(60, H-60);
+  const r = rand(26, 38) * w.def.world.size;          // 浪潮事件：又大又显眼
+  return Object.assign(base(x,y, vx, vy, r, d.color), {
+    type:'event', id:'evt_'+uid(), eventType:'wave_event', name:d.name,
+    tags:['wave', w.waveType, 'big'], createdAt:now(),
+    durationMs: rand(14000, 20000), status:'active', radius: r*0.9,
+    waveColor: w.color
+  });
+}
+// 浪潮遗留资源：空间上稀有/疏密/大小各不同
+function makeWaveDeposit(w, x, y, rare){
+  const def = w.def;
+  const a = rand(0, Math.PI*2), s = rand(.25, .7) * def.world.speed;
+  const [rmin, rmax] = def.deposit.rRange;
+  const r = rare ? rand(rmax*0.95, rmax*1.5) : rand(rmin, rmax);
+  const col = rare ? blend(def.color, '#ffcf5b', 0.45) : def.color;
+  return Object.assign(base(x,y, Math.cos(a)*s, Math.sin(a)*s, r, col), {
+    type:'resource', id:'res_'+uid(), name:pick(def.resNames),
+    tags:['era', w.waveType, rare?'rare':'common'],
+    status:'available', trail:[], createdAt:now(),
+    rarity: rare ? 'rare' : 'common', sizeFactor: def.world.size
+  });
+}
+// 新时代专属资源：气候切换后，世界能长出与时代相关的资源
+function makeEraResource(w){
+  const x = rand(50, W-50), y = rand(50, H-50), a = rand(0, Math.PI*2), s = rand(.3, .8);
+  return Object.assign(base(x,y, Math.cos(a)*s, Math.sin(a)*s, rand(9,12), w.color), {
+    type:'resource', id:'res_'+uid(), name:pick(w.eraRes), tags:['era', w.waveType],
+    status:'available', trail:[], createdAt:now()
+  });
+}
+// 推进所有浪潮：扫掠、伴随专属事件、遗留资源、不可躲避触碰、三轮累积、气候切换
+function updateWaves(dt, t){
+  // 自动触发：缸内无进行中浪潮且冷却结束后，来一波新浪潮（⇄ 专属事件 + 资源）
+  if (!world.waves.some(w => w.status !== 'done')){
+    if (!updateWaves._next || t > updateWaves._next){
+      const def = pick(WAVE_DEFS);
+      const sameAsLast = def.type === (updateWaves._lastType || null);
+      const w = makeWave(def);
+      world.waves.push(w);
+      // 浪潮来 ⇄ 伴随一个专属大事件（事件被这股浪潮决定）
+      world.events.push(makeWaveEvent(w));
+      // 世界节奏随浪潮切换：有的快、有的慢（整个世界有快有慢）
+      world.tempoTarget = def.world.speed;
+      // 间隔拉长；同一种类型/颜色间隔再加长，给生命体准备时间
+      updateWaves._next = t + (sameAsLast ? rand(60000, 90000) : rand(40000, 65000));
+      updateWaves._lastType = def.type;
+    }
+  } else {
+    world.tempoTarget = 1;   // 没有浪潮时，世界节奏缓缓回到平常
+  }
+  for (const w of world.waves){
+    if (w.status === 'done'){ if (t > w.settleAt + 4000) w._remove = true; continue; }
+    w.progress += w.speed * dt * 0.4;               // 速度降为原来的 10%，慢到能看清
+    // 第一波窄而轻、后续逐轮更宽更重
+    w.curThick = w.wallThick * (0.6 + 0.35 * (w.pass - 1));
+    const cover = (ent)=>{
+      if (w.dir==='L'||w.dir==='R'){ const x = w.progress*W; return Math.abs(ent.x - x) < w.curThick; }
+      const y = w.progress*H; return Math.abs(ent.y - y) < w.curThick;
+    };
+    const tintAmt = 0.12 + 0.06 * (w.pass - 1);      // 轮次越后染色越重
+    for (const l of world.lives){
+      if (cover(l) && !w.touched[l.id+':'+w.pass]){  // 每一轮只染一次，三轮累积更深
+        w.touched[l.id+':'+w.pass] = true;
+        reactTo(l, { kind:'wave', source:w, color:w.color, name:w.name, amt:tintAmt }); // 统一反应+随轮加重
+      }
+    }
+    // 浪潮前沿播撒遗留资源：有稀有、有疏密、有大小，留在空间里
+    if (w.seeded < w.totalDeposit && t - w.lastSeed > w.seedGap){
+      w.lastSeed = t; w.seeded++;
+      const rare = Math.random() < w.def.deposit.rareChance;
+      const front = (w.dir==='L'||w.dir==='R') ? w.progress*W : w.progress*H;
+      let x, y;
+      if (w.dir==='L'||w.dir==='R'){ x = front; y = rand(40, H-40); }
+      else { x = rand(40, W-40); y = front; }
+      world.resources.push(makeWaveDeposit(w, x, y, rare));
+    }
+    if (w.progress >= 1){
+      w.pass += 1; w.progress = 0;
+      if (w.pass > w.maxPass){
+        // 三轮扫完 → 世界真实切换气候，并重塑资源表（环境本身改变）
+        w.status = 'done'; w.settleAt = t;
+        world.climate = { era:w.waveType, color:w.color, eraRes:w.eraRes };
+        addTrace({ type:'era_shift', waveType:w.waveType,
+          description:`《${w.name}》三轮扫过，世界进入${w.name}时代，底色转为${w.color}` });
+        floatText(W/2, H/2, `${w.name}时代来临`, w.color);
+        for (let i=0;i<w.eraRes.length;i++) world.resources.push(makeEraResource(w));
+      }
+    }
+  }
+  world.waves = world.waves.filter(w => !w._remove);
+}
+
+function makeTarget(color, label){
+  const x = rand(80, W-80), y = rand(80, H-80), a = rand(0, Math.PI*2);
+  return Object.assign(base(x,y, Math.cos(a)*.25, Math.sin(a)*.25, rand(12,15), color), {
+    type:'target', id:'tgt_'+uid(), name:label, rainbow:false
+  });
+}
+function makeCreation(d){
+  const x = rand(80, W-80), y = rand(80, H-80), a = rand(0, Math.PI*2), s = rand(.3, .7);
+  return Object.assign(base(x,y, Math.cos(a)*s, Math.sin(a)*s, rand(12,16), '#ffcf5b'), {
+    type:'creation', id: d.id || ('cre_'+uid()), creatorId: d.creatorId || 'student',
+    title: d.title, name: d.title, originalDescription: d.originalDescription,
+    rules: d.rules || [], targetId: d.targetId || null, version:1, status:'active',
+    createdAt: now(),
+    seenBy:{}, triggered:{}, repeatActors:{}, part:{}, seen:{}, near:{},
+    remixOf:null, unsupported:[], fallback:false, connectTo:null
+  });
+}
+
+/* ============================ 反馈基元 ============================ */
+function floatText(x,y,text,color){
+  world.floats.push({ x, y, text, color: color || '#fff', ttl: now() + 2600 });
+}
+function addTrace(t){
+  const rec = Object.assign({ id:'tr_'+uid(), timestamp: Date.now() }, t);
+  world.traces.unshift(rec);
+  if (world.traces.length > 200) world.traces.pop();
+  renderTraces();
+  scheduleSave();
+}
+function addRecognition(c){
+  const rec = Object.assign({ id:'rc_'+uid(), timestamp: Date.now() }, c);
+  world.recognitions.unshift(rec);
+  if (world.recognitions.length > 200) world.recognitions.pop();
+  scheduleSave();
+}
+function allEntities(){
+  return [].concat(world.lives, world.resources, world.events, world.creations, world.targets, world.objects);
+}
+function findById(id){
+  return allEntities().find(e => e.id === id) || null;
+}
+
+/* ============================ 运动 / 反弹 / 拖尾 ============================ */
+function step(e, dt){
+  const boost = now() < e.blowUntil ? 2.4 : 1;
+  const tempo = world.tempo || 1;                  // 世界节奏：浪潮会临时让一切变快/变慢
+  e.x += e.vx * dt * boost * tempo;
+  e.y += e.vy * dt * boost * tempo;
+  const pad = e.r + 4;
+  if (e.x < pad){ e.x = pad; e.vx = Math.abs(e.vx); }
+  if (e.x > W-pad){ e.x = W-pad; e.vx = -Math.abs(e.vx); }
+  if (e.y < pad){ e.y = pad; e.vy = Math.abs(e.vy); }
+  if (e.y > H-pad){ e.y = H-pad; e.vy = -Math.abs(e.vy); }
+  e.trail.push({ x:e.x, y:e.y });
+  if (e.trail.length > 14) e.trail.shift();
+}
+
+/* ============================ 碰撞系统（运行时只确认事实） ============================ */
+function collide(ev, life){
+  life.lastCol[ev.id] = now();
+  life.hitCount = (life.hitCount || 0) + 1;
+  floatText(ev.x, ev.y - 16, `${ev.name}撞到了${life.name}`, '#ff6b6b');
+  addTrace({ type:'collision', eventId: ev.id, lifeIds:[life.id],
+    description:`${ev.name}撞到了${life.name}（位置 ${Math.round(ev.x)},${Math.round(ev.y)}）` });
+
+  // 多次碰撞 → 改变活动区域（位置真实变化，由运行事实触发）
+  if (life.hitCount >= 2){
+    life.x = W - life.x; life.y = H - life.y;
+    floatText(life.x, life.y - 18, `${life.name}被多次撞击，转移到新区域`, '#ffb347');
+    addTrace({ type:'life_reacted', lifeIds:[life.id], description:`${life.name}被多次碰撞，改变活动区域` });
+  }
+
+  // 生命体反应（默认由共生缸定义；学生端未来可覆盖）
+  reactTo(life, { kind:'collision', source:ev, color:ev.color });
+
+  // 倒霉事件是真实的世界事实：撞到生命体后，会把附近光斑真实吹开（改变其速度/方向）
+  if (ev.eventType === 'bad_luck') scatter(ev.x, ev.y, ev.radius + 70, 2.4);
+
+  // 通知所有监听 collision 的 Creation 规则
+  for (const c of world.creations)
+    for (const r of c.rules)
+      if (r.condition.type === 'collision' &&
+          (r.condition.targetType === 'life' || r.condition.targetType === ev.eventType))
+        triggerCollisionRule(c, r, ev, life);
+}
+
+/* ============================ 事件影响附近对象（世界运行时事实） ============================ */
+function scatter(x, y, R, speed){
+  let pushed = 0;
+  for (const e of allEntities()){
+    if (e.type === 'event' && e.eventType === 'bad_luck') continue;
+    if (dist(e, { x, y }) < R){
+      const a = Math.atan2(e.y - y, e.x - x) || rand(0, Math.PI*2);
+      e.vx = Math.cos(a) * speed; e.vy = Math.sin(a) * speed;
+      e.blowUntil = now() + 1000;
+      pushed++;
+    }
+  }
+  if (pushed > 0)
+    addTrace({ type:'life_reacted', lifeIds:[], description:`倒霉事件把附近 ${pushed} 个光斑吹开了` });
+}
+
+/* ============================ 生命体反应（两种主体可定义） ============================ */
+/* 1) 共生缸默认反应：当学生端未定义时生效，保证“碰到就有可见反馈” */
+function reactTo(life, stim){
+  // 学生端未来覆盖点：if (typeof life.customReact === 'function'){ life.customReact(stim); return; }
+  applyWorldReaction(life, stim);
+}
+
+function applyWorldReaction(life, stim){
+  const a = life.attrs;
+  life.flash = now() + 600;                       // 受击闪光（可见反馈）
+  life.flashColor = stim.color || '#ff5b6e';
+  life.pulse = Math.max(life.pulse || 0, 0.8);    // 缩放脉冲（可见反馈）
+
+  if (stim.kind === 'collision'){
+    const ev = stim.source;
+    const txt = decidePersonality(life, ev);
+    // 属性取舍：固定池之外，强项天然伴随代价 → 公平（基于 100 点制，系数封底不为负）
+    let dmg = 8;
+    dmg *= (1 + a.brave/100 * 1.5);                 // 越勇敢越可能被吞噬
+    dmg *= Math.max(0.2, 1 - a.caution/100 * 0.6);  // 谨慎减伤（封底，不会变负）
+    dmg *= (1 + a.perception/100 * 0.6);            // 感知敏锐更敏感
+    dmg *= (1 + (Math.random()*2-1)*(a.luck/100));  // 运气波动
+    dmg += a.power * 0.12;                           // 武力高 → 被围攻额外损耗
+    const drop = Math.round(dmg);
+    applyScoreDrop(life, drop);                      // 评分经济：扣维度（模糊兜底），总分随之下降
+    const manifest = (life.skill && life.skill.反应 && life.skill.反应.manifest) || txt;
+    life.state = 'reacting';
+    life.reactUntil = now() + 900;
+    addTrace({ type:'life_reacted', lifeIds:[life.id],
+      description:`${manifest}（降分-${drop}，总分${lifeScore(life).toFixed(0)}）` });
+    floatText(life.x, life.y - 18, manifest, '#ffd25b');
+    setEmotion(life, 'cry', 1200);                 // 倒霉：流动泪滴粒子（铁律：成串，非单粒子）
+    if (world.fx.length < FX_MAX * 0.9)
+      emit(life, 'scatter', { count: 24, hue: life.hue, color:'#ff6b6b' });  // 倒霉炸散飞溅（成束）
+    playSkillPrimitive(life, 'hit');                 // 学生「反应」块：按自定义原语播放动作
+
+  } else if (stim.kind === 'resource'){
+    const r = stim.source;
+    const gain = 8 * Math.max(0.3, 1 - a.caution/100 * 0.6) * (1 + (Math.random()*2-1)*(a.luck/100));
+    life.energy = clamp(life.energy + gain, 0, 100);
+    life.flashColor = r.color || '#7CFFB0';
+    addTrace({ type:'resource_consumed', lifeIds:[life.id],
+      description:`${life.name}吸收了${r.name}（慎${a.caution} → 增益${gain.toFixed(1)}）` });
+    floatText(life.x, life.y - 18, `吸收${r.name}`, '#7CFFB0');
+
+  } else if (stim.kind === 'wave' || stim.kind === 'climate'){
+    // 浪潮/气候触碰：生命体被染上环境底色，并有明显可见反应（闪光+脉冲+随轮加重）
+    const amt = stim.amt || 0.12;
+    life.tint = stim.color; life.tintAmt = clamp((life.tintAmt||0) + amt, 0, 0.7);
+    life.pulse = Math.max(life.pulse || 0, 0.6);
+    life.flash = now() + 400; life.flashColor = stim.color;
+    addTrace({ type:'life_reacted', lifeIds:[life.id],
+      description:`${life.name}感知到${stim.name||'浪潮'}，染上${stim.color}（加深${amt.toFixed(2)}）` });
+    floatText(life.x, life.y - 18, `感知到${stim.name||'浪潮'}`, stim.color);
+    playSkillPrimitive(life, 'wave');                // 学生「潮流」块：随波/逆流/静止
+  }
+}
+
+/* ============================ 学生行为原语播放（学生定义 → 大屏兑现） ============================
+   视觉词表与学生端 BLOCK_SCHEMA_SYS 一致：学生自由组合，大屏逐个播放到他的身体上。
+   全部复用现有能力：setEmotion / emit 粒子 / floatText / _fx 临时缩放·抖动·变暗。 */
+function fxApply(l, f){
+  l._fx = Object.assign({}, l._fx, f, { t: now(), until: now() + (f.dur || 900) });
+}
+const SKILL_ACTIONS = {
+  shrink: (l)=>{ fxApply(l,{scale:0.62, dur:900}); floatText(l.x, l.y-20, '缩成一团', '#9fb0ff'); },
+  jitter: (l)=>{ fxApply(l,{jitter:1, dur:800}); floatText(l.x, l.y-20, '瑟瑟发抖', '#ffb0b0'); },
+  dim:    (l)=>{ fxApply(l,{dim:0.75, dur:1100}); floatText(l.x, l.y-20, '变暗了', '#8a9bb5'); },
+  bubble: (l)=>{ if(world.fx.length<FX_MAX*0.9) emit(l,'emo',{count:8,hue:l.hue,color:'#8fd8ff'}); floatText(l.x, l.y-20, '咕噜咕噜…', '#8fd8ff'); },
+  cry:    (l)=>{ setEmotion(l,'cry',1300); },
+  flash:  (l)=>{ l.flash = now()+450; l.flashColor='#ffffff'; },
+  grow:   (l)=>{ fxApply(l,{scale:1.35, dur:1100}); if(world.fx.length<FX_MAX*0.9) emit(l,'emo',{count:14,hue:l.hue,color:`hsl(${l.hue},90%,72%)`}); floatText(l.x, l.y-20, '慢慢长大', '#7CFFB0'); },
+  devour: (l)=>{ setEmotion(l,'happy',1400); if(world.fx.length<FX_MAX*0.9) emit(l,'emo',{count:10,hue:l.hue}); floatText(l.x, l.y-20, '吃掉它！', '#ffd25b'); },
+  glow:   (l)=>{ l.flash=now()+500; l.flashColor='#fff7c0'; if(world.fx.length<FX_MAX*0.9) emit(l,'coin',{count:10,hue:l.hue}); floatText(l.x, l.y-20, '发光了', '#ffe28a'); },
+  dance:  (l)=>{ setEmotion(l,'dance',1500); },
+  nuzzle: (l, stim)=>{ setEmotion(l,'happy',1200); if(stim && stim.to && world.fx.length<FX_MAX*0.9) emit(l,'share',{to:stim.to,count:6,hue:l.hue}); floatText(l.x, l.y-20, '蹭蹭你', '#ff9ecb'); },
+  spit:   (l, stim)=>{ const a = (stim && stim.to) ? Math.atan2(stim.to.y-l.y, stim.to.x-l.x) : Math.random()*Math.PI*2; if(world.fx.length<FX_MAX*0.9) emit(l,'dart',{count:6,hue:l.hue,angle:a}); floatText(l.x, l.y-20, '吐个小东西', '#b5ff9e'); },
+  orbit:  (l)=>{ l.rotSpeed = (l.rotSpeed||0) + 0.02; floatText(l.x, l.y-20, '绕着转', '#c9b3ff'); },
+  avoid:  (l)=>{ const a = Math.random()*Math.PI*2; l.vx=Math.cos(a)*2.2; l.vy=Math.sin(a)*2.2; floatText(l.x, l.y-20, '躲开', '#ff9e9e'); },
+  follow: (l)=>{ floatText(l.x, l.y-20, '随波而行', '#8fd8ff'); },
+  resist: (l)=>{ floatText(l.x, l.y-20, '逆流而上', '#ffcf5b'); },
+  still:  (l)=>{ l.vx=0; l.vy=0; floatText(l.x, l.y-20, '静静观看', '#b5c4d8'); },
+  fade:   (l)=>{ if(world.fx.length<FX_MAX*0.9) emit(l,'scatter',{count:24,hue:l.hue,color:`hsl(${l.hue},80%,65%)`}); },
+  lightLink: (l, stim)=>{ l.lightLink = { x:(stim && stim.to)?stim.to.x:l.x, y:(stim && stim.to)?stim.to.y:l.y, until: now()+700 }; floatText(l.x, l.y-20, '光带连线', '#fff7c0'); },
+};
+function playSkillPrimitive(life, kind, stim){
+  const s = life.skill; if (!s) return;
+  const BLOCK = { meet:'交流', hit:'反应', resource:'资源', wave:'潮流' };
+  const block = s[BLOCK[kind]];
+  if (!block || !Array.isArray(block.visuals) || !block.visuals.length) return;
+  for (const v of block.visuals){
+    const name = (typeof v==='string') ? v.split('=')[0].trim() : v;
+    if (SKILL_ACTIONS[name]) SKILL_ACTIONS[name](life, stim);
+    else {   // 兜底：AI 自由命名的未知原语也给可见反应（通用闪光 + 原语中文文字）
+      const cn = (typeof v==='string') ? (v.split('=')[1] || name) : name;
+      if (world.fx.length < FX_MAX*0.9) emit(life,'emo',{count:6,hue:life.hue});
+      floatText(life.x, life.y-20, '表现：'+cn, '#9fd8ff');
+    }
+  }
+}
+// 成长/死亡块单独播（长大/飘散）
+function playGrowDeathPrimitive(life, kind){
+  const s = life.skill; if (!s || !s.成长 || !Array.isArray(s.成长.visuals)) return;
+  for (const v of s.成长.visuals){
+    if (kind==='grow' && v==='grow') SKILL_ACTIONS.grow(life);
+    else if (kind==='death' && v==='fade') SKILL_ACTIONS.fade(life);
+  }
+}
+
+/* 2) 个性移动决策：生命体按自身特征选择移动（不改能量/状态，只改速度方向） */
+function decidePersonality(life, ev){
+  const away = Math.atan2(life.y - ev.y, life.x - ev.x);
+  if (life.tags.includes('cautious')){
+    life.vx = Math.cos(away)*2.0; life.vy = Math.sin(away)*2.0; life.blowUntil = now() + 1200;
+    return `${life.name}受惊，快速逃开`;
+  } else if (life.tags.includes('curious')){
+    life.vx *= 0.1; life.vy *= 0.1;
+    return `${life.name}停下观察`;
+  } else if (life.tags.includes('social')){
+    const other = world.lives.find(l => l !== life && dist(l, life) < 220);
+    if (other){
+      life.relationships.push({ with: other.id, at: Date.now() });
+      addRecognition({ creationId:'', actorId: life.id, type:'invited', relatedCreationId: other.id });
+      return `${life.name}邀请${other.name}一起`;
+    }
+    life.vx = Math.cos(away)*1.4; life.vy = Math.sin(away)*1.4;
+    return `${life.name}寻找伙伴`;
+  } else if (life.tags.includes('stubborn')){
+    const a = rand(0, Math.PI*2); life.vx = Math.cos(a); life.vy = Math.sin(a);
+    return `${life.name}短暂停顿后继续原路`;
+  }
+  const a = rand(0, Math.PI*2); life.vx = Math.cos(a)*1.2; life.vy = Math.sin(a)*1.2;
+  return `${life.name}改变方向`;
+}
+
+/* ============================ 感知层（生命体“看见”事件/气候） ============================ */
+function perceive(life){
+  const sense = life.sense * (1 + life.attrs.perception/100 * 2); // 感知属性决定感知半径
+  let danger = false, near = false;
+  let waveThreat = null, waveFront = null;
+  for (const ev of world.events){
+    if (ev.status !== 'active') continue;
+    const d = dist(ev, life);
+    if (ev.eventType === 'bad_luck'){
+      if (d < sense){ near = true; if (d < sense*0.8) danger = true; }
+    } else if (ev.eventType === 'wave_event'){     // 浪潮专属大事件：明显的刺激源
+      if (d < sense){ near = true; waveThreat = { x:ev.x, y:ev.y, color:ev.color, d }; }
+    } else if (d < sense){ near = true; }
+  }
+  // 浪潮墙前沿压迫：谁都躲不掉，但近处会被推着走（可见反应）
+  for (const w of world.waves){
+    if (w.status !== 'sweeping') continue;
+    const f = waveFrontInfo(w);
+    const dl = (f.axis === 'x' ? life.x : life.y) - f.front;
+    const dFront = Math.abs(dl);
+    if (dFront < sense && Math.sign(dl) === f.sign){     // 仅“逼近侧”且足够近才感到压迫
+      if (!waveFront || dFront < waveFront.d) waveFront = { w, d:dFront, axis:f.axis, sign:f.sign, front:f.front };
+    }
+  }
+  life.waveThreat = waveThreat;
+  life.waveFront  = waveFront;
+  life.waveAlertColor = waveThreat ? waveThreat.color : (waveFront ? waveFront.w.color : null);
+  life.waveAlert  = waveThreat ? now() + 600 : (waveFront ? now() + 400 : 0);
+  if (danger) life.alert = now() + 500;          // 红色警示环（危险：倒霉事件）
+  if (near && life.state === 'wandering') life.state = 'observing';
+}
+// 浪潮前沿信息：推进轴、当前前沿坐标、以及“逼近侧”的方向符号
+function waveFrontInfo(w){
+  if (w.dir === 'L' || w.dir === 'R') return { axis:'x', front: w.progress * W, sign: w.dir === 'L' ? 1 : -1 };
+  return { axis:'y', front: w.progress * H, sign: w.dir === 'T' ? 1 : -1 };
+}
+
+/* 生命体对浪潮/专属事件的明显反应：趋避 / 聚集 / 被推（状态可见） */
+function lifeWaveReact(life, dt){
+  // 1) 浪潮专属大事件：按个性决定趋避 / 聚集
+  if (life.waveThreat){
+    const t = life.waveThreat;
+    const a = Math.atan2(t.y - life.y, t.x - life.x);   // 指向事件
+    const away = a + Math.PI;                            // 背离事件
+    if (life.tags.includes('cautious')){                 // 谨慎者：躲开专属事件
+      const sp = 2.4;
+      life.vx += (Math.cos(away)*sp - life.vx) * 0.14;
+      life.vy += (Math.sin(away)*sp - life.vy) * 0.14;
+      life.blowUntil = now() + 700;
+      setWaveState(life, 'fleeing', t.color, '躲开浪潮事件');
+    } else if (life.tags.includes('curious')){           // 好奇者：凑近着迷、绕着看
+      const d = Math.hypot(t.x - life.x, t.y - life.y);
+      const sp = d > 55 ? 1.1 : 0.25;
+      life.vx += (Math.cos(a)*sp - life.vx) * 0.09;
+      life.vy += (Math.sin(a)*sp - life.vy) * 0.09;
+      life.flash = now() + 300; life.flashColor = t.color;
+      setWaveState(life, 'fascinated', t.color, '着迷于浪潮事件');
+    } else if (life.tags.includes('social')){            // 社交者：聚拢，并拉同伴
+      const sp = 1.0;
+      life.vx += (Math.cos(a)*sp - life.vx) * 0.09;
+      life.vy += (Math.sin(a)*sp - life.vy) * 0.09;
+      gatherBuddies(life, t.x, t.y, t.color);
+      setWaveState(life, 'gathering', t.color, '聚向浪潮事件');
+    } else {                                             // 其余（固执等）：停步观察
+      life.vx *= 0.94; life.vy *= 0.94;
+    }
+    return;
+  }
+  // 2) 浪潮墙前沿：被推着走（整体节奏；谨慎者逃得更猛）
+  if (life.waveFront){
+    const f = life.waveFront;
+    const push = 1.3 + (life.tags.includes('cautious') ? 1.3 : 0.4);
+    const v = f.sign * push;
+    if (f.axis === 'x') life.vx += (v - life.vx) * 0.10;
+    else                life.vy += (v - life.vy) * 0.10;
+    life.blowUntil = now() + 500;
+    if (life.state !== 'fleeing') setWaveState(life, 'wary', f.w.color, '感知到浪潮逼近');
+  }
+}
+// 限流的状态切换：仅状态变化时触发文字/痕迹，避免刷屏
+function setWaveState(life, st, color, msg){
+  if (life.state === st) return;
+  life.state = st;
+  if (now() - (life.lastWaveReact||0) > 2500){
+    life.lastWaveReact = now();
+    life.flash = now() + 300; life.flashColor = color || '#fff';
+    floatText(life.x, life.y - 18, msg, color || '#fff');
+    addTrace({ type:'life_reacted', lifeIds:[life.id], description:`${life.name}${msg}` });
+  }
+}
+// 社交者把附近不谨慎的同伴一起拉向浪潮事件（真实关系变化）
+function gatherBuddies(life, x, y, color){
+  const other = world.lives.find(o => o !== life && !o.tags.includes('cautious') && dist(o, life) < 200);
+  if (other && !life.relationships.some(r => r.with === other.id)){
+    life.relationships.push({ with: other.id, at: Date.now() });
+    const a = Math.atan2(y - other.y, x - other.x);
+    other.vx += (Math.cos(a)*0.8 - other.vx) * 0.06;
+    other.vy += (Math.sin(a)*0.8 - other.vy) * 0.06;
+    other.blowUntil = now() + 400;
+  }
+}
+
+/* 粒子物理：每帧把每个粒子拉回它的轨道位置（绕生命体中心转动），
+   内核稳定(caution) → 弹簧刚度（回位快慢）；敏捷高(agility) → 轨迹抖动；
+   受击(pulse) → 整团短暂膨胀（scale）。照搬“正式课鱼缸”的观感。 */
+function updateParticles(l){
+  const s = l.attrs;
+  l.rot += l.rotSpeed;
+  l.scale = 1 + (l.pulse || 0) * 0.4 + (l.belly || 0) * 0.5;   // 受击膨胀 + 吞噬鼓胀，随 pulse/belly 衰减回弹
+  const k = 0.015 + (s.caution || 0) * 0.0006 + (l._spring || 0) * 0.001;   // 内核稳定 → 弹簧刚度（旋钮可增强弹性）
+  const damp = 0.86;
+  for (const p of l.particles){
+    const tx = l.x + Math.cos(p.a + l.rot) * p.r * l.scale;
+    const ty = l.y + Math.sin(p.a + l.rot) * p.r * l.scale;
+    p.vx += (tx - p.x) * k; p.vy += (ty - p.y) * k;
+    if ((s.agility || 0) > 40){                   // 敏捷高：轨迹乱跳化解冲击
+      p.vx += (Math.random()-.5) * (s.agility) * 0.0009;
+      p.vy += (Math.random()-.5) * (s.agility) * 0.0009;
+    }
+    p.vx *= damp; p.vy *= damp; p.x += p.vx; p.y += p.vy;
+  }
+}
+
+/* ============================ 行为粒子流引擎（太阳风 / 火焰） ============================
+   核心铁律：任何行为都用“成串、成堆、持续流动的粒子”显形，绝不单粒子微调。
+   world.fx 为统一有界池；update 内接 updateFX；渲染用 drawFX（lighter 叠加发光）。
+   持续行为每帧发 3–6 颗成流；离散事件一次爆发 20–60 颗成束，保证肉眼可见。 */
+const FX_MAX = 1500;
+function emit(src, kind, opts){
+  opts = opts || {};
+  const baseHue = (opts.hue != null) ? opts.hue : (src.hue != null ? src.hue : 210);
+  const n = opts.count || 1;
+  const r0 = src.r || 12;
+  for (let i=0;i<n;i++){
+    let p;
+    if (kind === 'suction'){                       // 资源/事件 → 生命 吸流（成串）
+      const tx = opts.to.x, ty = opts.to.y;
+      const a = Math.atan2(ty - src.y, tx - src.x) + (Math.random()-0.5)*0.5;
+      const sp = 2.2 + Math.random()*1.8;
+      p = { x:src.x, y:src.y, vx:Math.cos(a)*sp, vy:Math.sin(a)*sp, life:1, ttl:((opts.ttl||750)/16.67),
+            kind:'suction', color:(opts.color||`hsl(${baseHue},90%,68%)`), size:2.1, grav:0, to:opts.to, r:r0 };
+    } else if (kind === 'share'){                  // 生命 → 伙伴 成束授予（飞过去融入）
+      const tx = opts.to.x, ty = opts.to.y;
+      const a = Math.atan2(ty - src.y, tx - src.x) + (Math.random()-0.5)*0.35;
+      const sp = 2.8 + Math.random()*1.6;
+      p = { x:src.x, y:src.y, vx:Math.cos(a)*sp, vy:Math.sin(a)*sp, life:1, ttl:((opts.ttl||1300)/16.67),
+            kind:'share', color:(opts.color||`hsl(${baseHue},95%,70%)`), size:2.4, grav:0, to:opts.to, r:r0 };
+    } else if (kind === 'wind'){                   // 太阳风：从生命向外持续抛（成串）
+      const a = (opts.angle != null) ? opts.angle : Math.random()*Math.PI*2;
+      const sp = (opts.speed||1.7) * (0.5 + Math.random());
+      p = { x:src.x+Math.cos(a)*r0*1.5, y:src.y+Math.sin(a)*r0*1.5, vx:Math.cos(a)*sp, vy:Math.sin(a)*sp,
+            life:1, ttl:((opts.ttl||1300)/16.67), kind:'wind', color:(opts.color||`hsla(${baseHue},85%,66%,1)`),
+            size:(opts.size||1.9), grav:0, r:r0 };
+    } else if (kind === 'coin'){                   // 稀有吞噬：金色金币/星爆（成束）
+      const a = Math.random()*Math.PI*2, sp = 2.6 + Math.random()*2.6;
+      p = { x:src.x, y:src.y, vx:Math.cos(a)*sp, vy:Math.sin(a)*sp - 0.6, life:1, ttl:((opts.ttl||1500)/16.67),
+            kind:'coin', color:'#ffcf5b', size:2.8, grav:0.025, r:r0 };
+    } else if (kind === 'scatter'){                // 倒霉/死亡炸散（成束）
+      const a = Math.random()*Math.PI*2, sp = 3 + Math.random()*3.5;
+      p = { x:src.x, y:src.y, vx:Math.cos(a)*sp, vy:Math.sin(a)*sp, life:1, ttl:((opts.ttl||1000)/16.67),
+            kind:'scatter', color:(opts.color||'#ff6b6b'), size:2.5, grav:0, r:r0 };
+    } else if (kind === 'drip'){                   // 哭泣：向下滴落（成串）
+      p = { x:src.x+(Math.random()-0.5)*r0, y:src.y+r0*0.4, vx:(Math.random()-0.5)*0.4, vy:0.7+Math.random()*0.9,
+            life:1, ttl:((opts.ttl||1300)/16.67), kind:'drip', color:(opts.color||`hsl(${baseHue},75%,72%)`), size:2.1, grav:0.035, r:r0 };
+    } else if (kind === 'dart'){                   // 勇气外刺亮镖（成串）
+      const a = (opts.angle != null) ? opts.angle : Math.random()*Math.PI*2;
+      const sp = 2.2 + Math.random()*1.8;
+      p = { x:src.x+Math.cos(a)*r0*1.5, y:src.y+Math.sin(a)*r0*1.5, vx:Math.cos(a)*sp, vy:Math.sin(a)*sp,
+            life:1, ttl:((opts.ttl||750)/16.67), kind:'dart', color:(opts.color||`hsl(${baseHue},95%,74%)`), size:2.7, grav:0, r:r0 };
+    } else {                                       // emo / 上浮星点（成串）
+      const a = Math.random()*Math.PI*2, sp = 0.6 + Math.random()*1.3;
+      p = { x:src.x+(Math.random()-0.5)*r0, y:src.y+(Math.random()-0.5)*r0, vx:Math.cos(a)*sp, vy:Math.sin(a)*sp-0.7,
+            life:1, ttl:((opts.ttl||1100)/16.67), kind:'emo', color:(opts.color||`hsl(${baseHue},85%,68%)`), size:(opts.size||2.0), grav:0, r:r0 };
+    }
+    if (world.fx.length >= FX_MAX) world.fx.shift();
+    world.fx.push(p);
+  }
+}
+function updateFX(dt){
+  const arr = world.fx;
+  for (let i=arr.length-1;i>=0;i--){
+    const p = arr[i];
+    if ((p.kind === 'suction' || p.kind === 'share') && p.to){      // 朝目标飞：到达即融入
+      const dx = p.to.x - p.x, dy = p.to.y - p.y, d = Math.hypot(dx, dy) || 1;
+      const sp = Math.hypot(p.vx, p.vy), ns = Math.min(sp + 0.25, 5.5);
+      p.vx += (dx/d*ns - p.vx) * 0.14; p.vy += (dy/d*ns - p.vy) * 0.14;
+      if (d < (p.to.r || 12) * 0.9){ arr.splice(i, 1); continue; }
+    }
+    p.vy += p.grav || 0; p.x += p.vx * dt; p.y += p.vy * dt;
+    p.vx *= 0.985; p.vy *= 0.985; p.life -= dt / p.ttl;
+    if (p.life <= 0) arr.splice(i, 1);
+  }
+}
+function drawFX(){
+  ctx.globalCompositeOperation = 'lighter';
+  for (const p of world.fx){
+    const a = clamp(p.life, 0, 1);
+    if (p.kind === 'coin'){
+      ctx.globalAlpha = a; ctx.fillStyle = '#ffe28a';
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.size*1.5, 0, 7); ctx.fill();
+      ctx.strokeStyle = `rgba(255,207,91,${a})`; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(p.x-p.size*2, p.y); ctx.lineTo(p.x+p.size*2, p.y);
+      ctx.moveTo(p.x, p.y-p.size*2); ctx.lineTo(p.x, p.y+p.size*2); ctx.stroke();
+    } else if (p.kind === 'dart'){
+      ctx.globalAlpha = a; ctx.strokeStyle = p.color; ctx.lineWidth = 2;
+      const m = Math.hypot(p.vx, p.vy) || 1, ux = p.vx/m, uy = p.vy/m;
+      ctx.beginPath(); ctx.moveTo(p.x - ux*p.size*2, p.y - uy*p.size*2); ctx.lineTo(p.x + ux*p.size*2, p.y + uy*p.size*2); ctx.stroke();
+    } else {
+      ctx.globalAlpha = a * 0.9; ctx.fillStyle = p.color;
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, 7); ctx.fill();
+    }
+  }
+  ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+}
+
+/* ============================ 行为模块：吞噬 / 情绪 / 反应 / 连接 / 成长 ============================ */
+function setEmotion(l, e, dur){ l.emotion = e; l.emoUntil = now() + (dur || 1600); }
+
+// 太阳风基底：每个生命平静时持续向外甩成串粒子，让整屏始终“涌动”
+function lifeSolarWind(l){
+  const calm = (l.state === 'idle' || l.state === 'wandering' || l.state === 'observing');
+  if (!calm) return;
+  l.fxT = (l.fxT || 0) + 1;
+  if (l.fxT % 4 !== 0) return;
+  if (world.fx.length >= FX_MAX * 0.75) return;
+  emit(l, 'wind', { count: 3, hue: l.hue, speed: 1.4 + (l.attrs.power||0)*0.01 });
+}
+
+// A 吞噬进化：靠近资源伸触须吸流；吞下鼓胀+溢出亮粒子；稀有爆金币星点+升级
+function lifeDevour(l){
+  let near = null, nd = 1e9;
+  for (const r of world.resources){
+    if (r.status !== 'available') continue;
+    const d = dist(l, r);
+    if (d < 120 && d < nd){ nd = d; near = r; }
+  }
+  if (!near) return;
+  if (world.fx.length < FX_MAX * 0.9){
+    emit(near, 'suction', { to:l, count: nd < 40 ? 4 : 2, hue:l.hue, color:`hsl(${l.hue},90%,66%)` });
+  }
+  l.belly = Math.min(1, (l.belly || 0) + 0.02);    // 临近即微微鼓胀
+}
+// 资源真正被吞下（热路径 hook）
+function onDevour(l, r){
+  l.belly = Math.min(1.3, (l.belly || 0) + 0.5);   // 明显鼓胀
+  l.exp += 1; setEmotion(l, 'happy', 1400);
+  emit(l, 'emo', { count: 10, hue:l.hue, size:2.2, color:`hsl(${l.hue},90%,70%)` });   // 溢出亮粒子成串
+  if (r.rarity === 'rare'){                        // 稀有：金色星爆 + 升级闪光
+    l.level += 1; l.evoT = now();
+    emit(l, 'coin', { count: 34, hue:l.hue });
+    l.flash = now() + 500; l.flashColor = '#ffcf5b';
+    floatText(l.x, l.y - 20, '✦ 稀有！升级 Lv.' + l.level, '#ffcf5b');
+  }
+}
+
+// B 事件反应粒子流（在 lifeWaveReact 状态上补充可见流）
+function lifeReactFX(l){
+  if (world.fx.length >= FX_MAX * 0.9) return;
+  l.fxT = (l.fxT || 0) + 1;
+  if (l.state === 'fleeing'){ if (l.fxT % 3 === 0) emit(l, 'scatter', { count:2, hue:l.hue, color:`hsl(${l.hue},85%,65%)` }); }
+  else if (l.state === 'fascinated'){ if (l.fxT % 3 === 0) emit(l, 'wind', { count:2, hue:l.hue, speed:2.0 }); }
+  else if (l.state === 'wary'){ if (Math.random() < 0.1) emit(l, 'emo', { count:1, hue:l.hue, size:1.4 }); }
+}
+
+// C 情绪粒子：靠流动粒子显形（跳舞/哭泣/勇气/开心/休眠）
+function lifeEmote(l){
+  if (l.emotion === 'idle'){
+    if (Math.random() < 0.004) setEmotion(l, pick(['dance','happy']), 1800 + Math.random()*1600);
+    return;
+  }
+  if (now() > l.emoUntil){ l.emotion = 'idle'; return; }
+  if (world.fx.length >= FX_MAX * 0.92) return;
+  l.fxT = (l.fxT || 0) + 1;
+  if (l.emotion === 'dance'){ if (l.fxT % 3 === 0) emit(l, 'emo', { count:3, hue:l.hue, angle:l.fxT*0.5 + Math.sin(now()/180)*2, size:2.0, color:`hsl(${l.hue},90%,72%)` }); }
+  else if (l.emotion === 'happy'){ emit(l, 'emo', { count:2, hue:l.hue, color:`hsl(${l.hue},90%,72%)` }); }
+  else if (l.emotion === 'cry'){ if (Math.random() < 0.5) emit(l, 'drip', { count:2, hue:l.hue }); }
+  else if (l.emotion === 'brave'){ if (l.fxT % 3 === 0) emit(l, 'dart', { count:2, hue:l.hue, angle:l.fxT*2.1 }); }
+  else if (l.emotion === 'sleep'){ if (Math.random() < 0.2) emit(l, 'emo', { count:1, hue:l.hue, size:1.3, color:`hsl(${l.hue},40%,55%)` }); }
+}
+
+// D 连接流光：关系伙伴间持续成束粒子流（看得见的“授予”）；低能伙伴获输能
+function lifeConnect(l){
+  if (world.fx.length >= FX_MAX * 0.9) return;
+  for (const rel of l.relationships){
+    const o = findById(rel.with);
+    if (!o || o.dead) continue;
+    if (dist(l, o) > 160) continue;
+    l.fxT = (l.fxT || 0) + 1;
+    if (l.fxT % 10 === 0) emit(l, 'share', { to:o, count:3, hue:l.hue });        // 成束授予粒子飞向伙伴
+    if (o.energy < 40 && l.fxT % 26 === 0){                                       // 帮助：输能给同伴
+      o.energy = clamp(o.energy + 6, 0, 100);
+      emit(l, 'share', { to:o, count:5, hue:l.hue, color:`hsl(${Math.floor(l.hue)+30},95%,72%)` });
+    }
+  }
+}
+
+// E 成长生死：吃够经验长大（可见爆裂+尺寸跳变）；能量耗尽飘散轮回
+function lifeGrowDie(l){
+  if (l.exp >= 8){                                 // 长大：永久多一簇轨道粒子 + 可见爆裂 + 尺寸跳变
+    l.exp = 0; l.level += 1; l.evoT = now();
+    l.r = Math.min(22, l.r * 1.12);
+    const add = Math.min(18, Math.round(8 + l.attrs.power*0.15));
+    for (let i=0;i<add;i++){ const pa = Math.random()*Math.PI*2, pr = l.r*1.4 + Math.random()*l.r*4;
+      l.particles.push({ a:pa, r:pr, x:l.x+Math.cos(pa)*pr, y:l.y+Math.sin(pa)*pr, vx:0, vy:0 }); }
+    if (world.fx.length < FX_MAX * 0.9) emit(l, 'emo', { count: 30, hue:l.hue, size:2.4, color:`hsl(${l.hue},90%,72%)` });
+    l.flash = now() + 400; l.flashColor = '#bfffd0';
+    floatText(l.x, l.y - 20, '长大！Lv.' + l.level, '#bfffd0');
+    playGrowDeathPrimitive(l, 'grow');                 // 学生「成长」块：长大的自定义表现
+  }
+  if (l.energy <= 0 && !l.dead){                   // 死亡：成片脱附飘散，随后自然补位
+    l.dead = true; l.deathT = now();
+    if (world.fx.length < FX_MAX * 0.9) emit(l, 'scatter', { count: 40, hue:l.hue, color:`hsl(${l.hue},80%,65%)` });
+    floatText(l.x, l.y - 18, l.name + ' 消散了', '#9fb0c8');
+    playGrowDeathPrimitive(l, 'death');                // 学生「成长」块：消散的自定义表现
+  }
+}
+
+// F 学生旋钮：生成自定义粒子生命（固定公平属性池不变，仅调观感/个性）
+function makeCustomLife(opts){
+  opts = opts || {};
+  const hue = (opts.hue != null) ? opts.hue : Math.floor(Math.random()*360);
+  const color = opts.color || `hsl(${hue},78%,62%)`;
+  const tags = (opts.tags && opts.tags.length) ? opts.tags : ['social'];
+  const baseDef = pick(LIFE_DEFS);
+  const def = { name: opts.name || '自定义生命', tags, color, attrs: Object.assign({}, baseDef.attrs) };
+  const l = makeLife(def);
+  l.hue = hue; l.color = color;
+  l.r = clamp(opts.sizeK || l.r, 8, 22);
+  const dn = Math.round(opts.density || l.particles.length);
+  l.particles = [];
+  for (let i=0;i<dn;i++){ const pa = Math.random()*Math.PI*2, pr = l.r*1.4 + Math.random()*l.r*4;
+    l.particles.push({ a:pa, r:pr, x:l.x+Math.cos(pa)*pr, y:l.y+Math.sin(pa)*pr, vx:0, vy:0 }); }
+  l._spring = opts.spring || 0; l.emoPref = opts.emoPref || 'dance';
+  if (l.emoPref) setEmotion(l, l.emoPref, 5000);
+  return l;
+}
+
+/* ============================ 规则运行时：条件评估 ============================ */
+function evalCondition(rule, c){
+  const cond = rule.condition;
+  switch (cond.type){
+    case 'life_nearby': {
+      const near = world.lives.filter(l => dist(l, c) < (cond.distance || 70));
+      return { ok: near.length > 0, lives: near };
+    }
+    case 'resource_nearby': {
+      const near = world.resources.filter(r =>
+        r.status === 'available' &&
+        dist(r, c) < (cond.distance || 70) &&
+        (!cond.tags || cond.tags.some(t => r.tags.includes(t))));
+      return { ok: near.length > 0, resources: near };
+    }
+    case 'event_nearby': {
+      const near = world.events.filter(e =>
+        dist(e, c) < (cond.distance || 80) &&
+        (!cond.eventType || e.eventType === cond.eventType));
+      return { ok: near.length > 0, events: near };
+    }
+    case 'co_presence': {
+      const center = rule.targetId ? world.targets.find(t => t.id === rule.targetId) : c;
+      if (!center) return { ok:false };
+      const near = world.lives.filter(l => dist(l, center) < cond.distance);
+      return { ok: near.length >= cond.count, lives: near, center };
+    }
+    case 'touch': {
+      if (cond.target === 'resource'){
+        for (const r of world.resources.filter(x => x.status === 'available'))
+          for (const l of world.lives)
+            if (dist(l, r) < l.r + r.r + 6)
+              return { ok:true, lives:[l], resources:[r], center:r };
+        return { ok:false };
+      }
+      const center = rule.targetId ? world.targets.find(t => t.id === rule.targetId) : c;
+      const near = world.lives.filter(l => center && dist(l, center) < center.r + l.r + 6);
+      return { ok: near.length > 0, lives: near, center };
+    }
+    case 'collision':
+      return { ok:false }; // 事件驱动，由 triggerCollisionRule 处理
+    case 'action_repeated': {
+      const count = cond.count || 2;
+      const lid = Object.keys(c.repeatActors).find(k => c.repeatActors[k] >= count);
+      const l = lid ? world.lives.find(x => x.id === lid) : null;
+      return { ok: !!lid, lives: l ? [l] : [] };
+    }
+    case 'random_chance':
+      return { ok: Math.random() < (cond.probability || 0.1), lives: [] };
+    default:
+      return { ok:false };
+  }
+}
+
+/* ============================ 规则运行时：动作执行（真实状态变化） ============================ */
+function spawnDerivedObject(type, at, tags){
+  const p = at || { x: rand(80, W-80), y: rand(80, H-80) };
+  const a = rand(0, Math.PI*2), s = rand(.4, .9);
+  const o = Object.assign(base(p.x, p.y, Math.cos(a)*s, Math.sin(a)*s, rand(8,11), '#9fe0ff'), {
+    type:'object', id:'obj_'+uid(), name:type, tags: tags || []
+  });
+  world.objects.push(o);
+  return o;
+}
+
+function executeAction(action, c, x){
+  const lives = x.lives || [];
+  switch (action.type){
+    case 'spawn': {
+      const at = x.center ? { x:x.center.x, y:x.center.y } : { x:c.x, y:c.y };
+      const o = spawnDerivedObject(action.objectType || '新物体', at, action.tags);
+      addTrace({ type:'object_spawned', creationId:c.id, lifeIds: lives.map(l=>l.id),
+        description:`${c.title} 生成了「${o.name}」` });
+      floatText(o.x, o.y - 16, '生成：' + o.name, '#9fe0ff');
+      break;
+    }
+    case 'consume_resource': {
+      const r = (x.resources && x.resources[0]) || world.resources.find(res =>
+        res.status === 'available' && (!action.tags || action.tags.some(t => res.tags.includes(t))) &&
+        dist(res, c) < 140) || null;
+      if (r){
+        r.status = 'consumed';
+        const l = lives[0];
+        if (l) l.energy = clamp(l.energy + 10, 0, 100);
+        addTrace({ type:'resource_consumed', creationId:c.id, lifeIds: lives.map(z=>z.id),
+          description:`${c.title} 消耗了${r.name}` });
+        floatText(r.x, r.y - 16, r.name + ' 被消耗', '#7fe0a0');
+      }
+      break;
+    }
+    case 'change_color': {
+      const t = x.center || c;
+      if (action.value === 'rainbow'){
+        if (t && !t.rainbow){ t.rainbow = true; floatText(t.x, t.y - 20, '变成了彩虹！', '#fff'); }
+      } else if (t){ t.color = action.value; }
+      break;
+    }
+    case 'change_speed': {
+      const amt = action.amount || 0.6, R = 160;
+      for (const e of allEntities()){
+        if (dist(e, c) < R){
+          const sp = Math.hypot(e.vx, e.vy) || 1;
+          const ns = clamp(sp + amt, 0.2, 3.2);
+          e.vx = e.vx / sp * ns; e.vy = e.vy / sp * ns; e.blowUntil = now() + 800;
+        }
+      }
+      break;
+    }
+    case 'change_direction': {
+      const R = 160;
+      for (const e of allEntities()){
+        if (dist(e, c) < R){
+          const a = action.angle != null ? action.angle : rand(0, Math.PI*2);
+          const sp = Math.hypot(e.vx, e.vy) || 1;
+          e.vx = Math.cos(a)*sp; e.vy = Math.sin(a)*sp; e.blowUntil = now() + 800;
+        }
+      }
+      break;
+    }
+    case 'blow_away': {
+      const p = x.pos || { x:c.x, y:c.y }, R = action.radius || 175;
+      for (const e of allEntities()){
+        if (dist(e, p) < R){
+          const a = Math.atan2(e.y - p.y, e.x - p.x);
+          e.vx = Math.cos(a)*2.2; e.vy = Math.sin(a)*2.2; e.blowUntil = now() + 1000;
+        }
+      }
+      floatText(p.x, p.y - 18, '附近光斑被吹走了', '#ff8a5b');
+      addTrace({ type:'creation_triggered', creationId:c.id, lifeIds: lives.map(z=>z.id),
+        description:`${c.title}：碰撞后，附近光斑被吹走` });
+      break;
+    }
+    case 'move': {
+      for (const l of lives){
+        if (action.target === 'away'){
+          const a = Math.atan2(l.y - c.y, l.x - c.x);
+          l.vx = Math.cos(a)*1.5; l.vy = Math.sin(a)*1.5; l.blowUntil = now() + 800;
+        }
+      }
+      break;
+    }
+    case 'connect': {
+      c.connectTo = (x.center && x.center.id) || (lives[0] && lives[0].id) || null;
+      floatText(c.x, c.y - 20, '连出一条线', '#9fb0ff');
+      addTrace({ type:'creation_triggered', creationId:c.id, lifeIds: lives.map(z=>z.id),
+        description:`${c.title} 与对象建立连接` });
+      break;
+    }
+    case 'invite': {
+      const l = lives[0];
+      if (l){
+        const other = world.lives.find(o => o !== l && dist(o, l) < 260);
+        if (other){
+          l.relationships.push({ with: other.id, at: Date.now() });
+          addRecognition({ creationId:c.id, actorId:l.id, type:'invited', relatedCreationId:other.id });
+          floatText(l.x, l.y - 18, `${l.name}邀请${other.name}`, '#ff9bd0');
+          addTrace({ type:'recognition', creationId:c.id, lifeIds:[l.id, other.id],
+            description:`${l.name}邀请${other.name}参与《${c.title}》` });
+        }
+      }
+      break;
+    }
+    case 'change_life_state': {
+      for (const l of lives){ l.state = action.value || 'observing'; }
+      break;
+    }
+    case 'leave_trace': {
+      addTrace({ type:'creation_triggered', creationId:c.id, lifeIds: lives.map(z=>z.id),
+        description:`${c.title} 被触发（${action.traceType || ''}）` });
+      break;
+    }
+  }
+}
+
+/* ============================ 规则运行时：参与记录（noticed/joined/replayed/left/remixed） ============================ */
+function recordParticipation(c, lives, desc){
+  for (const l of (lives || [])){
+    if (!c.seen[l.id]){
+      c.seen[l.id] = true;
+      addRecognition({ creationId:c.id, actorId:l.id, type:'noticed' });
+      addTrace({ type:'recognition', creationId:c.id, lifeIds:[l.id],
+        description:`${l.name}发现了《${c.title}》` });
+      floatText(c.x, c.y - 20, `${l.name}发现了作品`, '#9fb0ff');
+    }
+    const n = (c.part[l.id] || 0) + 1;
+    c.part[l.id] = n;
+    c.repeatActors[l.id] = n;
+    if (n === 1){
+      addRecognition({ creationId:c.id, actorId:l.id, type:'joined' });
+      addTrace({ type:'life_participated', creationId:c.id, lifeIds:[l.id],
+        description:`${l.name}参与了《${c.title}》` });
+    } else {
+      addRecognition({ creationId:c.id, actorId:l.id, type:'replayed' });
+      addTrace({ type:'recognition', creationId:c.id, lifeIds:[l.id],
+        description:`${l.name}又回来尝试了一次《${c.title}》` });
+      floatText(l.x, l.y - 18, `${l.name}再次参与`, '#7be08a');
+    }
+  }
+}
+
+/* ============================ 规则运行入口 ============================ */
+function runRule(c, r){
+  const t = now();
+  if (c.triggered[r.meta] && t < c.triggered[r.meta]) return;
+  const res = evalCondition(r, c);
+  if (!res.ok) return;
+  executeAction(r.action, c, res);
+  recordParticipation(c, res.lives, null);
+  c.triggered[r.meta] = t + (r.cooldown || 3000);
+}
+function triggerCollisionRule(c, r, ev, life){
+  const t = now();
+  if (c.triggered[r.meta] && t < c.triggered[r.meta]) return;
+  executeAction(r.action, c, { pos:{ x:ev.x, y:ev.y }, life, event:ev, lives:[life], center:c });
+  recordParticipation(c, [life], null);
+  c.triggered[r.meta] = t + (r.cooldown || 2500);
+}
+
+/* ============================ 生命体 AI（观察/靠近/参与/离开/再次接近） ============================ */
+function lifeAI(life, dt){
+  if (now() < life.reactUntil) return;
+  const cand = allEntities().filter(e => e !== life);
+  let best = null, bd = 1e9;
+  for (const e of cand){ const d = dist(e, life); if (d < bd){ bd = d; best = e; } }
+  const sense = 150 * (1 + life.attrs.perception/100 * 2);
+  if (best && bd < sense){
+    if (best.type === 'life'){
+      // 靠近其他生命体：观察并减速；足够近则建立关系（真实状态变化）
+      life.state = 'observing';
+      life.vx *= 0.95; life.vy *= 0.95;
+      if (bd < 40 && !life.relationships.some(r => r.with === best.id)){
+        life.relationships.push({ with: best.id, at: Date.now() });
+        playSkillPrimitive(life, 'meet', { to:best });   // 学生「交流」块：相遇时按自定义原语表现
+      }
+    } else if (best.type === 'creation' || best.type === 'target'){
+      if (bd < best.r + 24){ life.state = 'participating'; life.vx *= 0.85; life.vy *= 0.85; }
+      else {
+        life.state = 'observing';
+        const a = Math.atan2(best.y - life.y, best.x - life.x), sp = 0.6;
+        life.vx += (Math.cos(a)*sp - life.vx)*0.04;
+        life.vy += (Math.sin(a)*sp - life.vy)*0.04;
+      }
+    } else if (best.type === 'resource'){
+      // 靠近资源并接触（接触消耗由运行时判定）
+      life.state = 'observing';
+      const a = Math.atan2(best.y - life.y, best.x - life.x), sp = 0.6;
+      life.vx += (Math.cos(a)*sp - life.vx)*0.05;
+      life.vy += (Math.sin(a)*sp - life.vy)*0.05;
+    } else if (best.type === 'event'){
+      if (best.eventType === 'bad_luck'){ life.state = 'wandering'; } // 躲开倒霉事件
+      else {
+        life.state = 'observing';
+        const a = Math.atan2(best.y - life.y, best.x - life.x), sp = 0.4;
+        life.vx += (Math.cos(a)*sp - life.vx)*0.03;
+        life.vy += (Math.sin(a)*sp - life.vy)*0.03;
+      }
+    } else { life.state = 'wandering'; }
+  } else { life.state = 'wandering'; }
+}
+
+/* ============================ 环境生成（资源/事件） ============================ */
+let lastEventSpawn = 0, lastResSpawn = 0;
+function ambient(t){
+  if (!world.events.some(e => e.eventType === 'bad_luck')) world.events.push(makeEvent(null, { bad:true }));
+  if (t - lastEventSpawn > 4000 / eventDensity){
+    lastEventSpawn = t;
+    if (world.events.length < 6 + eventDensity*2){
+      const e = makeEvent(pick(EVENT_DEFS));
+      modulateEventByClimate(e);   // 浪潮期间：点事件更快、更大、偏环境色
+      world.events.push(e);
+    }
+  }
+  if (t - lastResSpawn > 6000){
+    lastResSpawn = t;
+    if (world.resources.filter(r => r.status === 'available').length < 6){
+      // 新时代：有概率长出时代专属资源（气候改变了世界能长出什么）
+      const w = world.climate.era !== 'neutral' ? world.waves.find(x => x.waveType === world.climate.era) : null;
+      world.resources.push((w && Math.random() < 0.5) ? makeEraResource(w) : makeResource(pick(RES_DEFS)));
+    }
+  }
+}
+// 点事件随大事件（浪潮）变化：这正是“大事件来了，小事件也跟着变”
+function modulateEventByClimate(e){
+  if (world.climate.era === 'neutral') return;
+  e.vx *= 1.4; e.vy *= 1.4;
+  e.radius *= 1.25;
+  e.color = blend(e.color, world.climate.color, 0.4);
+}
+
+/* ============================ 主循环 ============================ */
+let last = now();
+function update(dt, t){
+  world.tempo += (world.tempoTarget - world.tempo) * 0.012;  // 世界节奏平滑过渡（有快有慢）
+  ambient(t);
+  updateFX(dt);         // 推进行为粒子流（太阳风/火焰）
+  updateWaves(dt, t);   // 推进浪潮：扫掠、伴随事件、遗留资源、三轮累积、气候切换
+  for (const e of allEntities()) step(e, dt);
+
+  // 碰撞：事件 × 生命体（运行时只确认“谁撞到谁”这一事实）
+  for (const ev of world.events){
+    if (ev.status !== 'active') continue;
+    for (const l of world.lives){
+      if (t - (l.lastCol[ev.id] || 0) > 2000 && dist(ev, l) < ev.radius + l.r) collide(ev, l);
+    }
+  }
+
+  for (const l of world.lives) perceive(l);   // 生命体先感知附近事件/气候
+  for (const l of world.lives) lifeAI(l, dt);
+  for (const l of world.lives) lifeWaveReact(l, dt);   // 再对浪潮/专属事件做出明显反应
+  // 粒子团跟随中心运动 + 行为粒子流（太阳风/吞噬/反应/情绪/连接/成长）
+  for (const l of world.lives){
+    updateParticles(l);
+    if (l.dead) continue;
+    lifeSolarWind(l);
+    lifeDevour(l);
+    lifeReactFX(l);
+    lifeEmote(l);
+    lifeConnect(l);
+    lifeGrowDie(l);
+    l.belly = Math.max(0, (l.belly || 0) - 0.01);   // 鼓胀回落
+  }
+
+  // 生命体真实接触资源 → 资源状态变化（available → consumed），反应交给框架
+  for (const l of world.lives){
+    for (const r of world.resources){
+      if (r.status === 'available' && dist(l, r) < l.r + r.r + 2){
+        r.status = 'consumed';
+        reactTo(l, { kind:'resource', source:r, color:r.color });
+        onDevour(l, r);
+        playSkillPrimitive(l, 'resource', { to:r });   // 学生「资源」块：长大/吃掉/发光/转圈
+      }
+    }
+  }
+
+  // Creation（已有学生作品，本阶段不扩展）：发现/离开/轮询规则
+  for (const c of world.creations){
+    for (const l of world.lives){
+      const d = dist(l, c);
+      if (d < c.r + 60){
+        if (!c.seen[l.id]){
+          c.seen[l.id] = true;
+          addRecognition({ creationId:c.id, actorId:l.id, type:'noticed' });
+          addTrace({ type:'recognition', creationId:c.id, lifeIds:[l.id],
+            description:`${l.name}发现了《${c.title}》` });
+          floatText(c.x, c.y - 20, `${l.name}发现了作品`, '#9fb0ff');
+        }
+        c.near[l.id] = true;
+      } else if (c.near[l.id]){
+        delete c.near[l.id];
+        if ((c.part[l.id] || 0) > 0){
+          addRecognition({ creationId:c.id, actorId:l.id, type:'left' });
+          addTrace({ type:'recognition', creationId:c.id, lifeIds:[l.id],
+            description:`${l.name}离开了《${c.title}》` });
+        }
+      }
+    }
+    for (const r of c.rules) if (r.condition.type !== 'collision') runRule(c, r);
+  }
+
+  // 事件过期
+  for (const ev of world.events){
+    if (ev.eventType !== 'bad_luck' && ev.status === 'active' && t - ev.createdAt > ev.durationMs){
+      ev.status = 'expired';
+      addTrace({ type:'event_started', eventId: ev.id, description:`${ev.name}消散了` });
+    }
+  }
+
+  // 清理
+  world.resources = world.resources.filter(r => r.status !== 'consumed');
+  world.events    = world.events.filter(e => e.status !== 'expired');
+  world.floats    = world.floats.filter(f => f.ttl > t);
+
+  // 死亡生命移除（空缸开局 + 老师/学生自主释放，不做自动补位）
+  world.lives = world.lives.filter(l => !l.dead);
+  const MIN_LIVES = 0;
+  while (world.lives.length < MIN_LIVES) world.lives.push(makeLife(pick(LIFE_DEFS)));
+
+  // 能量平衡（属性取舍：敏捷消耗快；社交者身旁回能、独处脆弱；脉冲衰减）
+  for (const l of world.lives){
+    const a = l.attrs;
+    let drain = 0.01 + a.agility * 0.0006;
+    const near = world.lives.some(o => o !== l && dist(o, l) < 60);
+    if (a.social >= 20 && near) drain -= 0.02;
+    else if (a.social >= 20 && !near) drain += 0.01;
+    if (l.pulse > 0.01) l.pulse *= 0.88; else l.pulse = 0;
+    l.energy = clamp(l.energy - drain*dt, 0, 100);
+  }
+
+  // 气候染色钩子（浪潮系统接入后，climate.color 被设置时，生命体被染上底色）
+  if (world.climate.color){
+    for (const l of world.lives){ l.tint = world.climate.color; l.tintAmt = clamp((l.tintAmt||0) + 0.002, 0, 0.5); }
+  }
+}
+
+function loop(){
+  const t = now();
+  let dt = (t - last) / 16.67; last = t;
+  if (dt > 3) dt = 3;
+  try {
+    if (!paused) update(dt, t);
+    render();
+  } catch (err){
+    if (!loop._warned){ console.error('共生缸运行异常（已跳过本帧）：', err); loop._warned = true; }
+  }
+  requestAnimationFrame(loop);
+}
+
+/* ============================ 渲染 ============================ */
+function render(){
+  ctx.clearRect(0, 0, W, H);
+
+  // 气候底色：浪潮结算后世界染上时代底色（很淡，不抢主体）
+  if (world.climate.color){
+    ctx.fillStyle = world.climate.color; ctx.globalAlpha = 0.06;
+    ctx.fillRect(0, 0, W, H); ctx.globalAlpha = 1;
+  }
+
+  // 浪潮：柔边渐变带 + 翻滚波浪线（避免硬边矩形；有的细、有的慢、有的快）
+  for (const w of world.waves) drawWave(w);
+
+  // Creation → 目标 / 连接 连线
+  for (const c of world.creations){
+    const tp = c.targetId ? world.targets.find(x => x.id === c.targetId) : null;
+    if (tp){
+      ctx.strokeStyle = 'rgba(255,207,91,.18)'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(c.x, c.y); ctx.lineTo(tp.x, tp.y); ctx.stroke();
+    }
+    if (c.connectTo){
+      const o = findById(c.connectTo);
+      if (o){
+        ctx.strokeStyle = 'rgba(159,224,255,.4)'; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.moveTo(c.x, c.y); ctx.lineTo(o.x, o.y); ctx.stroke();
+      }
+    }
+  }
+
+  // 生命体之间的空间关系（靠近时显示连线，体现“对象之间的关系”）
+  for (const a of world.lives){
+    for (const b of world.lives){
+      if (b.id <= a.id) continue;
+      const d = dist(a, b);
+      if (d < 55){
+        ctx.strokeStyle = 'rgba(120,140,200,' + (0.22 * (1 - d/55)).toFixed(3) + ')';
+        ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+      }
+    }
+  }
+
+  for (const e of allEntities()) drawEntity(e);
+  drawFX();                                          // 行为粒子流（太阳风/火焰）发光层
+
+  for (const f of world.floats){
+    const a = clamp((f.ttl - now())/2600, 0, 1);
+    ctx.globalAlpha = a; ctx.fillStyle = f.color;
+    ctx.font = '13px system-ui'; ctx.textAlign = 'center';
+    ctx.fillText(f.text, f.x, f.y); ctx.globalAlpha = 1;
+  }
+}
+
+function drawEntity(e){
+  // —— 事件：照搬“正式课鱼缸”光斑效果（仅视觉，不改逻辑） ——
+  if (e.type === 'event'){
+    const tn = now();
+    let a = 1;
+    const age = tn - e.createdAt;
+    if (age < 600) a = age / 600;                       // 出生淡入
+    if (e.eventType !== 'bad_luck'){                    // 临近消失淡出（倒霉事件不过期则常亮）
+      const remain = e.durationMs - age;
+      if (remain < 800) a = Math.min(a, Math.max(0, remain / 800));
+    }
+    a = clamp(a, 0, 1);
+    const sz = e.r;
+    ctx.globalCompositeOperation = 'lighter';           // 叠加发光：光斑重叠更亮
+    for (let i = 0; i < e.trail.length; i++){           // 拖尾光丝
+      const t = e.trail[i];
+      const al = i / e.trail.length * 0.22 * a;
+      ctx.fillStyle = hexA(e.color, al);
+      ctx.beginPath(); ctx.arc(t.x, t.y, sz * (i / e.trail.length) * 0.6, 0, 7); ctx.fill();
+    }
+    const g = ctx.createRadialGradient(e.x, e.y, 0, e.x, e.y, sz*2.4);  // 柔光晕：中心亮、边缘散
+    g.addColorStop(0, hexA(blend(e.color, '#ffffff', 0.5), 0.95 * a));
+    g.addColorStop(0.4, hexA(e.color, 0.5 * a));
+    g.addColorStop(1, hexA(e.color, 0));
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.arc(e.x, e.y, sz*2.4, 0, 7); ctx.fill();
+    ctx.globalCompositeOperation = 'source-over';
+    if (e.trail.length){                                // 尾巴标注事件性质（2-3字）
+      const tail = e.trail[0];
+      ctx.globalAlpha = 0.9 * a;
+      ctx.fillStyle = hexA(blend(e.color, '#ffffff', 0.4), 1);
+      ctx.font = '11px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(e.name, tail.x, tail.y);
+      ctx.globalAlpha = 1;
+    }
+    return;
+  }
+
+  // —— 生命体：粒子团（照搬“正式课鱼缸”视觉，仅视觉不改逻辑） ——
+  if (e.type === 'life'){
+    const Rv = e.r * 4;                                   // 粒子云可视半径（环/文字定位）
+    const energy = e.energy == null ? 100 : e.energy;
+    const sat = 40 + energy * 0.35;                       // 能量 → 颜色饱满度
+    const tn = now();
+    const flashI = (e.flash && tn < e.flash) ? (e.flash - tn) / 300 : 0;
+    const light = 52 + Math.min(28, (e.pulse||0) * 28) + flashI * 15;
+    const sketched = e.isStudent || (e.sketchImg && e.sketchImg.complete && e.sketchImg.naturalWidth);
+    if (!sketched){   // 粒子身体仅用于「没画草图的样板生命」；学员自绘生命不裹粒子云
+      ctx.globalCompositeOperation = 'lighter';
+      for (const p of e.particles){
+        const a = Math.min(0.95, 0.42 + Math.min(0.4, (e.pulse||0)*0.5) + flashI*0.3);
+        ctx.fillStyle = `hsla(${e.hue},${sat}%,${light}%,${a})`;
+        ctx.beginPath(); ctx.arc(p.x, p.y, 1.7, 0, 7); ctx.fill();
+      }
+      ctx.globalCompositeOperation = 'source-over';
+      const cg = ctx.createRadialGradient(e.x, e.y, 0, e.x, e.y, e.r*1.6);  // 中心微弱核光
+      cg.addColorStop(0, `hsla(${e.hue},${sat}%,${Math.min(80,light+10)}%,.5)`);
+      cg.addColorStop(1, 'transparent');
+      ctx.fillStyle = cg; ctx.beginPath(); ctx.arc(e.x, e.y, e.r*1.6, 0, 7); ctx.fill();
+    }
+    // 学生自绘草图 = 身体（有草图时把外形画出来，粒子团退为气场；无草图回退纯粒子）
+    if (e.sketchImg && e.sketchImg.complete && e.sketchImg.naturalWidth){
+      const tn2 = now(), fxx = e._fx || {};
+      const fxOn = fxx.t && tn2 < fxx.until;
+      const sc  = fxOn && fxx.scale ? fxx.scale : 1;
+      const dim = fxOn && fxx.dim ? Math.max(0.25, 1 - fxx.dim) : 1;
+      const jx  = (fxOn && fxx.jitter) ? (Math.random()-0.5)*7 : 0;
+      const jy  = (fxOn && fxx.jitter) ? (Math.random()-0.5)*7 : 0;
+      const sz  = e.r * 4.2 * sc;
+      ctx.save();
+      ctx.translate(e.x + jx, e.y + jy);
+      ctx.rotate(e.rot * 0.25);                      // 跟随身体缓慢自转（粒子气场同向）
+      ctx.globalAlpha = clamp(dim, 0, 1);
+      ctx.drawImage(e.sketchImg, -sz/2, -sz/2, sz, sz);
+      ctx.restore();
+    }
+    if (e.tintAmt > 0 && e.tint){                         // 被浪潮底色染色时叠一层淡色
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.fillStyle = hexA(e.tint, 0.10 * e.tintAmt);
+      ctx.beginPath(); ctx.arc(e.x, e.y, Rv, 0, 7); ctx.fill();
+      ctx.globalCompositeOperation = 'source-over';
+    }
+    if (!sketched){   // 外圈描边是粒子生命的定位环，学员自绘生命不掺这层
+      ctx.strokeStyle = 'rgba(255,255,255,.35)'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.arc(e.x, e.y, Rv, 0, 7); ctx.stroke();
+    }
+    if (e.lightLink && tn < e.lightLink.until){   // 光带连线（AI 原语 lightLink）
+      const k = 1 - (e.lightLink.until - tn)/700;
+      ctx.save(); ctx.globalCompositeOperation = 'lighter';
+      ctx.strokeStyle = `hsla(${e.hue},80%,70%,${0.55*(1-k)})`; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(e.x, e.y); ctx.lineTo(e.lightLink.x, e.lightLink.y); ctx.stroke();
+      ctx.restore();
+    }
+    if (e.alert && tn < e.alert){                         // 危险红环
+      ctx.strokeStyle = 'rgba(255,90,100,.7)'; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.arc(e.x, e.y, Rv + 6, 0, 7); ctx.stroke();
+    }
+    if (e.waveAlert && tn < e.waveAlert && e.waveAlertColor){   // 浪潮色感知环
+      ctx.strokeStyle = hexA(e.waveAlertColor, 0.7); ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.arc(e.x, e.y, Rv + 9, 0, 7); ctx.stroke();
+    }
+    if (e.flash && tn < e.flash){                          // 受击闪光环
+      const k = 1 - (e.flash - tn)/600;
+      ctx.globalAlpha = (1 - k) * 0.9; ctx.strokeStyle = e.flashColor || '#fff'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.arc(e.x, e.y, Rv + 4 + k*14, 0, 7); ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+    if (e.evoT && tn < e.evoT + 900){                  // 进化光环：长大/升级绽放
+      const k = (tn - e.evoT) / 900;
+      ctx.globalAlpha = (1 - k) * 0.85; ctx.strokeStyle = '#bfffd0'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.arc(e.x, e.y, Rv + 6 + k*32, 0, 7); ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+    if (e.name){
+      ctx.fillStyle = 'rgba(255,255,255,.82)'; ctx.font = '11px system-ui'; ctx.textAlign = 'center';
+      ctx.fillText(e.name, e.x, e.y - Rv - 6);
+    }
+    ctx.fillStyle = 'rgba(255,255,255,.45)';
+    ctx.fillText(STATE_LABEL[e.state] || e.state, e.x, e.y - Rv - 19);
+    return;
+  }
+
+  // —— 其余类型（target/creation/resource）—— 保持原通用渲染 ——
+  for (let i = 0; i < e.trail.length; i++){
+    const p = e.trail[i], a = i / e.trail.length * 0.5;
+    ctx.globalAlpha = a; ctx.fillStyle = e.color;
+    ctx.beginPath(); ctx.arc(p.x, p.y, e.r * (i / e.trail.length), 0, 7); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+
+  const g = ctx.createRadialGradient(e.x, e.y, 0, e.x, e.y, e.r*2.4);
+  if (e.type === 'target' && e.rainbow){
+    g.addColorStop(0, '#fff');
+    g.addColorStop(.4, `hsl(${(now()/8)%360},90%,65%)`);
+    g.addColorStop(1, 'rgba(0,0,0,0)');
+  } else if (e.type === 'resource' && e.rarity === 'rare'){
+    g.addColorStop(0, blend(e.color, '#ffffff', 0.6));
+    g.addColorStop(0.5, e.color);
+    g.addColorStop(1, 'rgba(0,0,0,0)');
+  } else { g.addColorStop(0, e.color); g.addColorStop(1, 'rgba(0,0,0,0)'); }
+  ctx.fillStyle = g;
+  ctx.beginPath(); ctx.arc(e.x, e.y, e.r*2.4, 0, 7); ctx.fill();
+
+  let coreColor = (e.type === 'target' && e.rainbow) ? `hsl(${(now()/8)%360},90%,60%)` : e.color;
+  let cr = e.r;
+  ctx.fillStyle = coreColor;
+  ctx.beginPath(); ctx.arc(e.x, e.y, cr, 0, 7); ctx.fill();
+
+  if (e.type === 'resource' && e.rarity === 'rare'){
+    const k = (Math.sin(now()/300) + 1) / 2;          // 稀有：金色呼吸光环 + 星标
+    ctx.strokeStyle = hexA(blend(e.color, '#ffcf5b', 0.6), 0.5 + 0.4*k);
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(e.x, e.y, e.r + 6 + k*3, 0, 7); ctx.stroke();
+    ctx.fillStyle = hexA('#ffcf5b', 0.85);
+    ctx.font = '12px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('✦', e.x + e.r*0.75, e.y - e.r*0.75);
+    ctx.textBaseline = 'alphabetic';
+  }
+
+  if (e.type === 'creation'){
+    ctx.strokeStyle = 'rgba(255,255,255,.85)'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(e.x, e.y, e.r + 4, 0, 7); ctx.stroke();
+  }
+
+  if (e.name){
+    ctx.fillStyle = 'rgba(255,255,255,.82)'; ctx.font = '11px system-ui'; ctx.textAlign = 'center';
+    ctx.fillText(e.name, e.x, e.y - e.r - 6);
+  }
+}
+
+/* ============================ 浪潮绘制（柔边波浪，非硬边矩形） ============================ */
+function drawWave(w){
+  if (w.status === 'done') return;
+  const tn = now() / 1000;
+  const alpha = 0.12 + 0.05 * w.pass;            // 三轮逐次加深
+  ctx.save();
+  if (w.dir === 'L' || w.dir === 'R'){
+    const cx = w.progress * W, th = w.curThick || w.wallThick;
+    // 横向柔边渐变带（中心亮、两边透明）
+    const g = ctx.createLinearGradient(cx - th, 0, cx + th, 0);
+    g.addColorStop(0, hexA(w.color, 0)); g.addColorStop(0.5, hexA(w.color, alpha)); g.addColorStop(1, hexA(w.color, 0));
+    ctx.fillStyle = g; ctx.fillRect(cx - th, 0, th*2, H);
+    // 翻滚波浪线（多条相位差的正弦竖曲线）
+    for (let k = 0; k < 3; k++){
+      ctx.beginPath();
+      const freq = 0.02 + k*0.012, amp = 7 + k*5, phase = tn*(1.1 + k*0.4) + k*2;
+      for (let y = 0; y <= H; y += 8){ const x = cx + Math.sin(y*freq + phase)*amp; y===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y); }
+      ctx.strokeStyle = hexA(blend(w.color, '#ffffff', 0.5), alpha*0.55); ctx.lineWidth = 1.4; ctx.stroke();
+    }
+  } else {
+    const cy = w.progress * H, th = w.curThick || w.wallThick;
+    const g = ctx.createLinearGradient(0, cy - th, 0, cy + th);
+    g.addColorStop(0, hexA(w.color, 0)); g.addColorStop(0.5, hexA(w.color, alpha)); g.addColorStop(1, hexA(w.color, 0));
+    ctx.fillStyle = g; ctx.fillRect(0, cy - th, W, th*2);
+    for (let k = 0; k < 3; k++){
+      ctx.beginPath();
+      const freq = 0.02 + k*0.012, amp = 7 + k*5, phase = tn*(1.1 + k*0.4) + k*2;
+      for (let x = 0; x <= W; x += 8){ const y = cy + Math.sin(x*freq + phase)*amp; x===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y); }
+      ctx.strokeStyle = hexA(blend(w.color, '#ffffff', 0.5), alpha*0.55); ctx.lineWidth = 1.4; ctx.stroke();
+    }
+  }
+  ctx.restore();
+}
+
+const STATE_LABEL = { wandering:'游荡', observing:'观察', participating:'参与', reacting:'反应',
+  fleeing:'躲避', fascinated:'着迷', gathering:'聚拢', wary:'警觉' };
+
+/* ============================ 学生创造：原话保存 → 规则归一化 ============================ */
+function parseCreation(text){
+  const rules = [];
+  let targetId = null, remixOf = null;
+  const unsupported = [];
+  let fallback = false;
+  const has = re => re.test(text);
+
+  // 样例1：碰到蓝色光斑的人，要和另一个人一起把它变成彩虹
+  if (has(/蓝色/) && has(/彩虹/)){
+    const tgt = makeTarget('#3a7bff', '蓝色光斑');
+    world.targets.push(tgt); targetId = tgt.id;
+    rules.push({ condition:{ type:'co_presence', count:2, distance:80 },
+                 action:{ type:'change_color', value:'rainbow' },
+                 meta:'blue_rainbow', targetId: tgt.id, cooldown:4000 });
+  }
+  // 样例2：倒霉事件撞到生命体之后，会把附近的光斑全部吹走
+  if (has(/倒霉/) && (has(/吹走/) || has(/吹散/) || has(/推开/))){
+    rules.push({ condition:{ type:'collision', targetType:'life' },
+                 action:{ type:'blow_away', radius:185 },
+                 meta:'badluck_blow', cooldown:2500 });
+  }
+  // 样例3：资源被生命体碰到后，会生成一个新的玩具
+  if (has(/资源/) && has(/生成/) && has(/玩具|礼物|新[的]?物件|新的东西/)){
+    rules.push({ condition:{ type:'touch', target:'resource' },
+                 action:{ type:'spawn', objectType:'玩具', tags:['toy'] },
+                 meta:'toy_spawn', cooldown:3500 });
+  }
+  // 通用：生成/长出 X（生命体靠近时）
+  if (rules.length === 0 && has(/生成|长出|冒出/)){
+    const m = text.match(/(?:生成|长出|冒出)[了]?[一]?[朵个片只座件]([^，。\s]{1,4})/);
+    const noun = m ? m[1] : '新物体';
+    rules.push({ condition:{ type:'life_nearby', distance:70 },
+                 action:{ type:'spawn', objectType:noun, tags:[] },
+                 meta:'spawn_' + noun, cooldown:3000 });
+  }
+  // 通用：消耗资源
+  if (rules.length === 0 && has(/消耗|吃掉|用完/)){
+    rules.push({ condition:{ type:'resource_nearby', distance:85 },
+                 action:{ type:'consume_resource', tags:[] },
+                 meta:'consume', cooldown:3000 });
+  }
+  // 通用：邀请/一起
+  if (rules.length === 0 && has(/邀请|叫.{0,4}一起|一起来|带.{0,2}参加/)){
+    rules.push({ condition:{ type:'co_presence', count:2, distance:80 },
+                 action:{ type:'invite' }, meta:'invite', cooldown:4500, targetId });
+  }
+  // 通用：改变方向 / 吹走（事件碰撞）
+  if (rules.length === 0 && has(/改变方向|吹走|推开/)){
+    rules.push({ condition:{ type:'collision', targetType:'life' },
+                 action:{ type:'change_direction' }, meta:'chgdir', cooldown:2500 });
+  }
+  // 兜底
+  if (rules.length === 0){
+    fallback = true;
+    unsupported.push('未能识别具体动作，仅记录“被发现”');
+    rules.push({ condition:{ type:'life_nearby', distance:70 },
+                 action:{ type:'leave_trace', traceType:'creation_triggered' },
+                 meta:'generic', cooldown:3000 });
+  }
+
+  // remix：基于已有作品的新版本
+  if (has(/新版本|升级|再做一个|改一版|改进|重做/)){
+    const last = world.creations[world.creations.length - 1];
+    if (last) remixOf = last.id;
+  }
+
+  return { rules, targetId, unsupported, fallback, remixOf };
+}
+
+function buildCreation(text, id, creator, title){
+  const p = parseCreation(text);
+  const c = makeCreation({
+    id: id || ('cre_'+uid()), creatorId: creator || 'student',
+    title: title || (text.slice(0,12) + (text.length > 12 ? '…' : '')),
+    originalDescription: text, rules: p.rules, targetId: p.targetId
+  });
+  c.unsupported = p.unsupported; c.fallback = p.fallback; c.remixOf = p.remixOf;
+  world.creations.push(c);
+  if (p.remixOf){
+    addRecognition({ creationId:c.id, actorId: creator || 'student', type:'remixed', relatedCreationId: p.remixOf });
+    addTrace({ type:'object_spawned', creationId:c.id,
+      description:`《${c.title}》是基于已有作品的新版本` });
+    floatText(c.x, c.y - 22, '产生了新版本', '#b06bff');
+  }
+  addTrace({ type:'creation_triggered', creationId: c.id,
+    description:`学生创造了《${c.title}》：${text}` });
+  return c;
+}
+function onCreate(){
+  const v = inputEl.value.trim();
+  if (!v){ toast('先写点什么再创造～'); return; }
+  const c = buildCreation(v);
+  inputEl.value = '';
+  toast('已创造：' + c.title);
+  renderCreations();
+  scheduleSave();
+}
+
+/* ============================ 持久化（localStorage） ============================ */
+const LS = { c:'sym_creations', t:'sym_traces', r:'sym_rec' };
+let _st = 0;
+function scheduleSave(){ clearTimeout(_st); _st = setTimeout(save, 400); }
+function save(){
+  try{
+    localStorage.setItem(LS.c, JSON.stringify(world.creations.map(c => ({
+      id:c.id, creatorId:c.creatorId, title:c.title, originalDescription:c.originalDescription
+    }))));
+    localStorage.setItem(LS.t, JSON.stringify(world.traces.slice(0,100)));
+    localStorage.setItem(LS.r, JSON.stringify(world.recognitions.slice(0,100)));
+  }catch(e){}
+}
+function load(){
+  try{
+    const cs = JSON.parse(localStorage.getItem(LS.c) || '[]');
+    for (const c of cs) buildCreation(c.originalDescription, c.id, c.creatorId, c.title);
+    const tr = JSON.parse(localStorage.getItem(LS.t) || '[]');
+    for (const r of tr) world.traces.push(r);
+    const rc = JSON.parse(localStorage.getItem(LS.r) || '[]');
+    for (const r of rc) world.recognitions.push(r);
+  }catch(e){}
+}
+
+/* ============================ 面板渲染 ============================ */
+const inputEl = document.getElementById('input');
+const creationsEl = document.getElementById('creations');
+const tracesEl = document.getElementById('traces');
+const toastEl = document.getElementById('toast');
+let toastTimer = 0;
+function toast(msg){
+  toastEl.textContent = msg; toastEl.style.opacity = '1';
+  clearTimeout(toastTimer); toastTimer = setTimeout(()=> toastEl.style.opacity = '0', 1800);
+}
+function renderCreations(){
+  if (!creationsEl) return;                  // 大屏不再做创造 UI，作品面板已移至手机端
+  if (!world.creations.length){ creationsEl.innerHTML = '<div class="empty">还没有创造。写一句话，点「创造」。</div>'; return; }
+  creationsEl.innerHTML = world.creations.map(c => {
+    const part = world.recognitions.filter(r => r.creationId === c.id && r.type === 'joined').length;
+    const seen = world.recognitions.filter(r => r.creationId === c.id && r.type === 'noticed').length;
+    const replay = world.recognitions.filter(r => r.creationId === c.id && r.type === 'replayed').length;
+    const remix = world.recognitions.filter(r => r.creationId === c.id && r.type === 'remixed').length;
+    const warn = c.unsupported.length
+      ? `<div class="warn">未识别：${c.unsupported.join('；')}</div>` : '';
+    const rm = c.remixOf ? `<div class="s">含新版本记录</div>` : '';
+    return `<div class="item"><div class="t">${esc(c.title)}</div>
+      <div class="d">${esc(c.originalDescription)}</div>
+      <div class="s">发现 ${seen} · 参与 ${part} · 重复 ${replay} · 新版本 ${remix}</div>
+      ${rm}${warn}</div>`;
+  }).join('');
+}
+function renderTraces(){
+  if (!world.traces.length){ tracesEl.innerHTML = '<div class="empty">世界还安静着。</div>'; return; }
+  tracesEl.innerHTML = world.traces.slice(0,60).map(t => {
+    const time = new Date(t.timestamp).toLocaleTimeString('zh-CN', { hour12:false });
+    return `<div class="item"><div class="ts">${time} · ${t.type}</div>
+      <div class="msg">${esc(t.description)}</div></div>`;
+  }).join('');
+}
+function esc(s){ return String(s).replace(/[&<>"]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m])); }
+
+const SAMPLES = [
+  '碰到蓝色光斑的人，要和另一个人一起把它变成彩虹。',
+  '倒霉事件撞到生命体之后，会把附近的光斑全部吹走。',
+  '资源被生命体碰到后，会生成一个新的玩具。',
+  '有生命停在创造物旁边，就生成一朵小花。',
+  '让靠近的两个生命体互相邀请。',
+  '做一个这个作品的新版本。',
+];
+// 创作 UI 已移至手机端（学生3），大屏不再绑定 chips / createBtn / input
+
+/* ============================ 交互 ============================ */
+document.getElementById('density').addEventListener('input', e => { eventDensity = parseFloat(e.target.value); });
+document.getElementById('pauseBtn').addEventListener('click', e => {
+  paused = !paused; e.target.textContent = paused ? '继续' : '暂停';
+});
+function refillTank(){
+  world.lives = LIFE_DEFS.map(makeLife);
+  world.resources = RES_DEFS.slice(0,4).map(makeResource);
+  world.events = [ makeEvent(null,{bad:true}), makeEvent(pick(EVENT_DEFS)) ];
+  world.objects = [];
+  toast('共生缸已重新充满');
+}
+document.getElementById('refillBtn').addEventListener('click', refillTank);
+
+const tip = document.getElementById('tooltip');
+const tipName = document.getElementById('tip-name');
+const tipSub = document.getElementById('tip-sub');
+cv.addEventListener('mousemove', e => {
+  const rect = cv.getBoundingClientRect();
+  const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+  let hit = null;
+  for (const ent of allEntities()){
+    if (Math.hypot(ent.x - mx, ent.y - my) < ent.r + 6){ hit = ent; break; }
+  }
+  if (hit){
+    tip.style.display = 'block';
+    tip.style.left = (e.clientX + 14) + 'px';
+    tip.style.top  = (e.clientY + 14) + 'px';
+    tipName.textContent = hit.name || hit.type;
+    let sub = TYPE_CN[hit.type] || hit.type;
+    if (hit.type === 'life'){
+      const a = hit.attrs;
+      sub += ' · ' + (STATE_LABEL[hit.state] || '') + ' · 能量' + Math.round(hit.energy) + ' · 碰撞' + (hit.hitCount||0);
+      const LABEL = { brave:'勇', power:'武', agility:'敏', perception:'感', caution:'慎', social:'交', luck:'运' };
+      sub += ' · ' + ATTR_KEYS.map(k => LABEL[k] + (a[k] ?? 0)).join(' ');
+      const customKeys = Object.keys(a).filter(k => !ATTR_KEYS.includes(k));
+      if (customKeys.length) sub += ' · 自定义:' + customKeys.map(k => k + ':' + a[k]).join(' ');
+    }
+    if (hit.type === 'resource') sub += ' · ' + (hit.rarity === 'rare' ? '稀有' : '普通') + ' · ' + hit.status;
+    if (hit.type === 'event') sub += ' · ' + (hit.eventType === 'wave_event' ? '浪潮专属事件' : hit.eventType);
+    if (hit.type === 'creation') sub += ' · 规则×' + hit.rules.length + (hit.fallback ? '（兜底）' : '');
+    if (hit.type === 'object') sub += ' · 生成物';
+    tipSub.textContent = sub;
+  } else { tip.style.display = 'none'; }
+});
+cv.addEventListener('mouseleave', () => tip.style.display = 'none');
+cv.addEventListener('click', e => {
+  const rect = cv.getBoundingClientRect();
+  const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+  let hit = false;
+  for (const ent of allEntities()){ if (Math.hypot(ent.x - mx, ent.y - my) < ent.r + 6){ hit = true; break; } }
+  if (!hit){ world.events.push(makeEvent(pick(EVENT_DEFS))); toast('投放了一个新的世界事件'); }
+});
+const TYPE_CN = { life:'生命体', resource:'资源', event:'世界事件', creation:'创造物', target:'目标光斑', object:'生成物' };
+
+/* ============================ HUD 计数 ============================ */
+function refreshHUD(){
+  document.getElementById('h-life').textContent = world.lives.length;
+  document.getElementById('h-res').textContent  = world.resources.filter(r => r.status === 'available').length;
+  document.getElementById('h-evt').textContent  = world.events.length;
+  document.getElementById('h-cre').textContent  = world.creations.length;
+  document.getElementById('h-obj').textContent  = world.objects.length;
+  document.getElementById('h-online').textContent = 10 + (world.recognitions.length % 8);
+  renderRoster();
+  renderTrends();
+}
+setInterval(() => { refreshHUD(); if (!paused) renderCreations(); }, 600);
+
+/* ============================ 启动 ============================ */
+function init(){
+  resize();
+  world.lives = [];                                // 空缸开局：生命由老师释放 / 学生进入
+  world.resources = RES_DEFS.slice(0,4).map(makeResource);
+  world.events = [ makeEvent(null,{bad:true}), makeEvent(pick(EVENT_DEFS)) ];
+  load();
+  renderCreations();
+  renderTraces();
+  refreshHUD();
+  last = now();
+  requestAnimationFrame(loop);
+}
+// 暴露最小调试接口，便于自动化真实验证（不影响生产运行）
+window.__sym = { world, update, render, resize, collide, scatter, step, makeEvent, makeLife, makeResource, lifeAI, lifeWaveReact, now, STATE_LABEL, reactTo, applyWorldReaction, perceive, decidePersonality, blend, makeWave, makeWaveEvent, makeWaveDeposit, updateWaves, makeEraResource, WAVE_DEFS,
+  emit, updateFX, drawFX, lifeDevour, lifeEmote, lifeReactFX, lifeConnect, lifeGrowDie, onDevour, setEmotion, makeCustomLife, FX_MAX };
+
+/* —— 老师释放 / 收回 + 学员生命桥接 —— */
+function makeCustomLife(opts){
+  opts = opts || {};
+  const hue = (opts.hue != null) ? opts.hue : Math.floor(Math.random()*360);
+  const l = makeLife({
+    name: opts.name || ('生命'+Math.floor(Math.random()*1000)),
+    tags: opts.tags || [],
+    attrs: opts.attrs || { brave:50, power:50, agility:50, perception:50, caution:50, social:50, luck:50 },
+    density: opts.density||55, sizeK: opts.sizeK||12, spring: opts.spring||8, emoPref: opts.emoPref||'dance',
+    dims: opts.dims || null, skill: opts.skill || null,
+    creator: opts.creator || '缸', studentId: opts.studentId || null
+  });
+  l.hue = hue;                       // 覆盖 makeLife 里 hexToHue(undefined) 产生的错误 hue（修复学生生命全红）
+  l.color = `hsl(${hue},78%,62%)`;   // 同时补上 body 颜色，供光晕/染色使用
+  return l;
+}
+// 老师端：释放共生缸内置演示生命
+function releaseTeacher(n){
+  n = n || 1;
+  for (let i=0;i<n;i++) world.lives.push(makeLife(pick(LIFE_DEFS)));
+  toast('老师释放了 ' + n + ' 个演示生命');
+}
+function recallAll(){
+  world.lives = [];
+  // 同步删除服务端内存里的学员生命，否则 3 秒后 syncLivesFromServer 会把它们拉回来
+  try { fetch(apiPath('/api/a3/world/life'), { method:'DELETE', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ all:true }) }).catch(()=>{}); } catch(_){}
+  toast('已收回全部生命（屏幕交给学生）');
+}
+
+// 学员提交的生命进入世界（手机端经 BroadcastChannel / 生产可换 POST /api/world/life）
+function spawnStudentLife(payload){
+  payload = payload || {};
+  const l = makeCustomLife({
+    name: payload.name || '学员生命',
+    hue: payload.hue != null ? payload.hue : Math.floor(Math.random()*360),
+    dims: (payload.dims && Object.keys(payload.dims).length) ? payload.dims : { 生机:100 },
+    skill: payload.skill || null,
+    creator: payload.creator || '学员',
+    studentId: payload.studentId || null
+  });
+  // 学生自绘草图 → 生命身体（外形=学生画的图，粒子团退为气场）
+  const sk = (payload.skill && payload.skill.创造 && payload.skill.创造.sketch);
+  if (sk && typeof sk === 'string' && sk.indexOf('data:image') === 0){
+    const img = new Image();
+    img.onload = function(){ l.sketchImg = img; };
+    img.src = sk;
+  }
+  l.isStudent = true;
+  world.lives.push(l);
+  emit(l, 'emo', { count: 26, hue: l.hue, size: 2.4 });
+  l.flash = now() + 400; l.flashColor = '#bfffd0';
+  toast('学员「' + l.name + '」进入世界');
+}
+
+/* —— 设备联动：手机创造端 / 教师端 → 大屏（同源 BroadcastChannel）—— */
+try {
+  const bc = new BroadcastChannel('sym-tank');
+  bc.onmessage = (e) => {
+    const m = e.data || {};
+    if (m.type === 'sym-submit') spawnStudentLife(m.payload || {});
+    else if (m.type === 'sym-recall' && m.studentId) {
+      world.lives = world.lives.filter(l => !(l.studentId && l.studentId === m.studentId));
+      toast('学员收回：' + m.studentId);
+    }
+    // —— 教师端遥控（A3 融入 Classroom V2）——
+    else if (m.type === 'sym-release') releaseTeacher(m.n || 1);
+    else if (m.type === 'sym-recall-all') recallAll();
+    else if (m.type === 'sym-pause') { const p=document.getElementById('pauseBtn'); if(p){ paused=!paused; p.textContent = paused ? '继续' : '暂停'; } }
+    else if (m.type === 'sym-refill') refillTank();
+    else if (m.type === 'sym-visual') {
+      if (typeof m.speed === 'number') world.tempoTarget = clamp(m.speed, 0.2, 3);
+      if (typeof m.brightness === 'number') { brightness = clamp(m.brightness, 0.2, 3); document.body.style.filter = 'brightness(' + brightness + ')'; }
+      if (typeof m.density === 'number') { eventDensity = clamp(m.density, 0.3, 3); const d=document.getElementById('density'); if(d) d.value = String(eventDensity); }
+    }
+  };
+  window.__symBC = bc;
+  // 周期性回传状态给教师端（同源 BroadcastChannel）
+  setInterval(() => {
+    try { bc.postMessage({ type:'sym-hud', payload:{ lives: world.lives.length, speed: world.tempo, brightness, density: eventDensity } }); } catch(_){}
+  }, 800);
+} catch(_) {}
+
+/* 服务器中转：学生端 POST 存服务器，大屏拉取（跨会话/后开都能收到，不丢消息） */
+function apiPath(p){
+  const bp = new URLSearchParams(location.search).get('bp');
+  if (bp) return bp + p;
+  // 嗅探：a3 页面自身就在 basePath 子路径下（如 /lesson2/a3/bigscreen.html），取其前缀拼 API
+  const m = location.pathname.match(/^(\/[^/]*)\/a3\//);
+  return (m ? m[1] : '') + p;
+}
+function syncLivesFromServer(){
+  fetch(apiPath('/api/a3/world/life'), { headers:{'Content-Type':'application/json'} })
+    .then(r => r.json()).then(j => {
+      if (!j || !j.lives) return;
+      const remote = j.lives;
+      const localIds = new Set(world.lives.filter(l => l.studentId).map(l => l.studentId));
+      const remoteIds = new Set(remote.map(r => r.studentId));
+      for (const r of remote){ if (r.studentId && !localIds.has(r.studentId)) spawnStudentLife(r); }
+      world.lives = world.lives.filter(l => !l.studentId || remoteIds.has(l.studentId));
+    }).catch(() => {});
+}
+try { syncLivesFromServer(); setInterval(syncLivesFromServer, 3000); } catch(_) {}
+
+/* —— 老师端按钮 —— */
+document.getElementById('relBtn').addEventListener('click', () => releaseTeacher(1));
+document.getElementById('relBtn2').addEventListener('click', () => releaseTeacher(3));
+document.getElementById('recallBtn').addEventListener('click', recallAll);
+
+/* —— 生命名单（roster）渲染 —— */
+function renderRoster(){
+  const box = document.getElementById('roster');
+  if (!box) return;
+  if (!world.lives.length){ box.innerHTML = '<div class="empty">还没有生命。老师释放或学生进入后，这里会列出名字。</div>'; return; }
+  box.innerHTML = world.lives.map(l => {
+    const top = Object.entries(l.dims||{}).sort((a,b)=>b[1]-a[1]).slice(0,3)
+      .map(([k,v])=>`${k}${Math.round(v)}`).join('·');
+    return `<div class="item"><i class="dot" style="background:hsl(${l.hue},85%,62%)"></i>`
+      + `<span class="nm">${esc(l.name)}</span>`
+      + `<span class="sub">${l.creator==='缸'?'演示':('学员·'+esc(l.creator))} · 总分${Math.round(lifeScore(l))}</span>`
+      + `<span class="pill" style="font-size:11px;margin-left:auto">${top}</span></div>`;
+  }).join('');
+}
+
+/* —— 当前潮流 / 浪潮 —— */
+function renderTrends(){
+  const box = document.getElementById('trends');
+  if (!box) return;
+  const active = (world.waves||[]).filter(w => w.status === 'active');
+  if (!active.length){ box.innerHTML = '<div class="empty">暂无浪潮。</div>'; return; }
+  box.innerHTML = active.map(w => {
+    const d = WAVE_DEFS.find(x => x.type === w.waveType) || {};
+    const label = (d.event && d.event.name) || w.name || w.waveType;
+    return `<div class="item"><i class="dot" style="background:#7C5CFF"></i>`
+      + `<span class="nm">${esc(label)}</span>`
+      + `<span class="sub">进度 ${Math.round((w.progress||0))}%</span></div>`;
+  }).join('');
+}
+
+init();
+
+})();
+</script>
+</body>
+</html>
