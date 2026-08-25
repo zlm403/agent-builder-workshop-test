@@ -97,10 +97,38 @@ export async function POST(req: NextRequest) {
 
   // —— 提取模式：按块从对话生成该块的表现规格片段 ——
   if (body.extract) {
-    const block = String(body.block || '') as SpecBlockKey;
-    const validBlock = SPEC_BLOCKS.some((b) => b.key === block) ? block : 'social';
+    const blockRaw = String(body.block || '');
     const convo = String(body.convo || '');
     const fields = (body.fields && typeof body.fields === 'object' ? body.fields : {}) as Record<string, unknown>;
+
+    // —— 中文六块兼容（当前 student.html / bigscreen.html 走的格式：fields 结构 + 中文 block）——
+    const CN_BLOCK: Record<string, string> = { 创造:'创造', 交流:'交流', 反应:'反应', 资源:'资源', 潮流:'潮流', 成长:'成长' };
+    if (CN_BLOCK[blockRaw]) {
+      const CN_SCHEMA: Record<string, string> = {
+        创造: '提取 JSON：{name,shape,blurb}。shape 必须是「学员描述的形状」的 SVG 字符串（<svg viewBox="0 0 100 100" width="100" height="100">…</svg>，用纯色 path/polygon/circle 拼出形状轮廓，填白色 #fff，不用文字图片）；学员没提形状才用"光斑"两字。name 是生命名，blurb 是学员原话的一句话。',
+        交流: '提取 JSON：{approach,avoid,onMeet,visuals}。visuals 是表现原语数组，每项为对象 {action,color?,label?}：action 从 [lightLink 光带连线, emitSelf 撒自己的小星星, nuzzle 蹭一下, spit 吐个小东西, orbit 绕着转, avoid 躲开, dance 打招呼] 选；color 用学员说的颜色（如"红色"→red，"绿色的光"→#4ade80），没说就不填；label 是学员原话里这个表现的简短描述。',
+        反应: '提取 JSON：{manifest,dropDims,visuals}。dropDims 是优先扣的维度名数组；visuals 为对象数组 {action,color?}：action 从 [shrink 缩成一团, jitter 发抖, dim 变暗, bubble 冒泡泡, cry 哭泣, flash 闪光] 选；color 用学员说的颜色，没说则不填。',
+        资源: '提取 JSON：{consume,visuals}。visuals 为对象数组 {action,color?}：action 从 [grow 慢慢长大, devour 吃掉, glow 发光, dance 开心转圈] 选；color 用学员说的颜色，没说则不填。',
+        潮流: '提取 JSON：{mode,visuals}。visuals 为对象数组 {action,color?}：action 从 [follow 随波而行, resist 逆流而上, still 静静观看] 选；color 用学员说的颜色，没说则不填。',
+        成长: '提取 JSON：{grow,death,visuals}。visuals 为对象数组 {action,color?}：action 从 [grow 长大一圈, fade 缓缓飘散] 选；color 用学员说的颜色，没说则不填。',
+      };
+      const sys = '你是共生缸共创助教。' + CN_SCHEMA[blockRaw] + ' 只输出 JSON，不要 markdown 代码块。';
+      const user = `学员在本块的对话：\n${convo || '（无对话）'}\n请输出 JSON。`;
+      try {
+        const content = await chatWithLLM([{ role: 'user', content: user }], sys, { json: true, temperature: 0.4, maxTokens: 900, timeoutMs: 20000 });
+        const parsed = (() => { try { return JSON.parse(content); } catch { const m = content.match(/\{[\s\S]*\}/); if (m) { try { return JSON.parse(m[0]); } catch { return null; } } return null; } })();
+        if (parsed && typeof parsed === 'object' && !parsed.followup) {
+          return NextResponse.json({ ok: true, block: blockRaw, fields: parsed });
+        }
+        if (parsed && parsed.followup) {
+          return NextResponse.json({ ok: true, block: blockRaw, fields: { followup: String(parsed.followup) } });
+        }
+      } catch { /* fallthrough */ }
+      return NextResponse.json({ ok: false, block: blockRaw, fields: null });
+    }
+
+    const block = blockRaw as SpecBlockKey;
+    const validBlock = SPEC_BLOCKS.some((b) => b.key === block) ? block : 'social';
 
     const sys = [
       '你是《我的世界》里帮学生把想法变成生命表现的共创助教。',

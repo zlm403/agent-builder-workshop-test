@@ -191,7 +191,7 @@ const BLOCK_SYS = {
 };
 const GENERAL_SYS = '你是共生缸共创助教。学员可能随便说，你接话追问，并判断他聊到哪个技能块（创造/交流/反应/资源/潮流/成长），引导他去点对应技能细聊。';
 const BLOCK_SCHEMA_SYS = {
-  '创造':'从对话提取 JSON：{name,shape,blurb}。',
+  '创造':'从对话提取 JSON：{name,shape,blurb}。shape 必须是「学员描述的形状」的 SVG 字符串（<svg viewBox="0 0 100 100" ...>…</svg>，用纯色 path/polygon/circle 拼出形状轮廓，填白色 #fff，宽度 100 高度 100，不用文字不用图片）；学员没提形状才用默认光斑（"光斑"两字）。name 是生命名，blurb 是学员原话的一句话。',
   '交流':'提取 JSON：{approach,avoid,onMeet,visuals}。visuals 是表现原语数组，每项为对象 {action,color?,label?}：action 从 [lightLink 光带连线, emitSelf 撒自己的小星星, nuzzle 蹭一下, spit 吐个小东西, orbit 绕着转, avoid 躲开, dance 打招呼] 选；color 用学员说的颜色（如 "红色"→red，"绿色的光"→#4ade80），学员没说颜色就不填；label 是学员原话里这个表现的简短描述。',
   '反应':'提取 JSON：{manifest,dropDims,visuals}。dropDims 是优先扣的维度名数组；visuals 为对象数组 {action,color?}：action 从 [shrink 缩成一团, jitter 发抖, dim 变暗, bubble 冒泡泡, cry 哭泣, flash 闪光] 选；color 用学员说的颜色，没说则不填。',
   '资源':'提取 JSON：{consume,visuals}。visuals 为对象数组 {action,color?}：action 从 [grow 慢慢长大, devour 吃掉, glow 发光, dance 开心转圈] 选；color 用学员说的颜色，没说则不填。',
@@ -242,11 +242,41 @@ function fallbackGuide(system, message, block){
   }
   return '我在听。再多说两句，或者点「✓ 定下来」让我帮你把这段聊的内容总结成这块的设定。';
 }
+// 常见形状词 → 预置 SVG（规则兜底：AI 没生成时也能画对形状）
+function shapeSvg(word){
+  const c = (d) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">${d}</svg>`;
+  const w = '#fff';
+  const map = {
+    '五角星': () => c(`<polygon points="50,8 61,40 95,40 67,60 78,92 50,72 22,92 33,60 5,40 39,40" fill="${w}"/>`),
+    '星星': () => c(`<polygon points="50,8 61,40 95,40 67,60 78,92 50,72 22,92 33,60 5,40 39,40" fill="${w}"/>`),
+    '心': () => c(`<path d="M50 88 C 20 62, 8 46, 8 30 C 8 16, 20 8, 32 8 C 40 8, 47 13, 50 20 C 53 13, 60 8, 68 8 C 80 8, 92 16, 92 30 C 92 46, 80 62, 50 88 Z" fill="${w}"/>`),
+    '爱心': () => c(`<path d="M50 88 C 20 62, 8 46, 8 30 C 8 16, 20 8, 32 8 C 40 8, 47 13, 50 20 C 53 13, 60 8, 68 8 C 80 8, 92 16, 92 30 C 92 46, 80 62, 50 88 Z" fill="${w}"/>`),
+    '月亮': () => c(`<path d="M65 8 A 42 42 0 1 0 65 92 A 34 34 0 1 1 65 8 Z" fill="${w}"/>`),
+    '圆球': () => c(`<circle cx="50" cy="50" r="38" fill="${w}"/>`),
+    '光斑': () => c(`<circle cx="50" cy="50" r="38" fill="${w}"/>`),
+    '圆': () => c(`<circle cx="50" cy="50" r="38" fill="${w}"/>`),
+    '光点': () => c(`<circle cx="50" cy="50" r="30" fill="${w}"/>`),
+    '光团': () => c(`<circle cx="50" cy="50" r="30" fill="${w}"/>`),
+    '方块': () => c(`<rect x="18" y="18" width="64" height="64" rx="8" fill="${w}"/>`),
+    '正方形': () => c(`<rect x="18" y="18" width="64" height="64" rx="8" fill="${w}"/>`),
+    '三角': () => c(`<polygon points="50,10 90,85 10,85" fill="${w}"/>`),
+    '三角形': () => c(`<polygon points="50,10 90,85 10,85" fill="${w}"/>`),
+    '水滴': () => c(`<path d="M50 8 C 62 28, 78 44, 78 62 A 28 28 0 1 1 22 62 C 22 44, 38 28, 50 8 Z" fill="${w}"/>`),
+    '菱形': () => c(`<polygon points="50,10 85,50 50,90 15,50" fill="${w}"/>`),
+    '十字': () => c(`<path d="M42 8 H58 V42 H92 V58 H58 V92 H42 V58 H8 V42 H42 Z" fill="${w}"/>`),
+    '心形': () => c(`<path d="M50 88 C 20 62, 8 46, 8 30 C 8 16, 20 8, 32 8 C 40 8, 47 13, 50 20 C 53 13, 60 8, 68 8 C 80 8, 92 16, 92 30 C 92 46, 80 62, 50 88 Z" fill="${w}"/>`),
+    '圆环': () => c(`<circle cx="50" cy="50" r="34" fill="none" stroke="${w}" stroke-width="10"/>`),
+  };
+  for (const [k, fn] of Object.entries(map)){ if (word.indexOf(k) >= 0) return fn(); }
+  return null; // 不认识的形状 → 兜底光球
+}
 function fallbackSummarize(block, convo){
   const t = convo || ''; const out = {};
   if (block==='创造'){
     const nm = t.match(/叫\s*([\u4e00-\u9fa5A-Za-z]{1,8})/); if (nm) out.name = nm[1];
-    if (/光斑|星星|圆球|方块|小蛇|小兔|光团|光点/.test(t)) out.shape = (t.match(/光斑|星星|圆球|方块|小蛇|小兔|光团|光点/)||[])[0];
+    // 形状文字 → SVG（AI 没生成时的规则兜底）
+    const svg = shapeSvg(t);
+    if (svg) out.shape = svg;
     const bl = t.match(/[""]([^""]+)[""]/); if (bl) out.blurb = bl[1];
   }
   if (block==='交流'){
@@ -455,6 +485,14 @@ function injectVisuals(){
 }
 function payload(){
   injectVisuals();
+  // 没画草图但有形状 → 用它当身体贴图（SVG 直接转 data URL；中文形状词先用规则生成 SVG）
+  const sk = state.skill.创造;
+  if (!sk.sketch && sk.shape){
+    let svg = null;
+    if (typeof sk.shape === 'string' && sk.shape.indexOf('<svg') === 0) svg = sk.shape;
+    else if (typeof sk.shape === 'string') svg = shapeSvg(sk.shape);
+    if (svg) sk.sketch = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg)));
+  }
   return { name: state.skill.创造.name || ('生命·'+state.studentId), hue: hue(),
     dims: normalizeDims(), skill: state.skill, creator:'学员', studentId: state.studentId };
 }
