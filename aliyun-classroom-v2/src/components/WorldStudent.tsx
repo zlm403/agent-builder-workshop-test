@@ -8,6 +8,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { findTip } from '@/lib/world/tips';
 import { api } from '@/lib/basePath';
+import { SPEC_BLOCKS, type LifeSpec, type SpecBlockKey, mergeSpec } from '@/lib/world/spec';
 
 interface MyLife {
   id: string;
@@ -136,7 +137,7 @@ export default function WorldStudent({
     }
   }
 
-  async function enterWorld() {
+  async function enterWorld(spec?: LifeSpec) {
     if (busy || locked) return;
     setBusy(true);
     setMsg('');
@@ -151,6 +152,7 @@ export default function WorldStudent({
           version,
           text: lifeText,
           shape: aiShape || undefined,
+          spec,
         }),
       });
       const d = await res.json();
@@ -274,7 +276,7 @@ export default function WorldStudent({
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
                 <button className="secondary" onClick={() => setCreateStep('idle')}>重来</button>
-                <button className="primary" disabled={busy || locked} onClick={enterWorld}>
+                <button className="primary" disabled={busy || locked} onClick={() => enterWorld(undefined)}>
                   {busy ? '…' : '✨ 确认创造，进入世界'}
                 </button>
               </div>
@@ -345,6 +347,16 @@ export default function WorldStudent({
           </>
         )}
       </div>
+
+      {/* ===== 六块设计（方案 A：逐块定义表现规格） ===== */}
+      <SixBlockDesign
+        anonymousId={anonymousId}
+        name={my?.name || aiName}
+        color={my?.color || aiColor}
+        version={version}
+        locked={locked}
+        onCommit={(spec) => enterWorld(spec)}
+      />
     </div>
   );
 }
@@ -390,4 +402,157 @@ function actionLabel(a: string): string {
     sleeping: '休眠',
   };
   return map[a] ?? a;
+}
+
+// =========================================================
+// 六块设计：学生逐块跟 AI 聊，AI 生成该块的表现规格片段，合并后提交。
+// 每块独立对话 → extract 生成片段 → 六块完成 → mergeSpec → 提交。
+// =========================================================
+
+function blockLabel(key: SpecBlockKey): string {
+  const map: Record<string, string> = {
+    create: '创造', social: '交流', react: '反应',
+    resource: '资源', trend: '潮流', grow: '成长',
+  };
+  return map[key] ?? key;
+}
+
+// 片段 → 学生可读的摘要文本
+function describePart(key: SpecBlockKey, spec: Partial<LifeSpec>): string {
+  const parts: string[] = [];
+  const actionText = (acts: unknown, fallback: string): string => {
+    if (!Array.isArray(acts) || acts.length === 0) return fallback;
+    const names: Record<string, string> = {
+      emitSelf: '吐小星星', lightLink: '光带连线', miniSelf: '飞出缩小版自己',
+      scale: '缩放', dim: '变暗', glow: '发光', jitter: '抖动', flash: '闪光',
+      bubble: '冒泡', cry: '掉泪', dance: '转圈', fade: '飘散',
+      orbit: '绕行', nuzzle: '蹭一蹭', approach: '主动靠近', avoid: '躲开',
+    };
+    return acts.map((a) => (a as { do?: string }).do ? names[(a as { do: string }).do] ?? (a as { do: string }).do : '').filter(Boolean).join('、');
+  };
+  if (key === 'social') parts.push(`相遇：${actionText(spec.onMeet, '光带连线')}`);
+  if (key === 'social' && spec.onWave?.length) parts.push(`交流：${actionText(spec.onWave, '主动靠近')}`);
+  if (key === 'react') parts.push(`受击：${actionText(spec.onHit, '抖动')}`);
+  if (key === 'resource') parts.push(`吃资源：${actionText(spec.onResource, '发光')}`);
+  if (key === 'trend' && spec.mood) {
+    const moods = Object.entries(spec.mood).map(([k, v]) => `${k}→${v === 'avoid' ? '躲开' : v === 'approach' ? '靠近' : v}`);
+    if (moods.length) parts.push(`心情：${moods.join('、')}`);
+  }
+  if (key === 'grow') parts.push(`长大：${actionText(spec.onGrow, '变大')}；消失：${actionText(spec.onDeath, '飘散')}`);
+  return parts.join('；') || '（默认表现）';
+}
+
+function SixBlockDesign({
+  anonymousId, name, color, version, locked, onCommit,
+}: {
+  anonymousId: string;
+  name: string;
+  color: string;
+  version: number;
+  locked: boolean;
+  onCommit: (spec: LifeSpec) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [activeKey, setActiveKey] = useState<SpecBlockKey>('create');
+  const [parts, setParts] = useState<Partial<Record<SpecBlockKey, Partial<LifeSpec>>>>({});
+  const [input, setInput] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const [done, setDone] = useState('');
+
+  const doneCount = SPEC_BLOCKS.filter((b) => parts[b.key]).length;
+
+  async function askBlock() {
+    const text = input.trim();
+    if (!text || busy || locked) return;
+    setBusy(true);
+    setError('');
+    try {
+      const res = await fetch(api('/api/a3/llm'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          extract: true,
+          block: activeKey,
+          convo: text,
+          fields: parts,
+        }),
+      });
+      const d = await res.json();
+      if (!d.ok) {
+        setError(d.error || 'AI 没有返回，稍后再试');
+      } else {
+        setParts((p) => ({ ...p, [activeKey]: (d.spec && Object.keys(d.spec).length ? d.spec : undefined) }));
+        setInput('');
+        setDone(d.followup ? `已生成。${d.followup}` : `✅「${blockLabel(activeKey)}」设定已生成。`);
+      }
+    } catch {
+      setError('网络问题，稍后再试');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function commitAll() {
+    if (busy || locked) return;
+    const spec = mergeSpec(SPEC_BLOCKS.map((b) => parts[b.key]).filter(Boolean) as Partial<LifeSpec>[]);
+    await onCommit(spec);
+    setDone('🚀 六块设定已合并提交，新版本已生效！');
+    setOpen(false);
+  }
+
+  return (
+    <div className="card" style={{ padding: 14 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+        <span style={{ fontWeight: 700 }}>🧩 六块设计 · 让它的表现完全像你</span>
+        <button className="secondary" style={{ fontSize: 12 }} onClick={() => setOpen(!open)}>{open ? '收起' : '打开'}</button>
+      </div>
+      <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 8 }}>
+        按「创造 / 交流 / 反应 / 资源 / 潮流 / 成长」六块，逐块告诉 AI 你的生命会怎么表现。已完成 {doneCount}/6。
+      </div>
+      {open && (
+        <>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
+            {SPEC_BLOCKS.map((b) => {
+              const has = !!parts[b.key];
+              return (
+                <button key={b.key}
+                  className={activeKey === b.key ? 'primary' : 'secondary'}
+                  style={{ fontSize: 12, padding: '6px 10px' }}
+                  onClick={() => { setActiveKey(b.key); setInput(''); setDone(''); }}>
+                  {b.title}{has ? ' ✓' : ''}
+                </button>
+              );
+            })}
+          </div>
+
+          <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 8 }}>
+            <b>{blockLabel(activeKey)}</b> · {SPEC_BLOCKS.find((b) => b.key === activeKey)?.desc}
+          </div>
+
+          {parts[activeKey] && (
+            <div style={{ padding: 9, background: 'rgba(34,197,94,0.1)', borderRadius: 8, fontSize: 13, marginBottom: 8 }}>
+              <b>当前设定：</b>{describePart(activeKey, parts[activeKey]!)}
+            </div>
+          )}
+
+          <div style={{ display: 'flex', gap: 8 }}>
+            <input value={input} onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') askBlock(); }}
+              placeholder={`告诉我它${SPEC_BLOCKS.find((b) => b.key === activeKey)?.desc.replace('它', '') ?? ''}…`} />
+            <button className="primary" disabled={busy || locked || !input.trim()} onClick={askBlock}>
+              {busy ? '…' : '生成'}
+            </button>
+          </div>
+
+          {error && <p style={{ color: 'var(--red)', fontSize: 12, margin: '8px 0 0' }}>{error}</p>}
+          {done && <p style={{ color: 'var(--green)', fontSize: 12, margin: '8px 0 0' }}>{done}</p>}
+
+          <button className="primary" style={{ width: '100%', marginTop: 12 }} disabled={busy || locked || doneCount === 0} onClick={commitAll}>
+            🚀 合并六块设定并提交我的生命
+          </button>
+        </>
+      )}
+    </div>
+  );
 }
