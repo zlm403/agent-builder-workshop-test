@@ -591,7 +591,9 @@ function applyWorldReaction(life, stim){
 
   if (stim.kind === 'collision'){
     const ev = stim.source;
-    const txt = decidePersonality(life, ev);
+    let txt;
+    if (life.behavior) { queueHit(life, ev); txt = life.name + '被撞'; }
+    else txt = decidePersonality(life, ev);
     // 属性取舍：固定池之外，强项天然伴随代价 → 公平（基于 100 点制，系数封底不为负）
     let dmg = 8;
     dmg *= (1 + a.brave/100 * 1.5);                 // 越勇敢越可能被吞噬
@@ -792,35 +794,146 @@ function decidePersonality(life, ev){
 }
 
 /* ============================ 感知层（生命体“看见”事件/气候） ============================ */
+// —— Behavior v1 决策核常量（07 决策核规格冻结值）——
+const HURT_E = 30, HELP_RANGE = 40, HELP_GAIN = 15, CROWDED_N = 2;
+
 function perceive(life){
-  const sense = life.sense * (1 + life.attrs.perception/100 * 2); // 感知属性决定感知半径
-  let danger = false, near = false;
-  let waveThreat = null, waveFront = null;
+  const sr = (life.behavior && life.behavior.body && life.behavior.body.senseRadius) ? life.behavior.body.senseRadius : 1;
+  const sense = 150 * sr * (1 + life.attrs.perception/100 * 2);
+  life.sense = sense;
+  const snap = { dangerNear:false, hitBy:false, strangerNear:false, friendHurt:false, friendThreatened:false, newThingNear:false, crowded:false, target:{} };
+  let danger = null, dangerD = 1e9, stranger = null, strangerD = 1e9, crowd = 0;
   for (const ev of world.events){
     if (ev.status !== 'active') continue;
     const d = dist(ev, life);
-    if (ev.eventType === 'bad_luck'){
-      if (d < sense){ near = true; if (d < sense*0.8) danger = true; }
-    } else if (ev.eventType === 'wave_event'){     // 浪潮专属大事件：明显的刺激源
-      if (d < sense){ near = true; waveThreat = { x:ev.x, y:ev.y, color:ev.color, d }; }
-    } else if (d < sense){ near = true; }
+    if (d < sense){
+      if (ev.eventType === 'bad_luck' || ev.eventType === 'wave_event'){ if (d < dangerD){ dangerD = d; danger = ev; } }
+      else { snap.newThingNear = true; if (!snap.target.newThingNear) snap.target.newThingNear = ev; }
+    }
   }
-  // 浪潮墙前沿压迫：谁都躲不掉，但近处会被推着走（可见反应）
   for (const w of world.waves){
     if (w.status !== 'sweeping') continue;
     const f = waveFrontInfo(w);
     const dl = (f.axis === 'x' ? life.x : life.y) - f.front;
     const dFront = Math.abs(dl);
-    if (dFront < sense && Math.sign(dl) === f.sign){     // 仅“逼近侧”且足够近才感到压迫
-      if (!waveFront || dFront < waveFront.d) waveFront = { w, d:dFront, axis:f.axis, sign:f.sign, front:f.front };
+    if (dFront < sense && Math.sign(dl) === f.sign){ if (!danger){ danger = { x:f.front, y:life.y, eventType:'wave' }; dangerD = dFront; } snap.dangerNear = true; if (!snap.target.dangerNear) snap.target.dangerNear = danger; }
+  }
+  if (danger){ snap.dangerNear = true; snap.target.dangerNear = danger; }
+  const ps = (life.behavior && life.behavior.body) ? life.behavior.body.personalSpace : 60;
+  for (const o of world.lives){
+    if (o === life) continue;
+    const d = dist(o, life);
+    if (d < sense){
+      const rel = life.relationships.some(r => r.with === o.id);
+      if (!rel){ if (d < strangerD){ strangerD = d; stranger = o; } snap.strangerNear = true; }
+      else {
+        if (o.energy < HURT_E){ snap.friendHurt = true; if (!snap.target.friendHurt || o.energy < snap.target.friendHurt.energy) snap.target.friendHurt = o; }
+        const od = dangerNearPoint(o, sense * 0.8);   // Q1 A：仅 sense 内伙伴，伙伴周边 sense*0.8
+        if (od){ snap.friendThreatened = true; snap.target.friendThreatened = od; }
+      }
+    }
+    if (d < ps) crowd++;
+  }
+  if (crowd >= CROWDED_N){ snap.crowded = true; snap.target.crowded = stranger || nearestLife(life); }
+  if (stranger) snap.target.strangerNear = stranger;
+  if (snap.newThingNear && !snap.target.newThingNear) snap.target.newThingNear = nearestEvent(life);
+  if (life._hitBy && now() - life._hitBy.t < 400){ snap.hitBy = true; snap.target.hitBy = life._hitBy.ev; }
+  life.snap = snap;
+  // 兼容 legacy lifeWaveReact（老师生命用）
+  life.waveThreat = (danger && danger.eventType === 'wave_event') ? danger : null;
+  life.waveFront  = (danger && danger.eventType === 'wave') ? { w:{ color:'#fff' }, d:dangerD, axis:'y', sign:1, front:0 } : null;
+  life.waveAlertColor = life.waveThreat ? life.waveThreat.color : (life.waveFront ? '#fff' : null);
+  life.waveAlert  = life.waveThreat ? now() + 600 : (life.waveFront ? now() + 400 : 0);
+  if (snap.dangerNear) life.alert = now() + 500;
+  if (snap.dangerNear && life.state === 'wandering') life.state = 'observing';
+}
+function dangerNearPoint(lf, radius){
+  for (const ev of world.events){ if (ev.status === 'active' && (ev.eventType === 'bad_luck' || ev.eventType === 'wave_event')){ if (dist(ev, lf) < radius) return ev; } }
+  for (const w of world.waves){ if (w.status !== 'sweeping') continue; const f = waveFrontInfo(w); const dl = (f.axis === 'x' ? lf.x : lf.y) - f.front; if (Math.abs(dl) < radius && Math.sign(dl) === f.sign) return { x:f.front, y:lf.y }; }
+  return null;
+}
+function nearestLife(lf){ let best = null, bd = 1e9; for (const o of world.lives){ if (o === lf) continue; const d = dist(o, lf); if (d < bd){ bd = d; best = o; } } return best; }
+function nearestEvent(lf){ let best = null, bd = 1e9; for (const ev of world.events){ if (ev.status !== 'active') continue; const d = dist(ev, lf); if (d < bd){ bd = d; best = ev; } } return best; }
+
+/* ============ 统一行为决策核（Behavior v1 落地，替换 decidePersonality/lifeWaveReact/lifeAI 的决策分支） ============ */
+function queueHit(life, ev){ life._hitBy = { ev: ev, t: now() }; }
+function inSense(life, tgt){ return dist(life, tgt) < (life.sense || 150); }
+function firstHigherRule(life, snap){
+  if (!life.lockedRule) return null;
+  const idx = life.behavior.rules.indexOf(life.lockedRule);
+  for (let i = 0; i < idx; i++){ const r = life.behavior.rules[i]; if (snap[r.when]) return r; }
+  return null;
+}
+function nearestBuddy(life){ let best = null, bd = 1e9; for (const o of world.lives){ if (o === life) continue; if (life.relationships.some(r => r.with === o.id)){ const d = dist(o, life); if (d < bd){ bd = d; best = o; } } } return best; }
+function setBehaviorState(life, st, msg){ if (life.state === st) return; life.state = st; if (now() - (life.lastBehaviorReact || 0) > 2500){ life.lastBehaviorReact = now(); floatText(life.x, life.y - 18, msg, life.color || '#fff'); } }
+function execDo(life, do_, tgt){
+  const sp = (life.behavior && life.behavior.body.speedMul) ? life.behavior.body.speedMul : 1;
+  switch (do_){
+    case 'flee': { const a = Math.atan2(life.y - tgt.y, life.x - tgt.x); life.vx = Math.cos(a) * 2.0; life.vy = Math.sin(a) * 2.0; life.blowUntil = now() + 1200; setBehaviorState(life, 'fleeing', '快速逃离'); break; }
+    case 'retreat': { const a = Math.atan2(life.y - tgt.y, life.x - tgt.x); const s = 1.0 * sp; life.vx += (Math.cos(a) * s - life.vx) * 0.12; life.vy += (Math.sin(a) * s - life.vy) * 0.12; setBehaviorState(life, 'retreating', '慢慢后退'); break; }
+    case 'observe': { life.dwellUntil = now() + (life.behavior.body.dwellSec || 2) * 1000; life.currentTarget = tgt; life.vx *= 0.1; life.vy *= 0.1; setBehaviorState(life, 'observing', '凑近观察'); break; }
+    case 'approach': { const a = Math.atan2(tgt.y - life.y, tgt.x - life.x); const s = 0.6 * sp; life.vx += (Math.cos(a) * s - life.vx) * 0.06; life.vy += (Math.sin(a) * s - life.vy) * 0.06; setBehaviorState(life, 'approaching', '靠近'); break; }
+    case 'help': {
+      if (dist(life, tgt) < HELP_RANGE){ life.energy = clamp(life.energy - HELP_GAIN, 0, 100); tgt.energy = clamp(tgt.energy + HELP_GAIN, 0, 100); playSkillPrimitive(life, 'help', { to: tgt }); setBehaviorState(life, 'helping', '帮助伙伴'); }
+      else { const a = Math.atan2(tgt.y - life.y, tgt.x - life.x); const s = 1.2 * sp; life.vx += (Math.cos(a) * s - life.vx) * 0.08; life.vy += (Math.sin(a) * s - life.vy) * 0.08; setBehaviorState(life, 'helping', '跑去帮助'); }
+      break; }
+    case 'confront': { const a = Math.atan2(tgt.y - life.y, tgt.x - life.x); const s = 1.4 * sp; life.vx += (Math.cos(a) * s - life.vx) * 0.10; life.vy += (Math.sin(a) * s - life.vy) * 0.10; life.blowUntil = now() + 800; setBehaviorState(life, 'confronting', '迎向威胁'); break; }
+    case 'gather': { const p = nearestBuddy(life); if (p){ const a = Math.atan2(p.y - life.y, p.x - life.x); const s = 0.9 * sp; life.vx += (Math.cos(a) * s - life.vx) * 0.07; life.vy += (Math.sin(a) * s - life.vy) * 0.07; setBehaviorState(life, 'gathering', '聚向伙伴'); } break; }
+  }
+}
+function wander(life, snap){
+  const b = life.behavior; if (!b) return;
+  let best = null, bestScore = -1e9;
+  for (const e of allEntities()){
+    if (e === life) continue;
+    const d = dist(e, life); if (d > life.sense) continue;
+    let w = 0;
+    if (e.type === 'life') w = b.seek.people;
+    else if (e.type === 'resource') w = b.seek.resources;
+    else if (e.type === 'event' || e.type === 'creation' || e.type === 'target') w = b.seek.events;
+    else continue;
+    const score = w * (1 - d / life.sense);
+    if (score > bestScore){ bestScore = score; best = e; }
+  }
+  if (best && bestScore > 0){
+    const a = Math.atan2(best.y - life.y, best.x - life.x); const s = 0.5 * b.body.speedMul;
+    life.vx += (Math.cos(a) * s - life.vx) * 0.05; life.vy += (Math.sin(a) * s - life.vy) * 0.05; life.state = 'wandering';
+  } else {
+    let nb = null, nd = 1e9; for (const e of allEntities()){ if (e === life) continue; const d = dist(e, life); if (d < nd){ nd = d; nb = e; } }
+    if (nb && nd < life.sense * 1.5){ const a = Math.atan2(nb.y - life.y, nb.x - life.x); life.vx += (Math.cos(a) * 0.4 - life.vx) * 0.03; life.vy += (Math.sin(a) * 0.4 - life.vy) * 0.03; }
+    else { const a = rand(0, Math.PI * 2); life.vx += (Math.cos(a) * 0.3 - life.vx) * 0.02; life.vy += (Math.sin(a) * 0.3 - life.vy) * 0.02; }
+    life.state = 'wandering';
+  }
+}
+function runBehavior(life, dt){
+  if (!life.behavior) return;
+  if (now() < life.reactUntil) return;
+  const snap = life.snap || perceive(life);
+  if (life.delayUntil){
+    if (now() < life.delayUntil){
+      const hi = firstHigherRule(life, snap);
+      if (hi){ life.lockedRule = hi; life.lockedTarget = snap.target[hi.when] || null; }
+      return;
+    }
+    if (life.lockedTarget && inSense(life, life.lockedTarget)) execDo(life, life.lockedRule.do, life.lockedTarget);
+    life.delayUntil = 0; life.lockedRule = null; life.lockedTarget = null;
+    return;
+  }
+  let matched = false;
+  for (const r of life.behavior.rules){
+    if (snap[r.when]){
+      const tgt = snap.target[r.when] || null;
+      matched = true;
+      if (life.behavior.body.reactionDelaySec > 0 && tgt){ life.delayUntil = now() + life.behavior.body.reactionDelaySec * 1000; life.lockedRule = r; life.lockedTarget = tgt; }
+      else if (tgt) execDo(life, r.do, tgt);
+      if (r.when === 'hitBy' && life.behavior.body.temperSec > 0){ life.angryUntil = now() + life.behavior.body.temperSec * 1000; life.angryDo = r.do; }
+      return;
     }
   }
-  life.waveThreat = waveThreat;
-  life.waveFront  = waveFront;
-  life.waveAlertColor = waveThreat ? waveThreat.color : (waveFront ? waveFront.w.color : null);
-  life.waveAlert  = waveThreat ? now() + 600 : (waveFront ? now() + 400 : 0);
-  if (danger) life.alert = now() + 500;          // 红色警示环（危险：倒霉事件）
-  if (near && life.state === 'wandering') life.state = 'observing';
+  if (!matched && life.angryUntil && now() < life.angryUntil && snap.strangerNear && snap.target.strangerNear){
+    execDo(life, life.angryDo || 'confront', snap.target.strangerNear); return;
+  }
+  wander(life, snap);
 }
 // 浪潮前沿信息：推进轴、当前前沿坐标、以及“逼近侧”的方向符号
 function waveFrontInfo(w){
@@ -1442,9 +1555,11 @@ function update(dt, t){
     }
   }
 
-  for (const l of world.lives) perceive(l);   // 生命体先感知附近事件/气候
-  for (const l of world.lives) lifeAI(l, dt);
-  for (const l of world.lives) lifeWaveReact(l, dt);   // 再对浪潮/专属事件做出明显反应
+  for (const l of world.lives) perceive(l);   // 所有生命感知（重写版构建 snap + waveThreat 兼容）
+  for (const l of world.lives){
+    if (l.behavior) runBehavior(l, dt);          // 学生创意生命走统一决策核（Behavior v1）
+    else { lifeAI(l, dt); lifeWaveReact(l, dt); }   // 老师/演示生命走 legacy tags 逻辑（失败退白板）
+  }
   // 粒子团跟随中心运动 + 行为粒子流（太阳风/吞噬/反应/情绪/连接/成长）
   for (const l of world.lives){
     updateParticles(l);
@@ -2072,6 +2187,7 @@ function makeCustomLife(opts){
     dims: opts.dims || null, skill: opts.skill || null,
     creator: opts.creator || '缸', studentId: opts.studentId || null
   });
+  l.behavior = opts.behavior || null;   // 学生创意行为（v1，由 /api/a3/behavior 产出；null=退白板 legacy）
   l.hue = hue;                       // 覆盖 makeLife 里 hexToHue(undefined) 产生的错误 hue（修复学生生命全红）
   l.color = `hsl(${hue},78%,62%)`;   // 同时补上 body 颜色，供光晕/染色使用
   return l;
@@ -2095,6 +2211,7 @@ function spawnStudentLife(payload){
   const l = makeCustomLife({
     name: payload.name || '学员生命',
     hue: payload.hue != null ? payload.hue : Math.floor(Math.random()*360),
+    behavior: payload.behavior || null,
     dims: (payload.dims && Object.keys(payload.dims).length) ? payload.dims : { 生机:100 },
     skill: payload.skill || null,
     creator: payload.creator || '学员',
