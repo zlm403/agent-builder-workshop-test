@@ -28,6 +28,7 @@ export async function POST(req: NextRequest) {
     skill: body.skill,
     creator: body.creator || '学员',
     studentId: body.studentId,
+    behavior: body.behavior || null, // 学生六块设计 → 行为说明书（v1）；null=退大屏 legacy 逻辑
     bornAt: Date.now(),
   };
   lives.set(body.studentId, rec);

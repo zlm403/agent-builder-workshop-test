@@ -91,6 +91,11 @@ body{ margin:0; font-family:"PingFang SC",system-ui,sans-serif; color:var(--text
   </div>
 
   <div id="studio" class="hidden">
+    <div id="tipBar" class="card" style="border:1px solid rgba(251,191,36,.35);background:rgba(251,191,36,.10);padding:12px 14px;border-radius:12px;margin-bottom:12px">
+      <div style="font-size:11px;color:#fbbf24;font-weight:700;letter-spacing:1px">当前任务</div>
+      <div id="tipTask" style="font-size:15px;font-weight:700;margin-top:2px">先造一个生命，让它进入世界</div>
+      <div id="tipLines" style="font-size:13px;line-height:1.6;color:#e8e8e8;margin-top:6px"></div>
+    </div>
     <div class="chat" id="chat"></div>
     <div class="chat-input">
       <input id="say" placeholder="说点什么…（混沌一点也没关系）" />
@@ -525,7 +530,15 @@ function materializeShape(){
 async function submit(){
   if(!state.locked['创造']){ document.getElementById('status').textContent='请先把「创造」块定下来（聊完点 ✓ 定下来），再进入世界。'; return; }
   await materializeShape();   // 关键：等 SVG 形状转成 PNG 后再提交（否则异步 onload 赶不上）
+  // 生成行为说明书（六块 → behavior v1）；失败不阻断，behavior=null 时大屏走 legacy 兜底
+  let behavior = null;
+  try {
+    const br = await fetch(apiPath('/api/a3/behavior'), { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ sixBlocks: state.skill }) });
+    const bj = await br.json().catch(() => null);
+    if (bj && bj.ok && bj.behavior) behavior = bj.behavior;
+  } catch(_) { behavior = null; }
   const p=payload();
+  p.behavior = behavior;
   const s=state.skill.创造;
   addMsg('ai','已提交：'+(s.name||'未命名')+' ｜ 形状：'+s.shape+(s.sketch?'（带草图）':'')+' ｜ 维度：'+JSON.stringify(p.dims)+'。已进入共生缸世界…');
   try{ window.__bc && window.__bc.postMessage({type:'sym-submit', payload:p}); }catch(_){}
